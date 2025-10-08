@@ -85,6 +85,11 @@ export default function TestPage() {
   const [uploading, setUploading] = useState(false);
   const [currentUploadKey, setCurrentUploadKey] = useState<string>('');
 
+  // File delete confirmation states
+  const [deleteFileConfirmOpen, setDeleteFileConfirmOpen] = useState(false);
+  const [deleteFileId, setDeleteFileId] = useState<number | null>(null);
+  const [deletingFile, setDeletingFile] = useState(false);
+
   // Fetch data from API
   useEffect(() => {
     const fetchData = async () => {
@@ -263,10 +268,17 @@ export default function TestPage() {
     }
   };
 
-  // Handle file delete
-  const handleFileDelete = async (fileId: number) => {
-    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบไฟล์นี้?')) return;
+  // Handle file delete click
+  const handleFileDeleteClick = (fileId: number) => {
+    setDeleteFileId(fileId);
+    setDeleteFileConfirmOpen(true);
+  };
 
+  // Handle file delete confirm
+  const handleFileDeleteConfirm = async () => {
+    if (!deleteFileId) return;
+
+    setDeletingFile(true);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_PATH}${API_DELETE_FILE}`, {
         method: 'DELETE',
@@ -274,7 +286,7 @@ export default function TestPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          id: fileId,
+          id: deleteFileId,
           menu: MENU,
           uid: UID,
         }),
@@ -283,13 +295,17 @@ export default function TestPage() {
       const result = await response.json();
 
       if (result.success) {
-        setAttachments((prev) => prev.filter((file) => file.id !== fileId));
+        setAttachments((prev) => prev.filter((file) => file.id !== deleteFileId));
+        setDeleteFileConfirmOpen(false);
+        setDeleteFileId(null);
         toast.success(result.message || 'ลบไฟล์สำเร็จ');
       } else {
         toast.error(result.message || 'เกิดข้อผิดพลาดในการลบ');
       }
     } catch (err: any) {
       toast.error('ไม่สามารถเชื่อมต่อ API ได้: ' + err.message);
+    } finally {
+      setDeletingFile(false);
     }
   };
 
@@ -465,7 +481,7 @@ export default function TestPage() {
                             </Badge>
                           </td>
                           <td className="px-4 py-4 text-sm text-slate-600">
-                            {item.create_date || '-'}
+                            {item.create_date_formatted || item.create_date || '-'}
                           </td>
                           <td className="px-4 py-4">
                             <div className="flex gap-2">
@@ -657,7 +673,7 @@ export default function TestPage() {
                           href={file.file_path}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block w-full h-full flex items-center justify-center"
+                          className="block w-full h-full flex items-center justify-center bg-black rounded-md overflow-hidden"
                         >
                           <img
                             src={file.file_path}
@@ -667,7 +683,7 @@ export default function TestPage() {
                         </a>
                         <button
                           type="button"
-                          onClick={() => handleFileDelete(file.id)}
+                          onClick={() => handleFileDeleteClick(file.id)}
                           className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
                         >
                           <X className="w-4 h-4" />
@@ -750,7 +766,7 @@ export default function TestPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-slate-500 text-sm">วันที่สร้าง</Label>
-                  <p className="text-slate-900 text-sm">{viewData.create_date || '-'}</p>
+                  <p className="text-slate-900 text-sm">{viewData.create_date_formatted || viewData.create_date || '-'}</p>
                 </div>
                 <div>
                   <Label className="text-slate-500 text-sm">สร้างโดย</Label>
@@ -762,7 +778,7 @@ export default function TestPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-slate-500 text-sm">วันที่แก้ไข</Label>
-                    <p className="text-slate-900 text-sm">{viewData.update_date || '-'}</p>
+                    <p className="text-slate-900 text-sm">{viewData.update_date_formatted || viewData.update_date || '-'}</p>
                   </div>
                   <div>
                     <Label className="text-slate-500 text-sm">แก้ไขโดย</Label>
@@ -781,7 +797,7 @@ export default function TestPage() {
                           href={file.file_path}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block w-full h-full flex items-center justify-center"
+                          className="block w-full h-full flex items-center justify-center bg-black rounded-md overflow-hidden"
                         >
                           <img
                             src={file.file_path}
@@ -805,6 +821,36 @@ export default function TestPage() {
               onClick={() => setViewModalOpen(false)}
             >
               ปิด
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete File Confirmation Dialog */}
+      <Dialog open={deleteFileConfirmOpen} onOpenChange={setDeleteFileConfirmOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>ยืนยันการลบไฟล์</DialogTitle>
+            <DialogDescription>
+              คุณแน่ใจหรือไม่ว่าต้องการลบไฟล์นี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteFileConfirmOpen(false)}
+              disabled={deletingFile}
+            >
+              ยกเลิก
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleFileDeleteConfirm}
+              disabled={deletingFile}
+            >
+              {deletingFile ? 'กำลังลบ...' : 'ลบ'}
             </Button>
           </DialogFooter>
         </DialogContent>

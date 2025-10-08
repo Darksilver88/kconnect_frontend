@@ -9,9 +9,11 @@ import {
   Users,
   Settings,
   List,
-  X
+  X,
+  Receipt
 } from 'lucide-react';
 import { UserMenu } from '@/components/user-menu';
+import { useState } from 'react';
 
 const menuItems = [
   {
@@ -20,19 +22,25 @@ const menuItems = [
     icon: LayoutDashboard
   },
   {
-    title: 'จัดการบิล',
-    href: '/billing',
-    icon: FileText
+    title: 'ค่าใช้จ่าย',
+    icon: Receipt,
+    submenu: [
+      {
+        title: 'จัดการบิล',
+        href: '/billing',
+        icon: FileText
+      },
+      {
+        title: 'ทดสอบหน้าลิส',
+        href: '/test',
+        icon: List
+      }
+    ]
   },
   {
     title: 'จัดการทะเบียน',
     href: '/resident',
     icon: Users
-  },
-  {
-    title: 'ทดสอบหน้าลิส',
-    href: '/test',
-    icon: List
   },
   {
     title: 'ตั้งค่า',
@@ -48,6 +56,7 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
 
   return (
     <>
@@ -82,15 +91,74 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
         {/* Menu - scrollable */}
         <nav className="p-4 flex-1 overflow-y-auto">
-          <ul className="space-y-2">
-            {menuItems.map((item) => {
+          <ul className="space-y-1">
+            {menuItems.map((item, index) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href;
+              const hasSubmenu = 'submenu' in item;
+              const isActive = item.href ? pathname === item.href : false;
+              const isSubmenuOpen = openSubmenu === item.title;
+              const isAnySubmenuActive = hasSubmenu && item.submenu?.some(sub => pathname === sub.href);
+
+              if (hasSubmenu) {
+                return (
+                  <li key={item.title}>
+                    <button
+                      onClick={() => setOpenSubmenu(isSubmenuOpen ? null : item.title)}
+                      className={cn(
+                        'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-medium',
+                        isAnySubmenuActive
+                          ? 'bg-blue-50 text-blue-600'
+                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                      )}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span className="flex-1 text-left">{item.title}</span>
+                      <svg
+                        className={cn(
+                          'w-4 h-4 transition-transform',
+                          isSubmenuOpen ? 'rotate-180' : ''
+                        )}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {isSubmenuOpen && (
+                      <ul className="mt-1 ml-4 space-y-1">
+                        {item.submenu?.map((subItem) => {
+                          const SubIcon = subItem.icon;
+                          const isSubActive = pathname === subItem.href;
+
+                          return (
+                            <li key={subItem.href}>
+                              <Link
+                                href={subItem.href}
+                                onClick={onClose}
+                                className={cn(
+                                  'flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm',
+                                  isSubActive
+                                    ? 'bg-blue-50 text-blue-600 border-l-3 border-l-blue-600 font-medium'
+                                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                                )}
+                              >
+                                <SubIcon className="w-4 h-4" />
+                                <span>{subItem.title}</span>
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </li>
+                );
+              }
 
               return (
                 <li key={item.href}>
                   <Link
-                    href={item.href}
+                    href={item.href!}
                     onClick={onClose}
                     className={cn(
                       'flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-medium',
