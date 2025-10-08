@@ -8,6 +8,7 @@ import {
   FileText,
   Users,
   Settings,
+  List,
   X
 } from 'lucide-react';
 import { UserMenu } from '@/components/user-menu';
@@ -27,6 +28,11 @@ const menuItems = [
     title: 'จัดการทะเบียน',
     href: '/resident',
     icon: Users
+  },
+  {
+    title: 'ทดสอบหน้าลิส',
+    href: '/test',
+    icon: List
   },
   {
     title: 'ตั้งค่า',
