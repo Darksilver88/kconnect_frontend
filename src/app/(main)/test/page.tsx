@@ -26,7 +26,9 @@ import { Label } from '@/components/ui/label';
 import { List, Eye, Edit, Trash2, X, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { LIMIT } from '@/config/constants';
-import { generateUploadKey } from '@/lib/utils';
+import { generateUploadKey, uploadFiles, deleteFile } from '@/lib/utils';
+import { ConfirmDialog } from '@/components/confirm-dialog';
+import { Pagination, PaginationSummary } from '@/components/pagination';
 
 // ตัวแปรคงที่
 const MENU = 'news';
@@ -38,8 +40,6 @@ const API_INSERT = 'news/insert';
 const API_UPDATE = 'news/update';
 const API_DELETE = 'news/delete';
 const API_DETAIL = 'news';
-const API_UPLOAD_FILE = 'upload_file';
-const API_DELETE_FILE = 'delete_file';
 
 export default function TestPage() {
   const { setSidebarOpen } = useSidebar();
@@ -227,36 +227,18 @@ export default function TestPage() {
 
     setUploading(true);
 
-    try {
-      const formData = new FormData();
-      formData.append('upload_key', uploadKey);
-      formData.append('menu', MENU);
-      formData.append('uid', String(UID));
+    const result = await uploadFiles(files, uploadKey, MENU, UID);
 
-      Array.from(files).forEach((file) => {
-        formData.append('files', file);
-      });
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_PATH}${API_UPLOAD_FILE}`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        setAttachments((prev) => [...prev, ...result.data.files]);
-        toast.success(result.message || 'อัปโหลดไฟล์สำเร็จ');
-        // Clear file input
-        e.target.value = '';
-      } else {
-        toast.error(result.message || 'เกิดข้อผิดพลาดในการอัปโหลด');
-      }
-    } catch (err: any) {
-      toast.error('ไม่สามารถเชื่อมต่อ API ได้: ' + err.message);
-    } finally {
-      setUploading(false);
+    if (result.success) {
+      setAttachments((prev) => [...prev, ...result.data.files]);
+      toast.success(result.message || 'อัปโหลดไฟล์สำเร็จ');
+      // Clear file input
+      e.target.value = '';
+    } else {
+      toast.error(result.message || 'เกิดข้อผิดพลาดในการอัปโหลด');
     }
+
+    setUploading(false);
   };
 
   // Handle file delete click
@@ -270,34 +252,19 @@ export default function TestPage() {
     if (!deleteFileId) return;
 
     setDeletingFile(true);
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_PATH}${API_DELETE_FILE}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: deleteFileId,
-          menu: MENU,
-          uid: UID,
-        }),
-      });
 
-      const result = await response.json();
+    const result = await deleteFile(deleteFileId, MENU, UID);
 
-      if (result.success) {
-        setAttachments((prev) => prev.filter((file) => file.id !== deleteFileId));
-        setDeleteFileConfirmOpen(false);
-        setDeleteFileId(null);
-        toast.success(result.message || 'ลบไฟล์สำเร็จ');
-      } else {
-        toast.error(result.message || 'เกิดข้อผิดพลาดในการลบ');
-      }
-    } catch (err: any) {
-      toast.error('ไม่สามารถเชื่อมต่อ API ได้: ' + err.message);
-    } finally {
-      setDeletingFile(false);
+    if (result.success) {
+      setAttachments((prev) => prev.filter((file) => file.id !== deleteFileId));
+      setDeleteFileConfirmOpen(false);
+      setDeleteFileId(null);
+      toast.success(result.message || 'ลบไฟล์สำเร็จ');
+    } else {
+      toast.error(result.message || 'เกิดข้อผิดพลาดในการลบ');
     }
+
+    setDeletingFile(false);
   };
 
   // Handle submit
@@ -388,12 +355,7 @@ export default function TestPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h3 className="text-xl font-bold text-slate-800">รายการข่าว</h3>
-            {pagination && (
-              <p className="text-sm text-slate-500 mt-1">
-                แสดง {((pagination.current_page - 1) * pagination.per_page) + 1}-
-                {Math.min(pagination.current_page * pagination.per_page, pagination.total)} จาก {pagination.total} รายการ
-              </p>
-            )}
+            <PaginationSummary pagination={pagination} />
           </div>
           <Button
             className="bg-blue-600 hover:bg-blue-700"
@@ -511,77 +473,25 @@ export default function TestPage() {
             </div>
 
             {/* Pagination */}
-            {pagination && pagination.total > 0 && (
-              <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-200">
-                <div className="text-sm text-slate-600">
-                  แสดง {((pagination.current_page - 1) * pagination.per_page) + 1}-
-                  {Math.min(pagination.current_page * pagination.per_page, pagination.total)} จาก {pagination.total} รายการ
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={!pagination.has_prev}
-                  >
-                    ← ก่อนหน้า
-                  </Button>
-                  {Array.from({ length: pagination.total_pages }, (_, i) => i + 1).map((page) => (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setCurrentPage(page)}
-                      className={currentPage === page ? 'bg-blue-600 hover:bg-blue-700' : ''}
-                    >
-                      {page}
-                    </Button>
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.min(pagination.total_pages, p + 1))}
-                    disabled={!pagination.has_next}
-                  >
-                    ถัดไป →
-                  </Button>
-                </div>
-              </div>
-            )}
+            <Pagination
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+              pagination={pagination}
+            />
           </>
         )}
         </Card>
       </div>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>ยืนยันการลบ</DialogTitle>
-            <DialogDescription>
-              คุณแน่ใจหรือไม่ว่าต้องการลบข่าวนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setDeleteConfirmOpen(false)}
-              disabled={deleting}
-            >
-              ยกเลิก
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleDeleteConfirm}
-              disabled={deleting}
-            >
-              {deleting ? 'กำลังลบ...' : 'ลบ'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        onConfirm={handleDeleteConfirm}
+        title="ยืนยันการลบ"
+        description="คุณแน่ใจหรือไม่ว่าต้องการลบข่าวนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้"
+        loading={deleting}
+      />
 
       {/* Insert/Update Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -818,34 +728,14 @@ export default function TestPage() {
       </Dialog>
 
       {/* Delete File Confirmation Dialog */}
-      <Dialog open={deleteFileConfirmOpen} onOpenChange={setDeleteFileConfirmOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>ยืนยันการลบไฟล์</DialogTitle>
-            <DialogDescription>
-              คุณแน่ใจหรือไม่ว่าต้องการลบไฟล์นี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setDeleteFileConfirmOpen(false)}
-              disabled={deletingFile}
-            >
-              ยกเลิก
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleFileDeleteConfirm}
-              disabled={deletingFile}
-            >
-              {deletingFile ? 'กำลังลบ...' : 'ลบ'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteFileConfirmOpen}
+        onOpenChange={setDeleteFileConfirmOpen}
+        onConfirm={handleFileDeleteConfirm}
+        title="ยืนยันการลบไฟล์"
+        description="คุณแน่ใจหรือไม่ว่าต้องการลบไฟล์นี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้"
+        loading={deletingFile}
+      />
     </div>
   );
 }
