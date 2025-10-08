@@ -1,0 +1,2560 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>การแจ้งเตือน - ระบบจัดการโครงการที่พักอาศัย</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- JavaScript ขึ้นไปใน head เพื่อให้ functions พร้อมใช้งานก่อน HTML -->
+    <script>
+        // ===== IMMEDIATE FUNCTION DECLARATIONS =====
+        
+        // Global variables
+        let currentTab = 'all';
+        let notifications = [];
+        
+        // Utility functions
+        function getTabDisplayName(tabName) {
+            const tabNames = {
+                'all': 'ทั้งหมด',
+                'sent': 'ส่งแล้ว',
+                'draft': 'แบบร่าง',
+                'scheduled': 'กำหนดการ'
+            };
+            return tabNames[tabName] || 'ทั้งหมด';
+        }
+
+        function formatThaiDate(date) {
+            const months = [
+                'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+            ];
+            
+            const d = new Date(date);
+            return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+        }
+
+        function validateForm() {
+            const title = document.getElementById('notificationTitle')?.value.trim();
+            const message = document.getElementById('notificationMessage')?.value.trim();
+            
+            if (!title) {
+                window.showToast('กรุณากรอกหัวข้อการแจ้งเตือน', 'warning');
+                document.getElementById('notificationTitle')?.focus();
+                return false;
+            }
+            
+            if (title.length < 5) {
+                window.showToast('หัวข้อต้องมีอย่างน้อย 5 ตัวอักษร', 'warning');
+                document.getElementById('notificationTitle')?.focus();
+                return false;
+            }
+            
+            if (!message) {
+                window.showToast('กรุณากรอกเนื้อหาการแจ้งเตือน', 'warning');
+                document.getElementById('notificationMessage')?.focus();
+                return false;
+            }
+            
+            if (message.length < 10) {
+                window.showToast('เนื้อหาต้องมีอย่างน้อย 10 ตัวอักษร', 'warning');
+                document.getElementById('notificationMessage')?.focus();
+                return false;
+            }
+            
+            return true;
+        }
+
+        function resetNotificationForm() {
+            const typeSelect = document.getElementById('notificationType');
+            const prioritySelect = document.getElementById('notificationPriority');
+            const titleInput = document.getElementById('notificationTitle');
+            const messageTextarea = document.getElementById('notificationMessage');
+            const allRadio = document.getElementById('allResidents');
+            const selector = document.getElementById('recipientSelector');
+            const nowRadio = document.getElementById('sendNow');
+            const scheduleInputs = document.getElementById('scheduleInputs');
+            
+            if (typeSelect) typeSelect.value = 'announcement';
+            if (prioritySelect) prioritySelect.value = 'normal';
+            if (titleInput) titleInput.value = '';
+            if (messageTextarea) messageTextarea.value = '';
+            if (allRadio) allRadio.checked = true;
+            if (selector) selector.style.display = 'none';
+            if (nowRadio) nowRadio.checked = true;
+            if (scheduleInputs) scheduleInputs.style.display = 'none';
+            
+            // Set current date and time
+            const now = new Date();
+            const dateInput = document.getElementById('scheduleDate');
+            const timeInput = document.getElementById('scheduleTime');
+            if (dateInput) dateInput.value = now.toISOString().split('T')[0];
+            if (timeInput) timeInput.value = now.toTimeString().slice(0, 5);
+        }
+
+        function createToastContainer() {
+            const container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.style.cssText = `
+                position: fixed;
+                bottom: 30px;
+                right: 30px;
+                z-index: 2000;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            `;
+            document.body.appendChild(container);
+            return container;
+        }
+
+        // ===== GLOBAL WINDOW FUNCTIONS =====
+        
+        // Toast system
+        window.showToast = function(message, type = 'info') {
+            try {
+                const toastContainer = document.getElementById('toastContainer') || createToastContainer();
+                
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                
+                const iconMap = {
+                    'success': 'fa-check',
+                    'info': 'fa-info',
+                    'warning': 'fa-exclamation-triangle',
+                    'error': 'fa-times'
+                };
+                
+                toast.innerHTML = `
+                    <div class="toast-content">
+                        <div class="toast-icon ${type}">
+                            <i class="fas ${iconMap[type] || 'fa-info'}"></i>
+                        </div>
+                        <div class="toast-message">${message.replace(/\n/g, '<br>')}</div>
+                        <button class="toast-close" type="button">&times;</button>
+                    </div>
+                `;
+                
+                toastContainer.appendChild(toast);
+                
+                // Show toast
+                setTimeout(() => {
+                    toast.classList.add('show');
+                }, 100);
+                
+                // Auto hide after 5 seconds
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        window.closeToast(toast.querySelector('.toast-close'));
+                    }
+                }, 5000);
+                
+            } catch (error) {
+                console.error('Error showing toast:', error);
+                alert(`${type.toUpperCase()}: ${message}`);
+            }
+        };
+
+        window.closeToast = function(button) {
+            try {
+                const toast = button.closest('.toast');
+                if (toast) {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            toast.parentNode.removeChild(toast);
+                        }
+                    }, 300);
+                }
+            } catch (error) {
+                console.error('Error closing toast:', error);
+            }
+        };
+        
+        // Tab switching
+        window.switchNotificationTab = function(tabName, event) {
+            try {
+                document.querySelectorAll('.notification-tab').forEach(tab => tab.classList.remove('active'));
+                if (event && event.target) {
+                    event.target.classList.add('active');
+                }
+                console.log(`แสดงการแจ้งเตือนประเภท: ${tabName}`);
+                window.showToast(`แสดงรายการ${getTabDisplayName(tabName)}`, 'info');
+            } catch (error) {
+                console.error('Error switching tab:', error);
+            }
+        };
+
+        // Modal functions
+        window.createNotification = function() {
+            try {
+                const modal = document.getElementById('notificationModal');
+                const title = document.getElementById('modalTitle');
+                
+                if (title) title.innerHTML = '<i class="fas fa-plus"></i> สร้างการแจ้งเตือนใหม่';
+                if (modal) modal.dataset.mode = 'create';
+                
+                resetNotificationForm();
+                
+                if (modal) modal.classList.add('active');
+                
+                console.log('Create notification modal opened');
+            } catch (error) {
+                console.error('Error creating notification:', error);
+                alert('เกิดข้อผิดพลาดในการเปิดฟอร์มสร้างการแจ้งเตือน');
+            }
+        };
+
+        window.createAnnouncement = function() {
+            try {
+                window.createNotification();
+                const typeSelect = document.getElementById('notificationType');
+                const titleInput = document.getElementById('notificationTitle');
+                
+                if (typeSelect) typeSelect.value = 'announcement';
+                if (titleInput) titleInput.placeholder = 'เช่น: ประกาศเรื่องสำคัญของโครงการ';
+                
+                console.log('Create announcement modal opened');
+            } catch (error) {
+                console.error('Error creating announcement:', error);
+            }
+        };
+
+        window.emergencyBroadcast = function() {
+            try {
+                window.createNotification();
+                const typeSelect = document.getElementById('notificationType');
+                const prioritySelect = document.getElementById('notificationPriority');
+                const titleInput = document.getElementById('notificationTitle');
+                
+                if (typeSelect) typeSelect.value = 'emergency';
+                if (prioritySelect) prioritySelect.value = 'urgent';
+                if (titleInput) titleInput.placeholder = 'เช่น: แจ้งเหตุฉุกเฉิน - ระบบไฟฟ้าขัดข้อง';
+                
+                console.log('Emergency broadcast modal opened');
+            } catch (error) {
+                console.error('Error creating emergency broadcast:', error);
+            }
+        };
+
+        window.editNotification = function(notificationId) {
+            try {
+                const modal = document.getElementById('notificationModal');
+                const title = document.getElementById('modalTitle');
+                
+                if (title) title.innerHTML = '<i class="fas fa-edit"></i> แก้ไขการแจ้งเตือน';
+                if (modal) {
+                    modal.dataset.mode = 'edit';
+                    modal.dataset.notificationId = notificationId;
+                }
+                
+                // Mock data
+                const mockData = {
+                    'not2': {
+                        type: 'billing',
+                        priority: 'high',
+                        title: 'บิลค่าส่วนกลางประจำเดือน ส.ค. 2025',
+                        message: 'เรียนลูกบ้านทุกท่าน บิลค่าส่วนกลางประจำเดือนสิงหาคม 2025 พร้อมส่งแล้ว กรุณาชำระภายในวันที่ 25/08/2025'
+                    },
+                    'not4': {
+                        type: 'announcement',
+                        priority: 'normal',
+                        title: 'แจ้งเปลี่ยนแปลงเวลาทำงาน รปภ.',
+                        message: 'เรียนลูกบ้านทุกท่าน เนื่องจากมีการปรับปรุงระบบรักษาความปลอดภัย เวลาทำงานของเจ้าหน้าที่รักษาความปลอดภัยจะเปลี่ยนแปลงเป็น 24 ชั่วโมง'
+                    },
+                    'not5': {
+                        type: 'announcement',
+                        priority: 'high',
+                        title: 'การประชุมใหญ่ประจำปี 2025',
+                        message: 'เรียนลูกบ้านทุกท่าน ขอเชิญเข้าร่วมการประชุมใหญ่ประจำปี 2025 ในวันเสาร์ที่ 15/08/2025 เวลา 13:00 น. ณ ห้องประชุมชั้น 2 เพื่อพิจารณาเรื่องสำคัญของนิติบุคคล'
+                    }
+                };
+                
+                const data = mockData[notificationId];
+                if (data) {
+                    const typeSelect = document.getElementById('notificationType');
+                    const prioritySelect = document.getElementById('notificationPriority');
+                    const titleInput = document.getElementById('notificationTitle');
+                    const messageTextarea = document.getElementById('notificationMessage');
+                    
+                    if (typeSelect) typeSelect.value = data.type;
+                    if (prioritySelect) prioritySelect.value = data.priority;
+                    if (titleInput) titleInput.value = data.title;
+                    if (messageTextarea) messageTextarea.value = data.message;
+                }
+                
+                if (modal) modal.classList.add('active');
+                
+                console.log(`Edit notification ${notificationId} modal opened`);
+            } catch (error) {
+                console.error('Error editing notification:', error);
+            }
+        };
+
+        window.closeNotificationModal = function() {
+            try {
+                const modal = document.getElementById('notificationModal');
+                if (modal) modal.classList.remove('active');
+                console.log('Modal closed');
+            } catch (error) {
+                console.error('Error closing modal:', error);
+            }
+        };
+
+        // Action functions
+        window.viewNotification = function(notificationId) {
+            try {
+                const titles = {
+                    'not1': 'แจ้งเตือน: ระบบน้ำจะหยุดชั่วคราว',
+                    'not2': 'บิลค่าส่วนกลางประจำเดือน ส.ค. 2025',
+                    'not3': 'ประกาศปิดสระว่ายน้ำเพื่อบำรุงรักษา',
+                    'not4': 'แจ้งเปลี่ยนแปลงเวลาทำงาน รปภ.',
+                    'not5': 'การประชุมใหญ่ประจำปี 2025'
+                };
+                
+                const title = titles[notificationId] || 'การแจ้งเตือน';
+                window.showToast(`กำลังเปิดดู: ${title}`, 'info');
+                
+                setTimeout(() => {
+                    alert(`รายละเอียดการแจ้งเตือน\n\nID: ${notificationId}\nหัวข้อ: ${title}\n\n(ในระบบจริงจะแสดง Modal รายละเอียดแบบเต็ม พร้อมสถิติการอ่าน)`);
+                }, 500);
+            } catch (error) {
+                console.error('Error viewing notification:', error);
+            }
+        };
+
+        window.resendNotification = function(notificationId) {
+            try {
+                if (confirm('คุณแน่ใจว่าต้องการส่งการแจ้งเตือนนี้ซ้ำ?')) {
+                    setTimeout(() => {
+                        window.showToast('ส่งการแจ้งเตือนซ้ำเรียบร้อยแล้ว', 'success');
+                    }, 1000);
+                }
+            } catch (error) {
+                console.error('Error resending notification:', error);
+            }
+        };
+
+        window.sendNotification = function(notificationId) {
+            try {
+                if (confirm('คุณแน่ใจว่าต้องการส่งการแจ้งเตือนนี้?')) {
+                    setTimeout(() => {
+                        window.showToast('ส่งการแจ้งเตือนเรียบร้อยแล้ว', 'success');
+                    }, 1000);
+                }
+            } catch (error) {
+                console.error('Error sending notification:', error);
+            }
+        };
+
+        window.deleteNotification = function(notificationId) {
+            try {
+                if (confirm('คุณแน่ใจว่าต้องการลบการแจ้งเตือนนี้?\n\nการดำเนินการนี้ไม่สามารถย้อนกลับได้')) {
+                    setTimeout(() => {
+                        window.showToast('ลบการแจ้งเตือนเรียบร้อยแล้ว', 'success');
+                    }, 500);
+                }
+            } catch (error) {
+                console.error('Error deleting notification:', error);
+            }
+        };
+
+        // Search and filter
+        window.searchNotifications = function(event) {
+            try {
+                const searchTerm = event.target.value.toLowerCase();
+                const notifications = document.querySelectorAll('.notification-item');
+                
+                notifications.forEach(notification => {
+                    const text = notification.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        notification.style.display = '';
+                    } else {
+                        notification.style.display = 'none';
+                    }
+                });
+                
+                if (searchTerm) {
+                    window.showToast(`ค้นหา: "${event.target.value}"`, 'info');
+                }
+            } catch (error) {
+                console.error('Error searching notifications:', error);
+            }
+        };
+
+        window.filterNotifications = function(event) {
+            try {
+                const filterType = event.target.value;
+                const notifications = document.querySelectorAll('.notification-item');
+                
+                notifications.forEach(notification => {
+                    if (filterType === 'all') {
+                        notification.style.display = '';
+                    } else {
+                        const hasClass = notification.classList.contains(filterType) || 
+                                       (filterType === 'emergency' && notification.classList.contains('urgent'));
+                        notification.style.display = hasClass ? '' : 'none';
+                    }
+                });
+                
+                const filterNames = {
+                    'all': 'ทุกประเภท',
+                    'announcement': 'ประกาศ',
+                    'billing': 'เรื่องการเงิน',
+                    'maintenance': 'บำรุงรักษา',
+                    'emergency': 'ฉุกเฉิน'
+                };
+                
+                window.showToast(`กรองข้อมูล: ${filterNames[filterType]}`, 'info');
+            } catch (error) {
+                console.error('Error filtering notifications:', error);
+            }
+        };
+
+        // Save functions
+        window.saveNotification = function() {
+            try {
+                if (!validateForm()) return;
+                
+                const title = document.getElementById('notificationTitle').value;
+                const mode = document.getElementById('notificationModal').dataset.mode;
+                
+                setTimeout(() => {
+                    if (mode === 'create') {
+                        window.showToast(`บันทึกแบบร่าง "${title}" เรียบร้อยแล้ว`, 'success');
+                    } else {
+                        window.showToast(`แก้ไขการแจ้งเตือน "${title}" เรียบร้อยแล้ว`, 'success');
+                    }
+                    window.closeNotificationModal();
+                }, 500);
+            } catch (error) {
+                console.error('Error saving notification:', error);
+            }
+        };
+
+        window.sendNotificationNow = function() {
+            try {
+                if (!validateForm()) return;
+                
+                const title = document.getElementById('notificationTitle').value;
+                const recipientType = document.querySelector('input[name="recipients"]:checked')?.value || 'all';
+                const scheduleType = document.querySelector('input[name="schedule"]:checked')?.value || 'now';
+                
+                let recipientCount = 127;
+                if (recipientType === 'selected') {
+                    const selectedCount = document.querySelectorAll('#recipientSelector input:checked').length;
+                    if (selectedCount === 0) {
+                        window.showToast('กรุณาเลือกผู้รับการแจ้งเตือน', 'warning');
+                        return;
+                    }
+                    recipientCount = selectedCount;
+                }
+                
+                if (scheduleType === 'now') {
+                    const confirmMessage = `คุณแน่ใจว่าต้องการส่งการแจ้งเตือนทันที?\n\nหัวข้อ: ${title}\nผู้รับ: ${recipientCount} คน`;
+                    
+                    if (confirm(confirmMessage)) {
+                        setTimeout(() => {
+                            window.showToast(`ส่งการแจ้งเตือน "${title}" เรียบร้อยแล้ว!\nส่งไปยัง ${recipientCount} คน`, 'success');
+                            window.closeNotificationModal();
+                        }, 1500);
+                    }
+                } else {
+                    const scheduleDate = document.getElementById('scheduleDate')?.value;
+                    const scheduleTime = document.getElementById('scheduleTime')?.value;
+                    
+                    if (!scheduleDate || !scheduleTime) {
+                        window.showToast('กรุณากำหนดวันที่และเวลาส่ง', 'warning');
+                        return;
+                    }
+                    
+                    window.showToast(`กำหนดการส่งการแจ้งเตือน "${title}" เรียบร้อยแล้ว\nจะส่งวันที่ ${scheduleDate} เวลา ${scheduleTime} น.`, 'info');
+                    window.closeNotificationModal();
+                }
+            } catch (error) {
+                console.error('Error sending notification now:', error);
+            }
+        };
+
+        console.log('✅ All functions loaded successfully');
+    </script>
+    
+    <style>
+	@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+	
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+			font-family: 'Sarabun', sans-serif;
+            <!-- font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -->
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .sidebar-header {
+            padding: 0 20px 30px;
+            border-bottom: 1px solid #34495e;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-header h2 {
+            color: white;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-header p {
+            color: #bdc3c7;
+            font-size: 14px;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+        }
+
+        .sidebar-menu li {
+            margin: 5px 0;
+        }
+
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: #bdc3c7;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .sidebar-menu a:hover,
+        .sidebar-menu a.active {
+            background: linear-gradient(90deg, #3498db, #2980b9);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .sidebar-menu a i {
+            width: 20px;
+            margin-right: 10px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            background: rgba(255,255,255,0.95);
+            margin: 20px;
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(45deg, #3498db, #9b59b6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Notification Stats */
+        .notification-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid;
+            transition: transform 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            border-radius: 50%;
+            transform: translate(30px, -30px);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card.sent {
+            border-left-color: #27ae60;
+        }
+
+        .stat-card.pending {
+            border-left-color: #f39c12;
+        }
+
+        .stat-card.today {
+            border-left-color: #3498db;
+        }
+
+        .stat-card.recipients {
+            border-left-color: #9b59b6;
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+        }
+
+        .stat-icon.sent {
+            background: linear-gradient(45deg, #27ae60, #229954);
+        }
+
+        .stat-icon.pending {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+        }
+
+        .stat-icon.today {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+        }
+
+        .stat-icon.recipients {
+            background: linear-gradient(45deg, #9b59b6, #8e44ad);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .stat-change {
+            font-size: 12px;
+            margin-top: 8px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .stat-change.positive {
+            background: rgba(39, 174, 96, 0.1);
+            color: #27ae60;
+        }
+
+        /* Action Bar */
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            gap: 20px;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .quick-action-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .quick-action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .quick-action-btn.create {
+            background: linear-gradient(45deg, #27ae60, #229954);
+        }
+
+        .quick-action-btn.broadcast {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+
+        .search-filter {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 25px;
+            padding: 10px 20px;
+            border: 1px solid #dee2e6;
+            min-width: 300px;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-box:focus-within {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .search-box i {
+            color: #6c757d;
+            margin-right: 12px;
+        }
+
+        .search-box input {
+            border: none;
+            outline: none;
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .filter-select {
+            padding: 10px 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        /* Notification Tabs */
+        .notification-tabs {
+            display: flex;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        .notification-tab {
+            flex: 1;
+            padding: 15px 20px;
+            text-align: center;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6c757d;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+        }
+
+        .notification-tab:hover {
+            background: #e9ecef;
+        }
+
+        .notification-tab.active {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .notification-tab .badge {
+            background: #e74c3c;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 6px;
+        }
+
+        .notification-tab.active .badge {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Content Container */
+        .content-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Notification List */
+        .notification-list {
+            padding: 25px;
+        }
+
+        .notification-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .notification-item:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .notification-item.urgent {
+            border-left: 4px solid #e74c3c;
+            background: rgba(231, 76, 60, 0.05);
+        }
+
+        .notification-item.announcement {
+            border-left: 4px solid #3498db;
+            background: rgba(52, 152, 219, 0.05);
+        }
+
+        .notification-item.billing {
+            border-left: 4px solid #f39c12;
+            background: rgba(243, 156, 18, 0.05);
+        }
+
+        .notification-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .notification-icon.urgent {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+
+        .notification-icon.announcement {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+        }
+
+        .notification-icon.billing {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+        }
+
+        .notification-icon.general {
+            background: linear-gradient(45deg, #27ae60, #229954);
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .notification-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+
+        .notification-meta {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 8px;
+        }
+
+        .notification-message {
+            color: #495057;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+
+        .notification-stats-inline {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .stat-inline {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .notification-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-view {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-edit {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+        }
+
+        .btn-delete {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        .btn-resend {
+            background: linear-gradient(45deg, #27ae60, #229954);
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-sent {
+            background: rgba(39, 174, 96, 0.1);
+            color: #27ae60;
+        }
+
+        .status-draft {
+            background: rgba(108, 117, 125, 0.1);
+            color: #6c757d;
+        }
+
+        .status-scheduled {
+            background: rgba(52, 152, 219, 0.1);
+            color: #3498db;
+        }
+
+        .status-failed {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            padding: 25px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6c757d;
+            padding: 5px;
+            transition: color 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: #e74c3c;
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        /* Form Styles */
+        .form-section {
+            margin-bottom: 25px;
+        }
+
+        .form-section h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .recipients-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .recipient-options {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .radio-option input[type="radio"] {
+            margin: 0;
+        }
+
+        .recipient-selector {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 10px;
+            background: white;
+        }
+
+        .recipient-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            margin-bottom: 5px;
+        }
+
+        .recipient-item input[type="checkbox"] {
+            margin: 0;
+        }
+
+        .schedule-section {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .schedule-options {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .datetime-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .modal-footer {
+            padding: 25px;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+
+        .btn-modal {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-save {
+            background: linear-gradient(45deg, #27ae60, #229954);
+            color: white;
+        }
+
+        .btn-send {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-modal:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            z-index: 2000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            border-left: 5px solid #27ae60;
+            max-width: 400px;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            border-left-color: #27ae60;
+        }
+
+        .toast.info {
+            border-left-color: #3498db;
+        }
+
+        .toast.warning {
+            border-left-color: #f39c12;
+        }
+
+        .toast.error {
+            border-left-color: #e74c3c;
+        }
+
+        .toast-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .toast-icon.success {
+            background: #27ae60;
+        }
+
+        .toast-icon.info {
+            background: #3498db;
+        }
+
+        .toast-icon.warning {
+            background: #f39c12;
+        }
+
+        .toast-icon.error {
+            background: #e74c3c;
+        }
+
+        .toast-message {
+            flex: 1;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #2c3e50;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0;
+            margin-left: 10px;
+        }
+
+        .toast-close:hover {
+            color: #2c3e50;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                min-height: auto;
+                order: 2;
+            }
+
+            .main-content {
+                margin: 10px;
+                padding: 20px;
+                order: 1;
+            }
+
+            .notification-stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-filter {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .search-box {
+                min-width: auto;
+            }
+            
+            .quick-actions {
+                justify-content: center;
+            }
+            
+            .notification-tabs {
+                flex-direction: column;
+            }
+            
+            .notification-tab {
+                flex: none;
+            }
+            
+            .notification-item {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .notification-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .datetime-inputs {
+                grid-template-columns: 1fr;
+            }
+
+            .recipient-options {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .schedule-options {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 10px;
+            }
+
+            .modal-footer {
+                flex-direction: column-reverse;
+            }
+
+            .btn-modal {
+                width: 100%;
+            }
+
+            .toast {
+                bottom: 20px;
+                right: 20px;
+                left: 20px;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2>Back Office</h2>
+            <p>ระบบจัดการโครงการ</p>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> แดชบอร์ด</a></li>
+            <li><a href="payment-management.html"><i class="fas fa-credit-card"></i> จัดการการชำระเงิน</a></li>
+            <li><a href="billing-management.html"><i class="fas fa-file-invoice"></i> จัดการบิล</a></li>
+            <li><a href="resident-management.html"><i class="fas fa-users"></i> จัดการลูกบ้าน</a></li>
+            <li><a href="notification.html" class="active"><i class="fas fa-bell"></i> การแจ้งเตือน</a></li>
+            <li><a href="report.html"><i class="fas fa-chart-bar"></i> รายงาน</a></li>
+            <li><a href="setting.html"><i class="fas fa-cog"></i> ตั้งค่า</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="header">
+            <h1><i class="fas fa-bell"></i> การแจ้งเตือน</h1>
+            <div class="user-info">
+                <span>สวัสดี, คุณสมชาย</span>
+                <div class="user-avatar">SM</div>
+            </div>
+        </header>
+
+        <!-- Notification Stats -->
+        <section class="notification-stats">
+            <div class="stat-card sent">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-value">89</div>
+                        <div class="stat-label">ส่งแล้ววันนี้</div>
+                    </div>
+                    <div class="stat-icon sent">
+                        <i class="fas fa-paper-plane"></i>
+                    </div>
+                </div>
+                <div class="stat-change positive">
+                    <i class="fas fa-arrow-up"></i> +15% จากเมื่อวาน
+                </div>
+            </div>
+
+            <div class="stat-card pending">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-value">5</div>
+                        <div class="stat-label">รอส่ง</div>
+                    </div>
+                    <div class="stat-icon pending">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                </div>
+                <div class="stat-change">
+                    <i class="fas fa-minus"></i> ไม่มีการเปลี่ยนแปลง
+                </div>
+            </div>
+
+            <div class="stat-card today">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-value">12</div>
+                        <div class="stat-label">กำหนดการส่งวันนี้</div>
+                    </div>
+                    <div class="stat-icon today">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                </div>
+                <div class="stat-change">
+                    <i class="fas fa-info-circle"></i> รอดำเนินการ
+                </div>
+            </div>
+
+            <div class="stat-card recipients">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-value">127</div>
+                        <div class="stat-label">ผู้รับทั้งหมด</div>
+                    </div>
+                    <div class="stat-icon recipients">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+                <div class="stat-change">
+                    <i class="fas fa-check-circle"></i> ลูกบ้านในระบบ
+                </div>
+            </div>
+        </section>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+            <div class="quick-actions">
+                <button class="quick-action-btn create" onclick="window.createNotification()">
+                    <i class="fas fa-plus"></i> สร้างการแจ้งเตือนใหม่
+                </button>
+                <button class="quick-action-btn" onclick="window.createAnnouncement()">
+                    <i class="fas fa-bullhorn"></i> สร้างประกาศ
+                </button>
+                <button class="quick-action-btn broadcast" onclick="window.emergencyBroadcast()">
+                    <i class="fas fa-exclamation-triangle"></i> แจ้งเตือนฉุกเฉิน
+                </button>
+            </div>
+            <div class="search-filter">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="ค้นหาการแจ้งเตือน..." onkeyup="window.searchNotifications(event)">
+                </div>
+                <select class="filter-select" onchange="window.filterNotifications(event)">
+                    <option value="all">ทุกประเภท</option>
+                    <option value="announcement">ประกาศ</option>
+                    <option value="billing">เรื่องการเงิน</option>
+                    <option value="maintenance">บำรุงรักษา</option>
+                    <option value="emergency">ฉุกเฉิน</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Notification Tabs -->
+        <nav class="notification-tabs">
+            <button class="notification-tab active" onclick="window.switchNotificationTab('all', event)">
+                <i class="fas fa-list"></i> ทั้งหมด
+                <span class="badge">18</span>
+            </button>
+            <button class="notification-tab" onclick="window.switchNotificationTab('sent', event)">
+                <i class="fas fa-check"></i> ส่งแล้ว
+                <span class="badge">12</span>
+            </button>
+            <button class="notification-tab" onclick="window.switchNotificationTab('draft', event)">
+                <i class="fas fa-edit"></i> แบบร่าง
+                <span class="badge">3</span>
+            </button>
+            <button class="notification-tab" onclick="window.switchNotificationTab('scheduled', event)">
+                <i class="fas fa-calendar"></i> กำหนดการ
+                <span class="badge">5</span>
+            </button>
+        </nav>
+
+        <!-- Content Container -->
+        <div class="content-container">
+            <!-- All Notifications Tab -->
+            <div id="all-notifications" class="tab-content active">
+                <div class="notification-list">
+                    <!-- Urgent Notification -->
+                    <div class="notification-item urgent">
+                        <div class="notification-icon urgent">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-header">
+                                <div>
+                                    <div class="notification-title">แจ้งเตือน: ระบบน้ำจะหยุดชั่วคราว</div>
+                                    <div class="notification-meta">
+                                        <span><i class="fas fa-calendar"></i> 22/07/2025 14:30</span>
+                                        <span><i class="fas fa-tag"></i> ฉุกเฉิน</span>
+                                        <span class="status-badge status-sent">ส่งแล้ว</span>
+                                    </div>
+                                </div>
+                                <div class="notification-actions">
+                                    <button class="action-btn btn-view" onclick="window.viewNotification('not1')">
+                                        <i class="fas fa-eye"></i> ดู
+                                    </button>
+                                    <button class="action-btn btn-resend" onclick="window.resendNotification('not1')">
+                                        <i class="fas fa-redo"></i> ส่งซ้ำ
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="notification-message">
+                                เรียนลูกบ้านทุกท่าน ระบบน้ำประปาจะหยุดการให้บริการชั่วคราววันที่ 23/07/2025 เวลา 09:00-17:00 น. เพื่อซ่อมแซมระบบท่อหลัก กรุณาเก็บน้ำไว้ใช้ล่วงหน้า
+                            </div>
+                            <div class="notification-stats-inline">
+                                <div class="stat-inline">
+                                    <i class="fas fa-users"></i>
+                                    <span>127 คน</span>
+                                </div>
+                                <div class="stat-inline">
+                                    <i class="fas fa-eye"></i>
+                                    <span>95 อ่านแล้ว</span>
+                                </div>
+                                <div class="stat-inline">
+                                    <i class="fas fa-check-double"></i>
+                                    <span>89 รับทราบ</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Billing Notification -->
+                    <div class="notification-item billing">
+                        <div class="notification-icon billing">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-header">
+                                <div>
+                                    <div class="notification-title">บิลค่าส่วนกลางประจำเดือน ส.ค. 2025</div>
+                                    <div class="notification-meta">
+                                        <span><i class="fas fa-calendar"></i> 21/07/2025 09:00</span>
+                                        <span><i class="fas fa-tag"></i> การเงิน</span>
+                                        <span class="status-badge status-sent">ส่งแล้ว</span>
+                                    </div>
+                                </div>
+                                <div class="notification-actions">
+                                    <button class="action-btn btn-view" onclick="window.viewNotification('not2')">
+                                        <i class="fas fa-eye"></i> ดู
+                                    </button>
+                                    <button class="action-btn btn-edit" onclick="window.editNotification('not2')">
+                                        <i class="fas fa-edit"></i> แก้ไข
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="notification-message">
+                                เรียนลูกบ้านทุกท่าน บิลค่าส่วนกลางประจำเดือนสิงหาคม 2025 พร้อมส่งแล้ว กรุณาชำระภายในวันที่ 25/08/2025 สอบถามเพิ่มเติมติดต่อสำนักงานนิติบุคคล
+                            </div>
+                            <div class="notification-stats-inline">
+                                <div class="stat-inline">
+                                    <i class="fas fa-users"></i>
+                                    <span>127 คน</span>
+                                </div>
+                                <div class="stat-inline">
+                                    <i class="fas fa-eye"></i>
+                                    <span>118 อ่านแล้ว</span>
+                                </div>
+                                <div class="stat-inline">
+                                    <i class="fas fa-check-double"></i>
+                                    <span>89 รับทราบ</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Announcement -->
+                    <div class="notification-item announcement">
+                        <div class="notification-icon announcement">
+                            <i class="fas fa-bullhorn"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-header">
+                                <div>
+                                    <div class="notification-title">ประกาศปิดสระว่ายน้ำเพื่อบำรุงรักษา</div>
+                                    <div class="notification-meta">
+                                        <span><i class="fas fa-calendar"></i> 20/07/2025 16:45</span>
+                                        <span><i class="fas fa-tag"></i> ประกาศ</span>
+                                        <span class="status-badge status-sent">ส่งแล้ว</span>
+                                    </div>
+                                </div>
+                                <div class="notification-actions">
+                                    <button class="action-btn btn-view" onclick="window.viewNotification('not3')">
+                                        <i class="fas fa-eye"></i> ดู
+                                    </button>
+                                    <button class="action-btn btn-delete" onclick="window.deleteNotification('not3')">
+                                        <i class="fas fa-trash"></i> ลบ
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="notification-message">
+                                เรียนลูกบ้านทุกท่าน สระว่ายน้ำจะปิดให้บริการเพื่อทำความสะอาดและบำรุงรักษาในวันที่ 25-26/07/2025 ขออภัยในความไม่สะดวก
+                            </div>
+                            <div class="notification-stats-inline">
+                                <div class="stat-inline">
+                                    <i class="fas fa-users"></i>
+                                    <span>127 คน</span>
+                                </div>
+                                <div class="stat-inline">
+                                    <i class="fas fa-eye"></i>
+                                    <span>76 อ่านแล้ว</span>
+                                </div>
+                                <div class="stat-inline">
+                                    <i class="fas fa-check-double"></i>
+                                    <span>52 รับทราบ</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Draft Notification -->
+                    <div class="notification-item">
+                        <div class="notification-icon general">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-header">
+                                <div>
+                                    <div class="notification-title">แจ้งเปลี่ยนแปลงเวลาทำงาน รปภ.</div>
+                                    <div class="notification-meta">
+                                        <span><i class="fas fa-calendar"></i> 19/07/2025 11:20</span>
+                                        <span><i class="fas fa-tag"></i> ทั่วไป</span>
+                                        <span class="status-badge status-draft">แบบร่าง</span>
+                                    </div>
+                                </div>
+                                <div class="notification-actions">
+                                    <button class="action-btn btn-edit" onclick="window.editNotification('not4')">
+                                        <i class="fas fa-edit"></i> แก้ไข
+                                    </button>
+                                    <button class="action-btn btn-send" onclick="window.sendNotification('not4')">
+                                        <i class="fas fa-paper-plane"></i> ส่ง
+                                    </button>
+                                    <button class="action-btn btn-delete" onclick="window.deleteNotification('not4')">
+                                        <i class="fas fa-trash"></i> ลบ
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="notification-message">
+                                เรียนลูกบ้านทุกท่าน เนื่องจากมีการปรับปรุงระบบรักษาความปลอดภัย เวลาทำงานของเจ้าหน้าที่รักษาความปลอดภัยจะเปลี่ยนแปลง...
+                            </div>
+                            <div class="notification-stats-inline">
+                                <div class="stat-inline">
+                                    <i class="fas fa-users"></i>
+                                    <span>0 คน</span>
+                                </div>
+                                <div class="stat-inline">
+                                    <i class="fas fa-edit"></i>
+                                    <span>ยังไม่ส่ง</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Scheduled Notification -->
+                    <div class="notification-item announcement">
+                        <div class="notification-icon announcement">
+                            <i class="fas fa-calendar-plus"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-header">
+                                <div>
+                                    <div class="notification-title">การประชุมใหญ่ประจำปี 2025</div>
+                                    <div class="notification-meta">
+                                        <span><i class="fas fa-calendar"></i> กำหนดส่ง: 01/08/2025 08:00</span>
+                                        <span><i class="fas fa-tag"></i> ประกาศ</span>
+                                        <span class="status-badge status-scheduled">กำหนดการ</span>
+                                    </div>
+                                </div>
+                                <div class="notification-actions">
+                                    <button class="action-btn btn-view" onclick="window.viewNotification('not5')">
+                                        <i class="fas fa-eye"></i> ดู
+                                    </button>
+                                    <button class="action-btn btn-edit" onclick="window.editNotification('not5')">
+                                        <i class="fas fa-edit"></i> แก้ไข
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="notification-message">
+                                เรียนลูกบ้านทุกท่าน ขอเชิญเข้าร่วมการประชุมใหญ่ประจำปี 2025 ในวันเสาร์ที่ 15/08/2025 เวลา 13:00 น. ณ ห้องประชุมชั้น 2 เพื่อพิจารณาเรื่องสำคัญของนิติบุคคล
+                            </div>
+                            <div class="notification-stats-inline">
+                                <div class="stat-inline">
+                                    <i class="fas fa-users"></i>
+                                    <span>127 คน</span>
+                                </div>
+                                <div class="stat-inline">
+                                    <i class="fas fa-clock"></i>
+                                    <span>รอส่ง</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Create/Edit Notification Modal -->
+    <div class="modal" id="notificationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">
+                    <i class="fas fa-plus"></i> สร้างการแจ้งเตือนใหม่
+                </h3>
+                <button class="modal-close" onclick="window.closeNotificationModal()">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Basic Information -->
+                <div class="form-section">
+                    <h4><i class="fas fa-info-circle"></i> ข้อมูลพื้นฐาน</h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>ประเภทการแจ้งเตือน *</label>
+                            <select id="notificationType">
+                                <option value="announcement">ประกาศทั่วไป</option>
+                                <option value="billing">เรื่องการเงิน</option>
+                                <option value="maintenance">บำรุงรักษา</option>
+                                <option value="emergency">ฉุกเฉิน</option>
+                                <option value="event">กิจกรรม</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>ความสำคัญ</label>
+                            <select id="notificationPriority">
+                                <option value="normal">ปกติ</option>
+                                <option value="high">สำคัญ</option>
+                                <option value="urgent">เร่งด่วน</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>หัวข้อการแจ้งเตือน *</label>
+                        <input type="text" id="notificationTitle" placeholder="เช่น: ประกาศปิดสระว่ายน้ำเพื่อบำรุงรักษา">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>เนื้อหาการแจ้งเตือน *</label>
+                        <textarea id="notificationMessage" placeholder="กรอกรายละเอียดการแจ้งเตือน..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Recipients Section -->
+                <div class="form-section">
+                    <h4><i class="fas fa-users"></i> ผู้รับการแจ้งเตือน</h4>
+                    <div class="recipients-section">
+                        <div class="recipient-options">
+                            <div class="radio-option">
+                                <input type="radio" id="allResidents" name="recipients" value="all" checked>
+                                <label for="allResidents">ลูกบ้านทั้งหมด (127 คน)</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="selectedResidents" name="recipients" value="selected">
+                                <label for="selectedResidents">เลือกเฉพาะราย</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="buildingResidents" name="recipients" value="building">
+                                <label for="buildingResidents">เลือกตามอาคาร/ชั้น</label>
+                            </div>
+                        </div>
+                        
+                        <div class="recipient-selector" id="recipientSelector" style="display: none;">
+                            <div class="recipient-item">
+                                <input type="checkbox" id="resA101">
+                                <label for="resA101">A101 - คุณสมใจ ใจดี</label>
+                            </div>
+                            <div class="recipient-item">
+                                <input type="checkbox" id="resB205">
+                                <label for="resB205">B205 - คุณมาลี รักดี</label>
+                            </div>
+                            <div class="recipient-item">
+                                <input type="checkbox" id="resC308">
+                                <label for="resC308">C308 - คุณวิชัย สมศรี</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Delivery Options -->
+                <div class="form-section">
+                    <h4><i class="fas fa-paper-plane"></i> ช่องทางการส่ง</h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" checked> แจ้งเตือนในแอพ
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox"> SMS
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox"> อีเมล
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox"> Line Notify
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Schedule Section -->
+                <div class="form-section">
+                    <h4><i class="fas fa-clock"></i> การกำหนดเวลาส่ง</h4>
+                    <div class="schedule-section">
+                        <div class="schedule-options">
+                            <div class="radio-option">
+                                <input type="radio" id="sendNow" name="schedule" value="now" checked>
+                                <label for="sendNow">ส่งทันที</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="sendLater" name="schedule" value="later">
+                                <label for="sendLater">กำหนดเวลาส่ง</label>
+                            </div>
+                        </div>
+                        
+                        <div class="datetime-inputs" id="scheduleInputs" style="display: none;">
+                            <div class="form-group">
+                                <label>วันที่ส่ง</label>
+                                <input type="date" id="scheduleDate">
+                            </div>
+                            <div class="form-group">
+                                <label>เวลาที่ส่ง</label>
+                                <input type="time" id="scheduleTime">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn-modal btn-cancel" onclick="window.closeNotificationModal()">ยกเลิก</button>
+                <button class="btn-modal btn-save" onclick="window.saveNotification()">
+                    <i class="fas fa-save"></i> บันทึกแบบร่าง
+                </button>
+                <button class="btn-modal btn-send" onclick="window.sendNotificationNow()">
+                    <i class="fas fa-paper-plane"></i> ส่งเลย
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
+
+    <script>
+        // Global variables and initialization
+        let currentTab = 'all';
+        let notifications = [];
+        
+        // Tab switching functionality
+        function switchNotificationTab(tabName, event) {
+            // Remove active class from all tabs
+            document.querySelectorAll('.notification-tab').forEach(tab => tab.classList.remove('active'));
+            // Add active class to clicked tab
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
+            
+            // For now, all tabs show the same content
+            // In real implementation, this would filter the notifications
+            console.log(`แสดงการแจ้งเตือนประเภท: ${tabName}`);
+            showToast(`แสดงรายการ${getTabDisplayName(tabName)}`, 'info');
+        }
+
+        function getTabDisplayName(tabName) {
+            const tabNames = {
+                'all': 'ทั้งหมด',
+                'sent': 'ส่งแล้ว',
+                'draft': 'แบบร่าง',
+                'scheduled': 'กำหนดการ'
+            };
+            return tabNames[tabName] || 'ทั้งหมด';
+        }
+
+        // Modal functions
+        function createNotification() {
+            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus"></i> สร้างการแจ้งเตือนใหม่';
+            document.getElementById('notificationModal').dataset.mode = 'create';
+            resetNotificationForm();
+            document.getElementById('notificationModal').classList.add('active');
+        }
+
+        function createAnnouncement() {
+            createNotification();
+            document.getElementById('notificationType').value = 'announcement';
+            document.getElementById('notificationTitle').placeholder = 'เช่น: ประกาศเรื่องสำคัญของโครงการ';
+        }
+
+        function emergencyBroadcast() {
+            createNotification();
+            document.getElementById('notificationType').value = 'emergency';
+            document.getElementById('notificationPriority').value = 'urgent';
+            document.getElementById('notificationTitle').placeholder = 'เช่น: แจ้งเหตุฉุกเฉิน - ระบบไฟฟ้าขัดข้อง';
+        }
+
+        function editNotification(notificationId) {
+            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> แก้ไขการแจ้งเตือน';
+            document.getElementById('notificationModal').dataset.mode = 'edit';
+            document.getElementById('notificationModal').dataset.notificationId = notificationId;
+            
+            // จำลองการโหลดข้อมูล
+            const mockData = {
+                'not2': {
+                    type: 'billing',
+                    priority: 'high',
+                    title: 'บิลค่าส่วนกลางประจำเดือน ส.ค. 2025',
+                    message: 'เรียนลูกบ้านทุกท่าน บิลค่าส่วนกลางประจำเดือนสิงหาคม 2025 พร้อมส่งแล้ว กรุณาชำระภายในวันที่ 25/08/2025'
+                },
+                'not4': {
+                    type: 'announcement',
+                    priority: 'normal',
+                    title: 'แจ้งเปลี่ยนแปลงเวลาทำงาน รปภ.',
+                    message: 'เรียนลูกบ้านทุกท่าน เนื่องจากมีการปรับปรุงระบบรักษาความปลอดภัย เวลาทำงานของเจ้าหน้าที่รักษาความปลอดภัยจะเปลี่ยนแปลงเป็น 24 ชั่วโมง'
+                },
+                'not5': {
+                    type: 'announcement',
+                    priority: 'high',
+                    title: 'การประชุมใหญ่ประจำปี 2025',
+                    message: 'เรียนลูกบ้านทุกท่าน ขอเชิญเข้าร่วมการประชุมใหญ่ประจำปี 2025 ในวันเสาร์ที่ 15/08/2025 เวลา 13:00 น. ณ ห้องประชุมชั้น 2 เพื่อพิจารณาเรื่องสำคัญของนิติบุคคล'
+                }
+            };
+            
+            const data = mockData[notificationId];
+            if (data) {
+                document.getElementById('notificationType').value = data.type;
+                document.getElementById('notificationPriority').value = data.priority;
+                document.getElementById('notificationTitle').value = data.title;
+                document.getElementById('notificationMessage').value = data.message;
+            }
+            
+            document.getElementById('notificationModal').classList.add('active');
+        }
+
+        function closeNotificationModal() {
+            document.getElementById('notificationModal').classList.remove('active');
+        }
+
+        function resetNotificationForm() {
+            document.getElementById('notificationType').value = 'announcement';
+            document.getElementById('notificationPriority').value = 'normal';
+            document.getElementById('notificationTitle').value = '';
+            document.getElementById('notificationMessage').value = '';
+            document.getElementById('allResidents').checked = true;
+            document.getElementById('recipientSelector').style.display = 'none';
+            document.getElementById('sendNow').checked = true;
+            document.getElementById('scheduleInputs').style.display = 'none';
+            
+            // Set current date and time
+            const now = new Date();
+            document.getElementById('scheduleDate').value = now.toISOString().split('T')[0];
+            document.getElementById('scheduleTime').value = now.toTimeString().slice(0, 5);
+        }
+
+        // Recipient selection
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('input[name="recipients"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const selector = document.getElementById('recipientSelector');
+                    if (this.value === 'selected' || this.value === 'building') {
+                        selector.style.display = 'block';
+                    } else {
+                        selector.style.display = 'none';
+                    }
+                });
+            });
+
+            // Schedule selection
+            document.querySelectorAll('input[name="schedule"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const scheduleInputs = document.getElementById('scheduleInputs');
+                    if (this.value === 'later') {
+                        scheduleInputs.style.display = 'grid';
+                    } else {
+                        scheduleInputs.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // Save functions
+        function saveNotification() {
+            const title = document.getElementById('notificationTitle').value;
+            const message = document.getElementById('notificationMessage').value;
+            
+            if (!title || !message) {
+                showToast('กรุณากรอกหัวข้อและเนื้อหาการแจ้งเตือน', 'warning');
+                return;
+            }
+            
+            const mode = document.getElementById('notificationModal').dataset.mode;
+            if (mode === 'create') {
+                showToast('บันทึกแบบร่างเรียบร้อยแล้ว', 'success');
+            } else {
+                showToast('แก้ไขการแจ้งเตือนเรียบร้อยแล้ว', 'success');
+            }
+            
+            closeNotificationModal();
+        }
+
+        function sendNotificationNow() {
+            const title = document.getElementById('notificationTitle').value;
+            const message = document.getElementById('notificationMessage').value;
+            const recipientType = document.querySelector('input[name="recipients"]:checked').value;
+            const scheduleType = document.querySelector('input[name="schedule"]:checked').value;
+            
+            if (!title || !message) {
+                showToast('กรุณากรอกหัวข้อและเนื้อหาการแจ้งเตือน', 'warning');
+                return;
+            }
+            
+            let recipientCount = 127;
+            if (recipientType === 'selected') {
+                const selectedCount = document.querySelectorAll('#recipientSelector input:checked').length;
+                if (selectedCount === 0) {
+                    showToast('กรุณาเลือกผู้รับการแจ้งเตือน', 'warning');
+                    return;
+                }
+                recipientCount = selectedCount;
+            }
+            
+            if (scheduleType === 'now') {
+                if (confirm(`คุณแน่ใจว่าต้องการส่งการแจ้งเตือนทันที?\n\nหัวข้อ: ${title}\nผู้รับ: ${recipientCount} คน`)) {
+                    const button = document.querySelector('.btn-send');
+                    const originalText = button.innerHTML;
+                    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังส่ง...';
+                    button.disabled = true;
+
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.disabled = false;
+                        showToast(`ส่งการแจ้งเตือนเรียบร้อยแล้ว!\nส่งไปยัง ${recipientCount} คน`, 'success');
+                        closeNotificationModal();
+                        // location.reload();
+                    }, 3000);
+                }
+            } else {
+                const scheduleDate = document.getElementById('scheduleDate').value;
+                const scheduleTime = document.getElementById('scheduleTime').value;
+                
+                if (!scheduleDate || !scheduleTime) {
+                    showToast('กรุณากำหนดวันที่และเวลาส่ง', 'warning');
+                    return;
+                }
+                
+                showToast(`กำหนดการส่งการแจ้งเตือนเรียบร้อยแล้ว\nจะส่งวันที่ ${scheduleDate} เวลา ${scheduleTime}`, 'info');
+                closeNotificationModal();
+            }
+        }
+
+        // Notification actions
+        function viewNotification(notificationId) {
+            const titles = {
+                'not1': 'แจ้งเตือน: ระบบน้ำจะหยุดชั่วคราว',
+                'not2': 'บิลค่าส่วนกลางประจำเดือน ส.ค. 2025',
+                'not3': 'ประกาศปิดสระว่ายน้ำเพื่อบำรุงรักษา',
+                'not4': 'แจ้งเปลี่ยนแปลงเวลาทำงาน รปภ.',
+                'not5': 'การประชุมใหญ่ประจำปี 2025'
+            };
+            
+            const title = titles[notificationId] || 'การแจ้งเตือน';
+            showToast(`กำลังเปิดดู: ${title}`, 'info');
+            
+            // จำลองการเปิด Modal รายละเอียด
+            setTimeout(() => {
+                alert(`รายละเอียดการแจ้งเตือน\n\nID: ${notificationId}\nหัวข้อ: ${title}\n\n(ในระบบจริงจะแสดง Modal รายละเอียดแบบเต็ม พร้อมสถิติการอ่าน)`);
+            }, 500);
+        }
+
+        function resendNotification(notificationId) {
+            if (confirm('คุณแน่ใจว่าต้องการส่งการแจ้งเตือนนี้ซ้ำ?')) {
+                const button = event.target;
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังส่ง...';
+                button.disabled = true;
+
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    showToast('ส่งการแจ้งเตือนซ้ำเรียบร้อยแล้ว', 'success');
+                }, 2000);
+            }
+        }
+
+        function sendNotification(notificationId) {
+            if (confirm('คุณแน่ใจว่าต้องการส่งการแจ้งเตือนนี้?')) {
+                const button = event.target;
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังส่ง...';
+                button.disabled = true;
+
+                setTimeout(() => {
+                    button.innerHTML = '<i class="fas fa-check"></i> ส่งแล้ว';
+                    button.classList.remove('btn-send');
+                    button.classList.add('btn-view');
+                    button.onclick = () => viewNotification(notificationId);
+                    button.disabled = false;
+                    showToast('ส่งการแจ้งเตือนเรียบร้อยแล้ว', 'success');
+                }, 2000);
+            }
+        }
+
+        function deleteNotification(notificationId) {
+            if (confirm('คุณแน่ใจว่าต้องการลบการแจ้งเตือนนี้?\n\nการดำเนินการนี้ไม่สามารถย้อนกลับได้')) {
+                const notificationElement = event.target.closest('.notification-item');
+                notificationElement.style.transition = 'all 0.5s ease';
+                notificationElement.style.transform = 'translateX(-100%)';
+                notificationElement.style.opacity = '0';
+                
+                setTimeout(() => {
+                    if (notificationElement.parentNode) {
+                        notificationElement.parentNode.removeChild(notificationElement);
+                    }
+                    showToast('ลบการแจ้งเตือนเรียบร้อยแล้ว', 'success');
+                }, 500);
+            }
+        }
+
+        // Search and filter functions
+        function searchNotifications(event) {
+            const searchTerm = event.target.value.toLowerCase();
+            const notifications = document.querySelectorAll('.notification-item');
+            
+            notifications.forEach(notification => {
+                const text = notification.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    notification.style.display = '';
+                } else {
+                    notification.style.display = 'none';
+                }
+            });
+            
+            if (searchTerm) {
+                showToast(`ค้นหา: "${event.target.value}"`, 'info');
+            }
+        }
+
+        function filterNotifications(event) {
+            const filterType = event.target.value;
+            const notifications = document.querySelectorAll('.notification-item');
+            
+            notifications.forEach(notification => {
+                if (filterType === 'all') {
+                    notification.style.display = '';
+                } else {
+                    const hasClass = notification.classList.contains(filterType) || 
+                                   (filterType === 'emergency' && notification.classList.contains('urgent'));
+                    notification.style.display = hasClass ? '' : 'none';
+                }
+            });
+            
+            const filterNames = {
+                'all': 'ทุกประเภท',
+                'announcement': 'ประกาศ',
+                'billing': 'เรื่องการเงิน',
+                'maintenance': 'บำรุงรักษา',
+                'emergency': 'ฉุกเฉิน'
+            };
+            
+            showToast(`กรองข้อมูล: ${filterNames[filterType]}`, 'info');
+        }
+
+        // Toast notification system - with better error handling
+        function showToast(message, type = 'info') {
+            try {
+                const toastContainer = document.getElementById('toastContainer') || createToastContainer();
+                
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                
+                const iconMap = {
+                    'success': 'fa-check',
+                    'info': 'fa-info',
+                    'warning': 'fa-exclamation-triangle',
+                    'error': 'fa-times'
+                };
+                
+                toast.innerHTML = `
+                    <div class="toast-content">
+                        <div class="toast-icon ${type}">
+                            <i class="fas ${iconMap[type] || 'fa-info'}"></i>
+                        </div>
+                        <div class="toast-message">${message.replace(/\n/g, '<br>')}</div>
+                        <button class="toast-close" type="button">&times;</button>
+                    </div>
+                `;
+                
+                toastContainer.appendChild(toast);
+                
+                // Show toast
+                setTimeout(() => {
+                    toast.classList.add('show');
+                }, 100);
+                
+                // Auto hide after 5 seconds
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        closeToast(toast.querySelector('.toast-close'));
+                    }
+                }, 5000);
+                
+                console.log(`Toast shown: ${message} (${type})`);
+            } catch (error) {
+                console.error('Error showing toast:', error);
+                // Fallback to alert if toast system fails
+                alert(`${type.toUpperCase()}: ${message}`);
+            }
+        }
+
+        function createToastContainer() {
+            const container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.style.cssText = `
+                position: fixed;
+                bottom: 30px;
+                right: 30px;
+                z-index: 2000;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            `;
+            document.body.appendChild(container);
+            return container;
+        }
+
+        function closeToast(button) {
+            try {
+                const toast = button.closest('.toast');
+                if (toast) {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            toast.parentNode.removeChild(toast);
+                        }
+                    }, 300);
+                }
+            } catch (error) {
+                console.error('Error closing toast:', error);
+            }
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('notificationModal');
+            if (event.target === modal) {
+                closeNotificationModal();
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(event) {
+            // ESC to close modal
+            if (event.key === 'Escape') {
+                const modal = document.getElementById('notificationModal');
+                if (modal.classList.contains('active')) {
+                    closeNotificationModal();
+                }
+            }
+            
+            // Ctrl+N to create new notification
+            if (event.ctrlKey && event.key === 'n') {
+                event.preventDefault();
+                createNotification();
+            }
+        });
+
+        // Make functions globally available
+        window.createNotification = createNotification;
+        window.createAnnouncement = createAnnouncement;
+        window.emergencyBroadcast = emergencyBroadcast;
+        window.editNotification = editNotification;
+        window.closeNotificationModal = closeNotificationModal;
+        window.viewNotification = viewNotification;
+        window.resendNotification = resendNotification;
+        window.sendNotification = sendNotification;
+        window.deleteNotification = deleteNotification;
+        window.searchNotifications = searchNotifications;
+        window.filterNotifications = filterNotifications;
+        window.switchNotificationTab = switchNotificationTab;
+        window.closeToast = closeToast;
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('ระบบการแจ้งเตือนเริ่มต้นทำงาน');
+            
+            // Set current date and time for schedule inputs
+            const now = new Date();
+            const dateInput = document.getElementById('scheduleDate');
+            const timeInput = document.getElementById('scheduleTime');
+            
+            if (dateInput) {
+                dateInput.value = now.toISOString().split('T')[0];
+                dateInput.min = now.toISOString().split('T')[0]; // ไม่ให้เลือกวันที่ย้อนหลัง
+            }
+            
+            if (timeInput) {
+                timeInput.value = now.toTimeString().slice(0, 5);
+            }
+            
+            // Show welcome message
+            setTimeout(() => {
+                showToast('ยินดีต้อนรับสู่ระบบการแจ้งเตือน', 'info');
+            }, 1000);
+        });
+
+        // Utility functions
+        function formatThaiDate(date) {
+            const months = [
+                'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+            ];
+            
+            const d = new Date(date);
+            return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+        }
+
+        function validateForm() {
+            const title = document.getElementById('notificationTitle').value.trim();
+            const message = document.getElementById('notificationMessage').value.trim();
+            
+            if (!title) {
+                showToast('กรุณากรอกหัวข้อการแจ้งเตือน', 'warning');
+                document.getElementById('notificationTitle').focus();
+                return false;
+            }
+            
+            if (title.length < 5) {
+                showToast('หัวข้อต้องมีอย่างน้อย 5 ตัวอักษร', 'warning');
+                document.getElementById('notificationTitle').focus();
+                return false;
+            }
+            
+            if (!message) {
+                showToast('กรุณากรอกเนื้อหาการแจ้งเตือน', 'warning');
+                document.getElementById('notificationMessage').focus();
+                return false;
+            }
+            
+            if (message.length < 10) {
+                showToast('เนื้อหาต้องมีอย่างน้อย 10 ตัวอักษร', 'warning');
+                document.getElementById('notificationMessage').focus();
+                return false;
+            }
+            
+            return true;
+        }
+
+        // Enhanced save and send functions with validation
+        window.saveNotification = function() {
+            if (!validateForm()) return;
+            
+            const title = document.getElementById('notificationTitle').value;
+            const message = document.getElementById('notificationMessage').value;
+            const type = document.getElementById('notificationType').value;
+            
+            const mode = document.getElementById('notificationModal').dataset.mode;
+            const loadingButton = event.target;
+            const originalText = loadingButton.innerHTML;
+            
+            loadingButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...';
+            loadingButton.disabled = true;
+            
+            setTimeout(() => {
+                loadingButton.innerHTML = originalText;
+                loadingButton.disabled = false;
+                
+                if (mode === 'create') {
+                    showToast(`บันทึกแบบร่าง "${title}" เรียบร้อยแล้ว`, 'success');
+                } else {
+                    showToast(`แก้ไขการแจ้งเตือน "${title}" เรียบร้อยแล้ว`, 'success');
+                }
+                
+                closeNotificationModal();
+            }, 1500);
+        };
+
+        window.sendNotificationNow = function() {
+            if (!validateForm()) return;
+            
+            const title = document.getElementById('notificationTitle').value;
+            const message = document.getElementById('notificationMessage').value;
+            const recipientType = document.querySelector('input[name="recipients"]:checked').value;
+            const scheduleType = document.querySelector('input[name="schedule"]:checked').value;
+            
+            let recipientCount = 127;
+            if (recipientType === 'selected') {
+                const selectedCount = document.querySelectorAll('#recipientSelector input:checked').length;
+                if (selectedCount === 0) {
+                    showToast('กรุณาเลือกผู้รับการแจ้งเตือน', 'warning');
+                    return;
+                }
+                recipientCount = selectedCount;
+            }
+            
+            if (scheduleType === 'now') {
+                const confirmMessage = `คุณแน่ใจว่าต้องการส่งการแจ้งเตือนทันที?\n\n📋 หัวข้อ: ${title}\n👥 ผู้รับ: ${recipientCount} คน\n⏰ เวลาส่ง: ทันที`;
+                
+                if (confirm(confirmMessage)) {
+                    const loadingButton = event.target;
+                    const originalText = loadingButton.innerHTML;
+                    loadingButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังส่ง...';
+                    loadingButton.disabled = true;
+
+                    setTimeout(() => {
+                        loadingButton.innerHTML = originalText;
+                        loadingButton.disabled = false;
+                        showToast(`✅ ส่งการแจ้งเตือน "${title}" เรียบร้อยแล้ว!\n👥 ส่งไปยัง ${recipientCount} คน`, 'success');
+                        closeNotificationModal();
+                    }, 3000);
+                }
+            } else {
+                const scheduleDate = document.getElementById('scheduleDate').value;
+                const scheduleTime = document.getElementById('scheduleTime').value;
+                
+                if (!scheduleDate || !scheduleTime) {
+                    showToast('กรุณากำหนดวันที่และเวลาส่ง', 'warning');
+                    return;
+                }
+                
+                const scheduledDateTime = new Date(`${scheduleDate}T${scheduleTime}`);
+                const now = new Date();
+                
+                if (scheduledDateTime <= now) {
+                    showToast('เวลาที่กำหนดต้องเป็นอนาคต', 'warning');
+                    return;
+                }
+                
+                showToast(`📅 กำหนดการส่งการแจ้งเตือน "${title}" เรียบร้อยแล้ว\n⏰ จะส่งวันที่ ${formatThaiDate(scheduleDate)} เวลา ${scheduleTime} น.`, 'info');
+                closeNotificationModal();
+            }
+        };
