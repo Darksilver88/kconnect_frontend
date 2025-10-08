@@ -26,6 +26,7 @@ import { Label } from '@/components/ui/label';
 import { List, Eye, Edit, Trash2, X, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { LIMIT } from '@/config/constants';
+import { generateUploadKey } from '@/lib/utils';
 
 // ตัวแปรคงที่
 const MENU = 'news';
@@ -39,16 +40,6 @@ const API_DELETE = 'news/delete';
 const API_DETAIL = 'news';
 const API_UPLOAD_FILE = 'upload_file';
 const API_DELETE_FILE = 'delete_file';
-
-// ฟังก์ชันสร้าง random string 32 ตัวอักษร
-const generateUploadKey = () => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 32; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-};
 
 export default function TestPage() {
   const { setSidebarOpen } = useSidebar();
