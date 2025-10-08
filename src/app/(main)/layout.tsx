@@ -4,6 +4,7 @@ import { useEffect, useState, createContext, useContext } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/sidebar';
 import { isAuthenticated } from '@/lib/auth';
+import { Toaster } from '@/components/ui/sonner';
 
 // Context สำหรับ sidebar state
 const SidebarContext = createContext<{
@@ -47,6 +48,7 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+      <Toaster />
     </SidebarContext.Provider>
   );
 }

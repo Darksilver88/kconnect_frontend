@@ -6,10 +6,40 @@ import { useSidebar } from '@/app/(main)/layout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { List, Eye, Edit, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 // ตัวแปร API path
-const API_PATH = 'news/list';
+const API_LIST = 'news/list';
+const API_INSERT = 'news/insert';
+const API_DELETE = 'news/delete';
+
+// ฟังก์ชันสร้าง random string 32 ตัวอักษร
+const generateUploadKey = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < 32; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
 
 export default function TestPage() {
   const { setSidebarOpen } = useSidebar();
@@ -19,6 +49,20 @@ export default function TestPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Modal states
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    detail: '',
+    status: '1',
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  // Delete states
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   // Fetch data from API
   useEffect(() => {
     const fetchData = async () => {
@@ -26,7 +70,7 @@ export default function TestPage() {
       setError('');
 
       try {
-        const url = `${process.env.NEXT_PUBLIC_API_PATH}${API_PATH}?page=${currentPage}&limit=5`;
+        const url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=${currentPage}&limit=5`;
         console.log(`url : ${url}`);
         const response = await fetch(url);
         const result = await response.json();
@@ -54,6 +98,102 @@ export default function TestPage() {
     return { label: 'ไม่เผยแพร่', className: 'bg-gray-500 hover:bg-gray-600' };
   };
 
+  // Handle delete
+  const handleDeleteClick = (id: number) => {
+    setDeleteId(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteId) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_PATH}${API_DELETE}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: deleteId,
+          uid: 1,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Refresh list
+        const url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=${currentPage}&limit=5`;
+        const listResponse = await fetch(url);
+        const listResult = await listResponse.json();
+        if (listResult.success) {
+          setData(listResult.data || []);
+          setPagination(listResult.pagination);
+        }
+        setDeleteConfirmOpen(false);
+        setDeleteId(null);
+        toast.success(result.message || 'ลบข้อมูลสำเร็จ');
+      } else {
+        toast.error(result.message || 'เกิดข้อผิดพลาดในการลบ');
+      }
+    } catch (err: any) {
+      toast.error('ไม่สามารถเชื่อมต่อ API ได้: ' + err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Handle submit
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    try {
+      const payload = {
+        title: formData.title,
+        detail: formData.detail,
+        upload_key: generateUploadKey(),
+        status: parseInt(formData.status),
+        uid: 1,
+      };
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_PATH}${API_INSERT}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Close modal
+        setIsModalOpen(false);
+        // Reset form
+        setFormData({ title: '', detail: '', status: '1' });
+        // Refresh list
+        setCurrentPage(1);
+        const url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=1&limit=5`;
+        const listResponse = await fetch(url);
+        const listResult = await listResponse.json();
+        if (listResult.success) {
+          setData(listResult.data || []);
+          setPagination(listResult.pagination);
+        }
+        // Show success toast
+        toast.success(result.message || 'บันทึกข้อมูลสำเร็จ');
+      } else {
+        toast.error(result.message || 'เกิดข้อผิดพลาดในการบันทึก');
+      }
+    } catch (err: any) {
+      toast.error('ไม่สามารถเชื่อมต่อ API ได้: ' + err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -74,7 +214,10 @@ export default function TestPage() {
               </p>
             )}
           </div>
-          <Button className="bg-gradient-to-r from-blue-500 to-blue-600">
+          <Button
+            className="bg-gradient-to-r from-blue-500 to-blue-600"
+            onClick={() => setIsModalOpen(true)}
+          >
             เพิ่มข่าวใหม่
           </Button>
         </div>
@@ -152,7 +295,12 @@ export default function TestPage() {
                               <Button size="sm" variant="outline" className="h-8 text-orange-600 hover:text-orange-700">
                                 <Edit className="w-4 h-4" />
                               </Button>
-                              <Button size="sm" variant="outline" className="h-8 text-red-600 hover:text-red-700">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-red-600 hover:text-red-700"
+                                onClick={() => handleDeleteClick(item.id)}
+                              >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
@@ -206,6 +354,104 @@ export default function TestPage() {
           </>
         )}
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>ยืนยันการลบ</DialogTitle>
+            <DialogDescription>
+              คุณแน่ใจหรือไม่ว่าต้องการลบข่าวนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteConfirmOpen(false)}
+              disabled={deleting}
+            >
+              ยกเลิก
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+            >
+              {deleting ? 'กำลังลบ...' : 'ลบ'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Insert Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>เพิ่มข่าวใหม่</DialogTitle>
+            <DialogDescription>
+              กรอกข้อมูลข่าวที่ต้องการเพิ่ม
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">หัวข้อ</Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="กรอกหัวข้อข่าว"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="detail">รายละเอียด</Label>
+                <Input
+                  id="detail"
+                  value={formData.detail}
+                  onChange={(e) => setFormData({ ...formData, detail: e.target.value })}
+                  placeholder="กรอกรายละเอียด"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">สถานะ</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) => setFormData({ ...formData, status: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="เลือกสถานะ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">แสดง</SelectItem>
+                    <SelectItem value="3">ไม่แสดง</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsModalOpen(false)}
+                disabled={submitting}
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                type="submit"
+                className="bg-gradient-to-r from-blue-500 to-blue-600"
+                disabled={submitting}
+              >
+                {submitting ? 'กำลังบันทึก...' : 'บันทึก'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
