@@ -23,12 +23,16 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { List, Eye, Edit, Trash2, X, Upload } from 'lucide-react';
+import { List, Eye, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { LIMIT } from '@/config/constants';
 import { generateUploadKey, uploadFiles, deleteFile } from '@/lib/utils';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Pagination, PaginationSummary } from '@/components/pagination';
+import { LoadingSpinner } from '@/components/loading-spinner';
+import { ErrorAlert } from '@/components/error-alert';
+import { FileUploadSection } from '@/components/file-upload-section';
+import { FilePreview } from '@/components/file-preview';
 
 // ตัวแปรคงที่
 const MENU = 'news';
@@ -40,6 +44,9 @@ const API_INSERT = 'news/insert';
 const API_UPDATE = 'news/update';
 const API_DELETE = 'news/delete';
 const API_DETAIL = 'news';
+
+// ไฟล์ที่รองรับในการอัปโหลด
+const ACCEPTED_FILES = 'image/*,.pdf,.doc,.docx,.xls,.xlsx';
 
 export default function TestPage() {
   const { setSidebarOpen } = useSidebar();
@@ -372,19 +379,10 @@ export default function TestPage() {
         </div>
 
         {/* Loading State */}
-        {loading && (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="text-slate-500 mt-2">กำลังโหลดข้อมูล...</p>
-          </div>
-        )}
+        {loading && <LoadingSpinner />}
 
         {/* Error State */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            <strong>ข้อผิดพลาด:</strong> {error}
-          </div>
-        )}
+        {error && <ErrorAlert error={error} />}
 
         {/* Table */}
         {!loading && !error && (
@@ -541,60 +539,13 @@ export default function TestPage() {
               </div>
 
               {/* File Upload Section */}
-              <div className="space-y-2">
-                <Label>ไฟล์แนบ</Label>
-                <div className="border-2 border-dashed border-slate-200 rounded-lg p-4">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    disabled={uploading}
-                    className="hidden"
-                    id="file-upload"
-                  />
-                  <label
-                    htmlFor="file-upload"
-                    className={`flex flex-col items-center justify-center cursor-pointer ${uploading ? 'opacity-50' : ''}`}
-                  >
-                    <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                    <span className="text-sm text-slate-600">
-                      {uploading ? 'กำลังอัปโหลด...' : 'คลิกเพื่อเลือกไฟล์'}
-                    </span>
-                    <span className="text-xs text-slate-400 mt-1">รองรับไฟล์รูปภาพ</span>
-                  </label>
-                </div>
-
-                {/* Attachments Preview */}
-                {attachments.length > 0 && (
-                  <div className="grid grid-cols-3 gap-3 mt-4">
-                    {attachments.map((file) => (
-                      <div key={file.id} className="relative aspect-square bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-2">
-                        <a
-                          href={file.file_path}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block w-full h-full flex items-center justify-center bg-black rounded-md overflow-hidden"
-                        >
-                          <img
-                            src={file.file_path}
-                            alt={file.file_name}
-                            className="max-w-full max-h-full object-contain"
-                          />
-                        </a>
-                        <button
-                          type="button"
-                          onClick={() => handleFileDeleteClick(file.id)}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                        <p className="text-xs text-slate-600 mt-1 truncate text-center">{file.file_name}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <FileUploadSection
+                attachments={attachments}
+                uploading={uploading}
+                onFileUpload={handleFileUpload}
+                onFileDelete={handleFileDeleteClick}
+                accept={ACCEPTED_FILES}
+              />
             </div>
             <DialogFooter>
               <Button
@@ -628,10 +579,7 @@ export default function TestPage() {
           </DialogHeader>
 
           {loadingView ? (
-            <div className="text-center py-8">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <p className="text-slate-500 mt-2">กำลังโหลดข้อมูล...</p>
-            </div>
+            <LoadingSpinner />
           ) : viewData ? (
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
@@ -688,30 +636,7 @@ export default function TestPage() {
                 </div>
               )}
 
-              {viewData.attachments && viewData.attachments.length > 0 && (
-                <div>
-                  <Label className="text-slate-500 text-sm">ไฟล์แนบ ({viewData.attachments.length} ไฟล์)</Label>
-                  <div className="grid grid-cols-3 gap-3 mt-2">
-                    {viewData.attachments.map((file: any) => (
-                      <div key={file.id} className="relative aspect-square bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-2">
-                        <a
-                          href={file.file_path}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block w-full h-full flex items-center justify-center bg-black rounded-md overflow-hidden"
-                        >
-                          <img
-                            src={file.file_path}
-                            alt={file.file_name}
-                            className="max-w-full max-h-full object-contain"
-                          />
-                        </a>
-                        <p className="text-xs text-slate-600 mt-1 truncate text-center">{file.file_name}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <FilePreview files={viewData.attachments || []} />
             </div>
           ) : null}
 
