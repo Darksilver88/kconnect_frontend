@@ -23,13 +23,22 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { List, Eye, Edit, Trash2 } from 'lucide-react';
+import { List, Eye, Edit, Trash2, X, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+import { LIMIT } from '@/config/constants';
+
+// ตัวแปรคงที่
+const MENU = 'news';
+const UID = 5;
 
 // ตัวแปร API path
 const API_LIST = 'news/list';
 const API_INSERT = 'news/insert';
+const API_UPDATE = 'news/update';
 const API_DELETE = 'news/delete';
+const API_DETAIL = 'news';
+const API_UPLOAD_FILE = 'upload_file';
+const API_DELETE_FILE = 'delete_file';
 
 // ฟังก์ชันสร้าง random string 32 ตัวอักษร
 const generateUploadKey = () => {
@@ -51,6 +60,7 @@ export default function TestPage() {
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
   const [formData, setFormData] = useState({
     title: '',
     detail: '',
@@ -58,10 +68,22 @@ export default function TestPage() {
   });
   const [submitting, setSubmitting] = useState(false);
 
+  const isEditMode = editingItem !== null;
+
   // Delete states
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // View states
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [viewData, setViewData] = useState<any>(null);
+  const [loadingView, setLoadingView] = useState(false);
+
+  // File upload states
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [currentUploadKey, setCurrentUploadKey] = useState<string>('');
 
   // Fetch data from API
   useEffect(() => {
@@ -70,7 +92,7 @@ export default function TestPage() {
       setError('');
 
       try {
-        const url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=${currentPage}&limit=5`;
+        const url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=${currentPage}&limit=${LIMIT}`;
         console.log(`url : ${url}`);
         const response = await fetch(url);
         const result = await response.json();
@@ -124,7 +146,7 @@ export default function TestPage() {
 
       if (result.success) {
         // Refresh list
-        const url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=${currentPage}&limit=5`;
+        const url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=${currentPage}&limit=${LIMIT}`;
         const listResponse = await fetch(url);
         const listResult = await listResponse.json();
         if (listResult.success) {
@@ -144,22 +166,169 @@ export default function TestPage() {
     }
   };
 
+  // Handle view button click
+  const handleViewClick = async (id: number) => {
+    setLoadingView(true);
+    setViewModalOpen(true);
+    setViewData(null);
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_PATH}${API_DETAIL}/${id}`);
+      const result = await response.json();
+
+      if (result.success) {
+        setViewData(result.data);
+      } else {
+        toast.error(result.message || 'ไม่พบข้อมูล');
+        setViewModalOpen(false);
+      }
+    } catch (err: any) {
+      toast.error('ไม่สามารถเชื่อมต่อ API ได้: ' + err.message);
+      setViewModalOpen(false);
+    } finally {
+      setLoadingView(false);
+    }
+  };
+
+  // Handle edit button click
+  const handleEditClick = async (item: any) => {
+    setEditingItem(item);
+    setFormData({
+      title: item.title || '',
+      detail: item.detail || '',
+      status: String(item.status || '1'),
+    });
+    setCurrentUploadKey(item.upload_key || '');
+
+    // Fetch attachments for edit mode
+    if (item.id) {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_PATH}${API_DETAIL}/${item.id}`);
+        const result = await response.json();
+        if (result.success && result.data.attachments) {
+          setAttachments(result.data.attachments);
+        } else {
+          setAttachments([]);
+        }
+      } catch (err) {
+        setAttachments([]);
+      }
+    }
+
+    setIsModalOpen(true);
+  };
+
+  // Handle file upload
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    // Use current upload key or generate new one
+    const uploadKey = currentUploadKey || generateUploadKey();
+    if (!currentUploadKey) {
+      setCurrentUploadKey(uploadKey);
+    }
+
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('upload_key', uploadKey);
+      formData.append('menu', MENU);
+      formData.append('uid', String(UID));
+
+      Array.from(files).forEach((file) => {
+        formData.append('files', file);
+      });
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_PATH}${API_UPLOAD_FILE}`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setAttachments((prev) => [...prev, ...result.data.files]);
+        toast.success(result.message || 'อัปโหลดไฟล์สำเร็จ');
+        // Clear file input
+        e.target.value = '';
+      } else {
+        toast.error(result.message || 'เกิดข้อผิดพลาดในการอัปโหลด');
+      }
+    } catch (err: any) {
+      toast.error('ไม่สามารถเชื่อมต่อ API ได้: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Handle file delete
+  const handleFileDelete = async (fileId: number) => {
+    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบไฟล์นี้?')) return;
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_PATH}${API_DELETE_FILE}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: fileId,
+          menu: MENU,
+          uid: UID,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setAttachments((prev) => prev.filter((file) => file.id !== fileId));
+        toast.success(result.message || 'ลบไฟล์สำเร็จ');
+      } else {
+        toast.error(result.message || 'เกิดข้อผิดพลาดในการลบ');
+      }
+    } catch (err: any) {
+      toast.error('ไม่สามารถเชื่อมต่อ API ได้: ' + err.message);
+    }
+  };
+
   // Handle submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
     try {
-      const payload = {
-        title: formData.title,
-        detail: formData.detail,
-        upload_key: generateUploadKey(),
-        status: parseInt(formData.status),
-        uid: 1,
-      };
+      let payload: any;
+      let apiPath: string;
+      let method: string;
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_PATH}${API_INSERT}`, {
-        method: 'POST',
+      if (isEditMode) {
+        // Update mode
+        payload = {
+          id: editingItem.id,
+          title: formData.title,
+          detail: formData.detail,
+          status: parseInt(formData.status),
+          uid: UID,
+        };
+        apiPath = API_UPDATE;
+        method = 'PUT';
+      } else {
+        // Insert mode - use current upload key if files were uploaded
+        payload = {
+          title: formData.title,
+          detail: formData.detail,
+          upload_key: currentUploadKey || generateUploadKey(),
+          status: parseInt(formData.status),
+          uid: UID,
+        };
+        apiPath = API_INSERT;
+        method = 'POST';
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_PATH}${apiPath}`, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -171,11 +340,15 @@ export default function TestPage() {
       if (result.success) {
         // Close modal
         setIsModalOpen(false);
-        // Reset form
+        // Reset form and editing state
         setFormData({ title: '', detail: '', status: '1' });
+        setEditingItem(null);
+        setAttachments([]);
+        setCurrentUploadKey('');
         // Refresh list
-        setCurrentPage(1);
-        const url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=1&limit=5`;
+        const currentPageToUse = isEditMode ? currentPage : 1;
+        if (!isEditMode) setCurrentPage(1);
+        const url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=${currentPageToUse}&limit=${LIMIT}`;
         const listResponse = await fetch(url);
         const listResult = await listResponse.json();
         if (listResult.success) {
@@ -195,15 +368,16 @@ export default function TestPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div>
       <PageHeader
         title="ทดสอบหน้าลิส"
         subtitle="ตัวอย่างการแสดงข้อมูลจาก API"
-        icon={<List className="w-8 h-8 text-slate-700" />}
+        icon={<List className="w-6 h-6 text-blue-600" />}
         onMenuClick={() => setSidebarOpen(true)}
       />
 
-      <Card className="p-6">
+      <div className="p-4 lg:p-8">
+        <Card className="p-6">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h3 className="text-xl font-bold text-slate-800">รายการข่าว</h3>
@@ -215,8 +389,14 @@ export default function TestPage() {
             )}
           </div>
           <Button
-            className="bg-gradient-to-r from-blue-500 to-blue-600"
-            onClick={() => setIsModalOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={() => {
+              setEditingItem(null);
+              setFormData({ title: '', detail: '', status: '1' });
+              setAttachments([]);
+              setCurrentUploadKey('');
+              setIsModalOpen(true);
+            }}
           >
             เพิ่มข่าวใหม่
           </Button>
@@ -289,10 +469,20 @@ export default function TestPage() {
                           </td>
                           <td className="px-4 py-4">
                             <div className="flex gap-2">
-                              <Button size="sm" variant="outline" className="h-8">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8"
+                                onClick={() => handleViewClick(item.id)}
+                              >
                                 <Eye className="w-4 h-4" />
                               </Button>
-                              <Button size="sm" variant="outline" className="h-8 text-orange-600 hover:text-orange-700">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-orange-600 hover:text-orange-700"
+                                onClick={() => handleEditClick(item)}
+                              >
                                 <Edit className="w-4 h-4" />
                               </Button>
                               <Button
@@ -353,7 +543,8 @@ export default function TestPage() {
             )}
           </>
         )}
-      </Card>
+        </Card>
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
@@ -385,13 +576,13 @@ export default function TestPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Insert Modal */}
+      {/* Insert/Update Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>เพิ่มข่าวใหม่</DialogTitle>
+            <DialogTitle>{isEditMode ? 'แก้ไขข่าว' : 'เพิ่มข่าวใหม่'}</DialogTitle>
             <DialogDescription>
-              กรอกข้อมูลข่าวที่ต้องการเพิ่ม
+              {isEditMode ? 'แก้ไขข้อมูลข่าว' : 'กรอกข้อมูลข่าวที่ต้องการเพิ่ม'}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
@@ -431,6 +622,62 @@ export default function TestPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* File Upload Section */}
+              <div className="space-y-2">
+                <Label>ไฟล์แนบ</Label>
+                <div className="border-2 border-dashed border-slate-200 rounded-lg p-4">
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    disabled={uploading}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label
+                    htmlFor="file-upload"
+                    className={`flex flex-col items-center justify-center cursor-pointer ${uploading ? 'opacity-50' : ''}`}
+                  >
+                    <Upload className="w-8 h-8 text-slate-400 mb-2" />
+                    <span className="text-sm text-slate-600">
+                      {uploading ? 'กำลังอัปโหลด...' : 'คลิกเพื่อเลือกไฟล์'}
+                    </span>
+                    <span className="text-xs text-slate-400 mt-1">รองรับไฟล์รูปภาพ</span>
+                  </label>
+                </div>
+
+                {/* Attachments Preview */}
+                {attachments.length > 0 && (
+                  <div className="grid grid-cols-3 gap-3 mt-4">
+                    {attachments.map((file) => (
+                      <div key={file.id} className="relative aspect-square bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-2">
+                        <a
+                          href={file.file_path}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-full h-full flex items-center justify-center"
+                        >
+                          <img
+                            src={file.file_path}
+                            alt={file.file_name}
+                            className="max-w-full max-h-full object-contain"
+                          />
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleFileDelete(file.id)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                        <p className="text-xs text-slate-600 mt-1 truncate text-center">{file.file_name}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <DialogFooter>
               <Button
@@ -443,13 +690,123 @@ export default function TestPage() {
               </Button>
               <Button
                 type="submit"
-                className="bg-gradient-to-r from-blue-500 to-blue-600"
+                className="bg-blue-600 hover:bg-blue-700"
                 disabled={submitting}
               >
                 {submitting ? 'กำลังบันทึก...' : 'บันทึก'}
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Modal */}
+      <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>รายละเอียดข่าว</DialogTitle>
+            <DialogDescription>
+              ข้อมูลทั้งหมดของข่าว
+            </DialogDescription>
+          </DialogHeader>
+
+          {loadingView ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="text-slate-500 mt-2">กำลังโหลดข้อมูล...</p>
+            </div>
+          ) : viewData ? (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-slate-500 text-sm">ID</Label>
+                  <p className="text-slate-900 font-medium">#{viewData.id}</p>
+                </div>
+                <div>
+                  <Label className="text-slate-500 text-sm">สถานะ</Label>
+                  <div className="mt-1">
+                    <Badge className={getStatusBadge(viewData.status).className}>
+                      {getStatusBadge(viewData.status).label}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-slate-500 text-sm">หัวข้อ</Label>
+                <p className="text-slate-900 font-medium">{viewData.title || '-'}</p>
+              </div>
+
+              <div>
+                <Label className="text-slate-500 text-sm">รายละเอียด</Label>
+                <p className="text-slate-900">{viewData.detail || '-'}</p>
+              </div>
+
+              <div>
+                <Label className="text-slate-500 text-sm">Upload Key</Label>
+                <p className="text-slate-900 font-mono text-sm break-all">{viewData.upload_key || '-'}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-slate-500 text-sm">วันที่สร้าง</Label>
+                  <p className="text-slate-900 text-sm">{viewData.create_date || '-'}</p>
+                </div>
+                <div>
+                  <Label className="text-slate-500 text-sm">สร้างโดย</Label>
+                  <p className="text-slate-900 text-sm">{viewData.create_by || '-'}</p>
+                </div>
+              </div>
+
+              {viewData.update_date && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-slate-500 text-sm">วันที่แก้ไข</Label>
+                    <p className="text-slate-900 text-sm">{viewData.update_date || '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-slate-500 text-sm">แก้ไขโดย</Label>
+                    <p className="text-slate-900 text-sm">{viewData.update_by || '-'}</p>
+                  </div>
+                </div>
+              )}
+
+              {viewData.attachments && viewData.attachments.length > 0 && (
+                <div>
+                  <Label className="text-slate-500 text-sm">ไฟล์แนบ ({viewData.attachments.length} ไฟล์)</Label>
+                  <div className="grid grid-cols-3 gap-3 mt-2">
+                    {viewData.attachments.map((file: any) => (
+                      <div key={file.id} className="relative aspect-square bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-2">
+                        <a
+                          href={file.file_path}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-full h-full flex items-center justify-center"
+                        >
+                          <img
+                            src={file.file_path}
+                            alt={file.file_name}
+                            className="max-w-full max-h-full object-contain"
+                          />
+                        </a>
+                        <p className="text-xs text-slate-600 mt-1 truncate text-center">{file.file_name}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setViewModalOpen(false)}
+            >
+              ปิด
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -42,9 +42,9 @@ export default function DashboardLayout({
 
   return (
     <SidebarContext.Provider value={{ setSidebarOpen }}>
-      <div className="flex min-h-screen" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+      <div className="flex min-h-screen bg-slate-50">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <main className="flex-1 bg-white/95 backdrop-blur-sm rounded-xl m-3 lg:m-5 p-4 lg:p-6 overflow-auto">
+        <main className="flex-1 p-0 overflow-auto">
           {children}
         </main>
       </div>
