@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { List, Eye, Edit, Trash2 } from 'lucide-react';
+import { List, Eye, Edit, Trash2, Search, Filter, LayoutGrid, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { LIMIT } from '@/config/constants';
 import { generateUploadKey, uploadFiles, deleteFile } from '@/lib/utils';
@@ -88,6 +88,11 @@ export default function TestPage() {
   const [deleteFileId, setDeleteFileId] = useState<number | null>(null);
   const [deletingFile, setDeletingFile] = useState(false);
 
+  // Search and View Mode states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState(''); // keyword ที่ส่งไป API
+  const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
+
   // Fetch data from API
   useEffect(() => {
     const fetchData = async () => {
@@ -95,7 +100,10 @@ export default function TestPage() {
       setError('');
 
       try {
-        const url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=${currentPage}&limit=${LIMIT}`;
+        let url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=${currentPage}&limit=${LIMIT}`;
+        if (searchKeyword) {
+          url += `&keyword=${encodeURIComponent(searchKeyword)}`;
+        }
         console.log(`url : ${url}`);
         const response = await fetch(url);
         const result = await response.json();
@@ -114,13 +122,33 @@ export default function TestPage() {
     };
 
     fetchData();
-  }, [currentPage]);
+  }, [currentPage, searchKeyword]);
 
   const getStatusBadge = (status: number) => {
     if (status === 1) {
       return { label: 'เผยแพร่', className: 'bg-green-500 hover:bg-green-600' };
     }
     return { label: 'ไม่เผยแพร่', className: 'bg-gray-500 hover:bg-gray-600' };
+  };
+
+  // Handle search
+  const handleSearch = () => {
+    setSearchKeyword(searchQuery);
+    setCurrentPage(1); // รีเซ็ตกลับไปหน้า 1 เมื่อค้นหาใหม่
+  };
+
+  // Handle clear search
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setSearchKeyword('');
+    setCurrentPage(1);
+  };
+
+  // Handle Enter key in search input
+  const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
   };
 
   // Handle delete
@@ -358,24 +386,96 @@ export default function TestPage() {
       />
 
       <div className="p-4 lg:p-8">
-        <Card className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h3 className="text-xl font-bold text-slate-800">รายการข่าว</h3>
-            <PaginationSummary pagination={pagination} />
+        {/* Action Bar */}
+        <div className="flex flex-col lg:flex-row gap-4 mb-6">
+          {/* Search Section */}
+          <div className="flex gap-3 flex-1">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <Input
+                type="text"
+                placeholder="ค้นหาจากหัวข้อ, รายละเอียด..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={handleSearchKeyPress}
+                className="pl-10 pr-20 h-11 bg-white"
+              />
+              {searchQuery && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-14 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+              <Button
+                onClick={handleSearch}
+                size="sm"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-9 bg-blue-600 hover:bg-blue-700"
+              >
+                <Search className="w-4 h-4" />
+              </Button>
+            </div>
+            {/* <Button
+              variant="outline"
+              className="h-11 px-4 gap-2"
+              onClick={() => toast.info('ฟีเจอร์ตัวกรองกำลังพัฒนา')}
+            >
+              <Filter className="w-4 h-4" />
+              <span className="hidden sm:inline">ตัวกรอง</span>
+            </Button> */}
           </div>
-          <Button
-            className="bg-blue-600 hover:bg-blue-700"
-            onClick={() => {
-              setEditingItem(null);
-              setFormData({ title: '', detail: '', status: '1' });
-              setAttachments([]);
-              setCurrentUploadKey('');
-              setIsModalOpen(true);
-            }}
-          >
-            เพิ่มข่าวใหม่
-          </Button>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 items-center">
+            {/* View Toggle */}
+            {/* <div className="flex bg-white p-1 rounded-lg border border-slate-200">
+              <Button
+                variant={viewMode === 'card' ? 'default' : 'ghost'}
+                size="sm"
+                className={`h-9 gap-2 ${viewMode === 'card' ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}`}
+                onClick={() => {
+                  setViewMode('card');
+                  toast.info('มุมมองการ์ดกำลังพัฒนา');
+                }}
+              >
+                <LayoutGrid className="w-4 h-4" />
+                <span className="hidden sm:inline">การ์ด</span>
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                className={`h-9 gap-2 ${viewMode === 'list' ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}`}
+                onClick={() => setViewMode('list')}
+              >
+                <List className="w-4 h-4" />
+                <span className="hidden sm:inline">รายการ</span>
+              </Button>
+            </div> */}
+
+            {/* Add Button */}
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 h-11 gap-2"
+              onClick={() => {
+                setEditingItem(null);
+                setFormData({ title: '', detail: '', status: '1' });
+                setAttachments([]);
+                setCurrentUploadKey('');
+                setIsModalOpen(true);
+              }}
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">เพิ่มข่าวใหม่</span>
+              <span className="sm:hidden">เพิ่ม</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Table Card */}
+        <Card className="p-6">
+        {/* Header */}
+        <div>
+          <h3 className="text-xl font-bold text-slate-800 mb-0">รายการข่าว</h3>
         </div>
 
         {/* Loading State */}
@@ -404,7 +504,7 @@ export default function TestPage() {
                   {data.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
-                        ไม่มีข้อมูล
+                        {searchKeyword ? 'ไม่พบข้อมูลที่ค้นหา' : 'ไม่มีข้อมูล'}
                       </td>
                     </tr>
                   ) : (
