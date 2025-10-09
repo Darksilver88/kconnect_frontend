@@ -12,7 +12,6 @@ export default function BillingPage() {
       <PageHeader
         title="จัดการบิล"
         subtitle="หน้าจัดการบิลและการเรียกเก็บเงิน"
-        icon={<FileText className="w-6 h-6 text-blue-600" />}
         onMenuClick={() => setSidebarOpen(true)}
       />
 

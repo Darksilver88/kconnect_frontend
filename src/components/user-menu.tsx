@@ -26,26 +26,22 @@ export function UserMenu() {
 
   if (!user) return null;
 
-  // Get initials for avatar
-  const initials = user.name
-    .split(' ')
-    .map(word => word[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  // Get first 2 characters from username for avatar
+  const initials = user.username.substring(0, 2).toUpperCase();
 
   return (
     <>
-      <div className="flex items-center gap-3">
-        <span className="text-sm text-slate-700">สวัสดี, {user.name}</span>
-        <Avatar
-          className="cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
-          onClick={() => setShowLogoutDialog(true)}
-        >
-          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
+      <div
+        className="flex items-center justify-between cursor-pointer hover:opacity-90 px-4 py-2.5 rounded-lg transition-all bg-blue-600 border border-blue-700 gap-3"
+        onClick={() => setShowLogoutDialog(true)}
+      >
+        <div className="flex flex-col items-start">
+          <div className="text-sm font-bold text-white">{user.username}</div>
+          <div className="text-xs text-blue-100">{user.name}</div>
+        </div>
+        <div className="w-10 h-10 rounded-lg bg-white text-blue-600 font-bold flex items-center justify-center text-sm flex-shrink-0">
+          {initials}
+        </div>
       </div>
 
       <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>

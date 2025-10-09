@@ -4,6 +4,7 @@ export const STORAGE_KEY = 'kconnect_user';
 export interface User {
   username: string;
   name: string;
+  customer_id?: string;
 }
 
 // Fixed credentials for demo
@@ -13,9 +14,13 @@ const DEMO_CREDENTIALS = {
   name: 'ผู้ดูแลระบบ'
 };
 
-export function login(username: string, password: string): User | null {
+export function login(username: string, password: string, customer_id?: string): User | null {
   if (username === DEMO_CREDENTIALS.username && password === DEMO_CREDENTIALS.password) {
-    const user = { username: DEMO_CREDENTIALS.username, name: DEMO_CREDENTIALS.name };
+    const user: User = {
+      username: DEMO_CREDENTIALS.username,
+      name: DEMO_CREDENTIALS.name,
+      customer_id: customer_id
+    };
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
       // Also set cookie for middleware

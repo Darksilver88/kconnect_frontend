@@ -38,8 +38,8 @@ const menuItems = [
     ]
   },
   {
-    title: 'จัดการทะเบียน',
-    href: '/resident',
+    title: 'จัดการข้อมูลทะเบียน',
+    href: '/room',
     icon: Users
   },
   {

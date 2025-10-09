@@ -74,7 +74,6 @@ export default function DashboardPage() {
       <PageHeader
         title="แดชบอร์ด"
         subtitle="ภาพรวมระบบจัดการโครงการที่พักอาศัย"
-        icon={<LayoutDashboard className="w-6 h-6 text-blue-600" />}
         onMenuClick={() => setSidebarOpen(true)}
       />
 

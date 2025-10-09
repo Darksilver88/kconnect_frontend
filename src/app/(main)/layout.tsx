@@ -48,7 +48,7 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
-      <Toaster />
+      <Toaster position="top-right" />
     </SidebarContext.Provider>
   );
 }

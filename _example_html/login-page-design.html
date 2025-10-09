@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เข้าสู่ระบบ - ระบบจัดการโครงการที่พักอาศัย</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #2B6EF3;
+            --primary-blue-dark: #1F4EC2;
+            --primary-blue-light: #EBF2FF;
+            --blue-50: #F8FAFF;
+            
+            --gray-50: #F8FAFC;
+            --gray-100: #F1F5F9;
+            --gray-200: #E2E8F0;
+            --gray-300: #CBD5E1;
+            --gray-400: #94A3B8;
+            --gray-500: #64748B;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1E293B;
+            --gray-900: #0F172A;
+            
+            --white: #FFFFFF;
+            --green-500: #22C55E;
+            --red-500: #EF4444;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background: linear-gradient(135deg, #5894ff 0%, #6884ff 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .bg-circle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .bg-circle:nth-child(1) {
+            width: 300px;
+            height: 300px;
+            top: -150px;
+            left: -150px;
+            animation-delay: 0s;
+        }
+
+        .bg-circle:nth-child(2) {
+            width: 200px;
+            height: 200px;
+            bottom: -100px;
+            right: -100px;
+            animation-delay: 3s;
+        }
+
+        .bg-circle:nth-child(3) {
+            width: 150px;
+            height: 150px;
+            top: 50%;
+            left: 10%;
+            animation-delay: 6s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0) scale(1);
+            }
+            33% {
+                transform: translateY(-30px) translateX(30px) scale(1.1);
+            }
+            66% {
+                transform: translateY(30px) translateX(-30px) scale(0.9);
+            }
+        }
+
+        /* Login Container */
+        .login-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 1100px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: white;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: var(--shadow-xl);
+            animation: slideUp 0.6s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Left Side - Branding */
+        .login-branding {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-dark) 100%);
+            padding: 60px 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .branding-bg-pattern {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+            background-image: 
+                radial-gradient(circle at 20% 50%, white 1px, transparent 1px),
+                radial-gradient(circle at 80% 80%, white 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        .branding-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo-container {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            backdrop-filter: blur(10px);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .logo-container i {
+            font-size: 60px;
+            color: white;
+        }
+
+        .branding-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            line-height: 1.2;
+        }
+
+        .branding-subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .feature-list {
+            text-align: left;
+            display: inline-block;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            font-size: 15px;
+            opacity: 0.95;
+        }
+
+        .feature-item i {
+            width: 24px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        /* Right Side - Login Form */
+        .login-form-section {
+            padding: 60px 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .form-header {
+            margin-bottom: 40px;
+        }
+
+        .form-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .form-subtitle {
+            font-size: 15px;
+            color: var(--gray-500);
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+            font-size: 18px;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px 14px 48px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            font-size: 15px;
+            font-family: 'Sarabun', sans-serif;
+            color: var(--gray-800);
+            transition: all 0.3s ease;
+            background: var(--gray-50);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(43, 110, 243, 0.1);
+        }
+
+        .form-input:focus + .input-icon {
+            color: var(--primary-blue);
+        }
+
+        .form-input::placeholder {
+            color: var(--gray-400);
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .password-toggle:hover {
+            color: var(--primary-blue);
+        }
+
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: -8px;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .remember-me input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--primary-blue);
+        }
+
+        .remember-me label {
+            font-size: 14px;
+            color: var(--gray-600);
+            cursor: pointer;
+        }
+
+        .forgot-password {
+            font-size: 14px;
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .forgot-password:hover {
+            color: var(--primary-blue-dark);
+            text-decoration: underline;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 16px;
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: var(--radius-lg);
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'Sarabun', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .login-button:hover {
+            background: var(--primary-blue-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(43, 110, 243, 0.3);
+        }
+
+        .login-button:active {
+            transform: translateY(0);
+        }
+
+        .login-button.loading {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        .button-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 32px 0;
+            color: var(--gray-400);
+            font-size: 14px;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--gray-200);
+        }
+
+        .social-login {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .social-button {
+            padding: 12px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-700);
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        .social-button:hover {
+            border-color: var(--primary-blue);
+            background: var(--blue-50);
+            transform: translateY(-2px);
+        }
+
+        .social-button i {
+            font-size: 18px;
+        }
+
+        .social-button.google i {
+            color: #DB4437;
+        }
+
+        .social-button.line i {
+            color: #00B900;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 32px;
+            font-size: 14px;
+            color: var(--gray-600);
+        }
+
+        .register-link a {
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .register-link a:hover {
+            color: var(--primary-blue-dark);
+            text-decoration: underline;
+        }
+
+        /* Alert Messages */
+        .alert {
+            padding: 14px 16px;
+            border-radius: var(--radius-lg);
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert.show {
+            display: flex;
+        }
+
+        .alert-success {
+            background: #DCFCE7;
+            color: #166534;
+            border: 1px solid #BBF7D0;
+        }
+
+        .alert-error {
+            background: #FEE2E2;
+            color: #991B1B;
+            border: 1px solid #FECACA;
+        }
+
+        .alert-warning {
+            background: #FEF3C7;
+            color: #92400E;
+            border: 1px solid #FDE68A;
+        }
+
+        .alert i {
+            font-size: 18px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 968px) {
+            .login-container {
+                grid-template-columns: 1fr;
+                max-width: 500px;
+            }
+
+            .login-branding {
+                display: none;
+            }
+
+            .login-form-section {
+                padding: 50px 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0;
+            }
+
+            .login-container {
+                border-radius: 0;
+                min-height: 100vh;
+            }
+
+            .login-form-section {
+                padding: 40px 24px;
+            }
+
+            .form-title {
+                font-size: 24px;
+            }
+
+            .social-login {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--blue-50);
+            border-top-color: var(--primary-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .loading-text {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Animation -->
+    <div class="bg-animation">
+        <div class="bg-circle"></div>
+        <div class="bg-circle"></div>
+        <div class="bg-circle"></div>
+    </div>
+
+    <!-- Login Container -->
+    <div class="login-container">
+        <!-- Left Side - Branding -->
+        <div class="login-branding">
+            <div class="branding-bg-pattern"></div>
+            <div class="branding-content">
+                <div class="logo-container">
+                    <i class="fas fa-building"></i>
+                </div>
+                <h1 class="branding-title">ระบบจัดการ<br>โครงการ K-Connect</h1>
+                <p class="branding-subtitle">
+                    แพลตฟอร์มครบวงจรสำหรับการบริหารจัดการ<br>
+                    โครงการที่พักอาศัย คอนโดมิเนียม และหมู่บ้านจัดสรร
+                </p>
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <i class="fas fa-check"></i>
+                        <span>จัดการข้อมูลผู้อยู่อาศัยแบบครบวงจร</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check"></i>
+                        <span>ระบบแจ้งเตือนและการสื่อสารอัตโนมัติ</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check"></i>
+                        <span>รายงานและสถิติแบบเรียลไทม์</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check"></i>
+                        <span>ปลอดภัย รวดเร็ว ใช้งานง่าย</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side - Login Form -->
+        <div class="login-form-section">
+            <div class="form-header">
+                <h2 class="form-title">ยินดีต้อนรับ</h2>
+                <p class="form-subtitle">กรุณาเข้าสู่ระบบเพื่อใช้งาน</p>
+            </div>
+
+            <!-- Alert Messages -->
+            <div id="alertSuccess" class="alert alert-success">
+                <i class="fas fa-check-circle"></i>
+                <span id="successMessage"></span>
+            </div>
+            <div id="alertError" class="alert alert-error">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="errorMessage"></span>
+            </div>
+
+            <!-- Login Form -->
+            <form class="login-form" id="loginForm">
+                <!-- Username/Email -->
+                <div class="form-group">
+                    <label class="form-label" for="username">อีเมลหรือชื่อผู้ใช้</label>
+                    <div class="input-wrapper">
+                        <input 
+                            type="text" 
+                            id="username" 
+                            class="form-input" 
+                            placeholder="กรอกอีเมลหรือชื่อผู้ใช้"
+                            required
+                        >
+                        <i class="fas fa-user input-icon"></i>
+                    </div>
+                </div>
+
+                <!-- Password -->
+                <div class="form-group">
+                    <label class="form-label" for="password">รหัสผ่าน</label>
+                    <div class="input-wrapper">
+                        <input 
+                            type="password" 
+                            id="password" 
+                            class="form-input" 
+                            placeholder="กรอกรหัสผ่าน"
+                            required
+                        >
+                        <i class="fas fa-lock input-icon"></i>
+                        <button type="button" class="password-toggle" onclick="togglePassword()">
+                            <i class="fas fa-eye" id="passwordToggleIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Remember Me & Forgot Password -->
+                <div class="form-options">
+                    <div class="remember-me">
+                        <input type="checkbox" id="rememberMe">
+                        <label for="rememberMe">จดจำฉันไว้</label>
+                    </div>
+                    <a href="#" class="forgot-password" onclick="handleForgotPassword(event)">ลืมรหัสผ่าน?</a>
+                </div>
+
+                <!-- Login Button -->
+                <button type="submit" class="login-button" id="loginButton">
+                    <span id="buttonText">เข้าสู่ระบบ</span>
+                    <i class="fas fa-arrow-right" id="buttonIcon"></i>
+                </button>
+            </form>
+
+            <!-- Divider -->
+            <div class="divider">©2025 KODER 3 COMPANY LIMITED. All rights reserved.</div>
+			
+			<!-- Divider -->
+            <!-- <div class="divider">หรือเข้าสู่ระบบด้วย</div> -->
+
+            <!-- Social Login -->
+            <!-- <div class="social-login"> -->
+                <!-- <button class="social-button google" onclick="handleSocialLogin('google')"> -->
+                    <!-- <i class="fab fa-google"></i> -->
+                    <!-- <span>Google</span> -->
+                <!-- </button> -->
+                <!-- <button class="social-button line" onclick="handleSocialLogin('line')"> -->
+                    <!-- <i class="fab fa-line"></i> -->
+                    <!-- <span>LINE</span> -->
+                <!-- </button> -->
+            <!-- </div> -->
+
+            <!-- Register Link -->
+            <!-- <div class="register-link"> -->
+                <!-- ยังไม่มีบัญชี? <a href="#" onclick="handleRegister(event)">สมัครสมาชิก</a> -->
+            <!-- </div> -->
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">กำลังเข้าสู่ระบบ...</div>
+        </div>
+    </div>
+
+    <script>
+        // Password Toggle
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('passwordToggleIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+
+        // Show Alert
+        function showAlert(type, message) {
+            // Hide all alerts first
+            document.querySelectorAll('.alert').forEach(alert => {
+                alert.classList.remove('show');
+            });
+
+            // Show the specific alert
+            if (type === 'success') {
+                document.getElementById('successMessage').textContent = message;
+                document.getElementById('alertSuccess').classList.add('show');
+            } else if (type === 'error') {
+                document.getElementById('errorMessage').textContent = message;
+                document.getElementById('alertError').classList.add('show');
+            }
+
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                document.querySelectorAll('.alert').forEach(alert => {
+                    alert.classList.remove('show');
+                });
+            }, 5000);
+        }
+
+        // Handle Login Form Submit
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+
+            // Validate
+            if (!username || !password) {
+                showAlert('error', 'กรุณากรอกข้อมูลให้ครบถ้วน');
+                return;
+            }
+
+            // Show loading
+            const loginButton = document.getElementById('loginButton');
+            const buttonText = document.getElementById('buttonText');
+            const buttonIcon = document.getElementById('buttonIcon');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+
+            loginButton.classList.add('loading');
+            buttonText.style.display = 'none';
+            buttonIcon.style.display = 'none';
+            loginButton.innerHTML = '<div class="button-spinner"></div><span>กำลังเข้าสู่ระบบ...</span>';
+            loadingOverlay.classList.add('show');
+
+            // Simulate API call
+            setTimeout(() => {
+                // Demo: Check credentials
+                if (username === 'admin' && password === 'admin123') {
+                    showAlert('success', 'เข้าสู่ระบบสำเร็จ! กำลังนำคุณไปยังหน้าหลัก...');
+                    
+                    // Redirect after 1.5 seconds
+                    setTimeout(() => {
+                        // In real app, redirect to dashboard
+                        console.log('Redirecting to dashboard...');
+                        // window.location.href = 'dashboard.html';
+                    }, 1500);
+                } else {
+                    showAlert('error', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+                    
+                    // Reset button
+                    loginButton.classList.remove('loading');
+                    loginButton.innerHTML = '<span id="buttonText">เข้าสู่ระบบ</span><i class="fas fa-arrow-right" id="buttonIcon"></i>';
+                    loadingOverlay.classList.remove('show');
+                }
+            }, 2000);
+        });
+
+        // Handle Forgot Password
+        function handleForgotPassword(e) {
+            e.preventDefault();
+            showAlert('error', 'ฟีเจอร์นี้อยู่ระหว่างการพัฒนา กรุณาติดต่อผู้ดูแลระบบ');
+        }
+
+        // Handle Social Login
+        function handleSocialLogin(provider) {
+            showAlert('error', `การเข้าสู่ระบบด้วย ${provider === 'google' ? 'Google' : 'LINE'} อยู่ระหว่างการพัฒนา`);
+        }
+
+        // Handle Register
+        function handleRegister(e) {
+            e.preventDefault();
+            showAlert('error', 'หน้าสมัครสมาชิกอยู่ระหว่างการพัฒนา กรุณาติดต่อผู้ดูแลระบบ');
+        }
+
+        // Demo: Show demo credentials on page load
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                showAlert('success', 'Demo: ใช้ username: admin, password: admin123 เพื่อเข้าสู่ระบบ');
+            }, 1000);
+        });
+
+        // Enter key to submit
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && document.activeElement.tagName !== 'BUTTON') {
+                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>

@@ -12,7 +12,6 @@ export default function SettingsPage() {
       <PageHeader
         title="ตั้งค่า"
         subtitle="หน้าตั้งค่าระบบ"
-        icon={<Settings className="w-6 h-6 text-blue-600" />}
         onMenuClick={() => setSidebarOpen(true)}
       />
 

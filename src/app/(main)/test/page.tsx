@@ -23,16 +23,19 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { List, Eye, Edit, Trash2, Search, Filter, LayoutGrid, Plus, X } from 'lucide-react';
+import { List, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { LIMIT } from '@/config/constants';
 import { generateUploadKey, uploadFiles, deleteFile } from '@/lib/utils';
+import { apiCall } from '@/lib/api';
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import { Pagination, PaginationSummary } from '@/components/pagination';
+import { Pagination } from '@/components/pagination';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { ErrorAlert } from '@/components/error-alert';
 import { FileUploadSection } from '@/components/file-upload-section';
 import { FilePreview } from '@/components/file-preview';
+import { SearchBar } from '@/components/search-bar';
+import { TableActionButtons } from '@/components/table-action-buttons';
 
 // ตัวแปรคงที่
 const MENU = 'news';
@@ -93,42 +96,65 @@ export default function TestPage() {
   const [searchKeyword, setSearchKeyword] = useState(''); // keyword ที่ส่งไป API
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
 
-  // Fetch data from API
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError('');
+  // Fetch data from API (with loading state)
+  const fetchList = async () => {
+    setLoading(true);
+    setError('');
 
-      try {
-        let url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=${currentPage}&limit=${LIMIT}`;
-        if (searchKeyword) {
-          url += `&keyword=${encodeURIComponent(searchKeyword)}`;
-        }
-        console.log(`url : ${url}`);
-        const response = await fetch(url);
-        const result = await response.json();
+    let url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=${currentPage}&limit=${LIMIT}`;
+    if (searchKeyword) {
+      url += `&keyword=${encodeURIComponent(searchKeyword)}`;
+    }
+    console.log(`url : ${url}`);
 
-        if (result.success) {
-          setData(result.data || []);
-          setPagination(result.pagination);
-        } else {
-          setError(result.error || result.message || 'เกิดข้อผิดพลาด');
-        }
-      } catch (err: any) {
-        setError('ไม่สามารถเชื่อมต่อ API ได้: ' + err.message);
-      } finally {
-        setLoading(false);
+    const result = await apiCall(url);
+
+    if (result.success) {
+      setData(result.data || []);
+      setPagination(result.pagination);
+    } else {
+      setError(result.error || result.message || 'เกิดข้อผิดพลาด');
+    }
+
+    setLoading(false);
+  };
+
+  // Refresh list after CRUD operations (silent, no loading)
+  const refreshList = async (resetToFirstPage = false) => {
+    const pageToUse = resetToFirstPage ? 1 : currentPage;
+    let url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=${pageToUse}&limit=${LIMIT}`;
+    if (searchKeyword) {
+      url += `&keyword=${encodeURIComponent(searchKeyword)}`;
+    }
+
+    const result = await apiCall(url);
+
+    if (result.success) {
+      setData(result.data || []);
+      setPagination(result.pagination);
+      if (resetToFirstPage) {
+        setCurrentPage(1);
       }
-    };
+    } else {
+      console.error('Failed to refresh list:', result.error || result.message);
+    }
+  };
 
-    fetchData();
+  useEffect(() => {
+    fetchList();
   }, [currentPage, searchKeyword]);
 
   const getStatusBadge = (status: number) => {
     if (status === 1) {
-      return { label: 'เผยแพร่', className: 'bg-green-500 hover:bg-green-600' };
+      return {
+        label: 'เผยแพร่',
+        className: 'bg-green-50 text-green-700 hover:bg-green-100'
+      };
     }
-    return { label: 'ไม่เผยแพร่', className: 'bg-gray-500 hover:bg-gray-600' };
+    return {
+      label: 'ไม่เผยแพร่',
+      className: 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+    };
   };
 
   // Handle search
@@ -144,12 +170,6 @@ export default function TestPage() {
     setCurrentPage(1);
   };
 
-  // Handle Enter key in search input
-  const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
-  };
 
   // Handle delete
   const handleDeleteClick = (id: number) => {
@@ -161,40 +181,28 @@ export default function TestPage() {
     if (!deleteId) return;
 
     setDeleting(true);
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_PATH}${API_DELETE}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: deleteId,
-          uid: 1,
-        }),
-      });
 
-      const result = await response.json();
+    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}${API_DELETE}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: deleteId,
+        uid: 1,
+      }),
+    });
 
-      if (result.success) {
-        // Refresh list
-        const url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=${currentPage}&limit=${LIMIT}`;
-        const listResponse = await fetch(url);
-        const listResult = await listResponse.json();
-        if (listResult.success) {
-          setData(listResult.data || []);
-          setPagination(listResult.pagination);
-        }
-        setDeleteConfirmOpen(false);
-        setDeleteId(null);
-        toast.success(result.message || 'ลบข้อมูลสำเร็จ');
-      } else {
-        toast.error(result.message || 'เกิดข้อผิดพลาดในการลบ');
-      }
-    } catch (err: any) {
-      toast.error('ไม่สามารถเชื่อมต่อ API ได้: ' + err.message);
-    } finally {
-      setDeleting(false);
+    if (result.success) {
+      await refreshList(); // Refresh ที่หน้าเดิม, ไม่ reset keyword
+      setDeleteConfirmOpen(false);
+      setDeleteId(null);
+      toast.success(result.message || 'ลบข้อมูลสำเร็จ');
+    } else {
+      toast.error(result.message || result.error || 'เกิดข้อผิดพลาดในการลบ');
     }
+
+    setDeleting(false);
   };
 
   // Handle view button click
@@ -203,22 +211,16 @@ export default function TestPage() {
     setViewModalOpen(true);
     setViewData(null);
 
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_PATH}${API_DETAIL}/${id}`);
-      const result = await response.json();
+    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}${API_DETAIL}/${id}`);
 
-      if (result.success) {
-        setViewData(result.data);
-      } else {
-        toast.error(result.message || 'ไม่พบข้อมูล');
-        setViewModalOpen(false);
-      }
-    } catch (err: any) {
-      toast.error('ไม่สามารถเชื่อมต่อ API ได้: ' + err.message);
+    if (result.success) {
+      setViewData(result.data);
+    } else {
+      toast.error(result.message || result.error || 'ไม่พบข้อมูล');
       setViewModalOpen(false);
-    } finally {
-      setLoadingView(false);
     }
+
+    setLoadingView(false);
   };
 
   // Handle edit button click
@@ -233,15 +235,10 @@ export default function TestPage() {
 
     // Fetch attachments for edit mode
     if (item.id) {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_PATH}${API_DETAIL}/${item.id}`);
-        const result = await response.json();
-        if (result.success && result.data.attachments) {
-          setAttachments(result.data.attachments);
-        } else {
-          setAttachments([]);
-        }
-      } catch (err) {
+      const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}${API_DETAIL}/${item.id}`);
+      if (result.success && result.data.attachments) {
+        setAttachments(result.data.attachments);
+      } else {
         setAttachments([]);
       }
     }
@@ -307,73 +304,65 @@ export default function TestPage() {
     e.preventDefault();
     setSubmitting(true);
 
-    try {
-      let payload: any;
-      let apiPath: string;
-      let method: string;
+    let payload: any;
+    let apiPath: string;
+    let method: string;
 
-      if (isEditMode) {
-        // Update mode
-        payload = {
-          id: editingItem.id,
-          title: formData.title,
-          detail: formData.detail,
-          status: parseInt(formData.status),
-          uid: UID,
-        };
-        apiPath = API_UPDATE;
-        method = 'PUT';
-      } else {
-        // Insert mode - use current upload key if files were uploaded
-        payload = {
-          title: formData.title,
-          detail: formData.detail,
-          upload_key: currentUploadKey || generateUploadKey(),
-          status: parseInt(formData.status),
-          uid: UID,
-        };
-        apiPath = API_INSERT;
-        method = 'POST';
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_PATH}${apiPath}`, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        // Close modal
-        setIsModalOpen(false);
-        // Reset form and editing state
-        setFormData({ title: '', detail: '', status: '1' });
-        setEditingItem(null);
-        setAttachments([]);
-        setCurrentUploadKey('');
-        // Refresh list
-        const currentPageToUse = isEditMode ? currentPage : 1;
-        if (!isEditMode) setCurrentPage(1);
-        const url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=${currentPageToUse}&limit=${LIMIT}`;
-        const listResponse = await fetch(url);
-        const listResult = await listResponse.json();
-        if (listResult.success) {
-          setData(listResult.data || []);
-          setPagination(listResult.pagination);
-        }
-        // Show success toast
-        toast.success(result.message || 'บันทึกข้อมูลสำเร็จ');
-      } else {
-        toast.error(result.message || 'เกิดข้อผิดพลาดในการบันทึก');
-      }
-    } catch (err: any) {
-      toast.error('ไม่สามารถเชื่อมต่อ API ได้: ' + err.message);
-    } finally {
-      setSubmitting(false);
+    if (isEditMode) {
+      // Update mode
+      payload = {
+        id: editingItem.id,
+        title: formData.title,
+        detail: formData.detail,
+        status: parseInt(formData.status),
+        uid: UID,
+      };
+      apiPath = API_UPDATE;
+      method = 'PUT';
+    } else {
+      // Insert mode - use current upload key if files were uploaded
+      payload = {
+        title: formData.title,
+        detail: formData.detail,
+        upload_key: currentUploadKey || generateUploadKey(),
+        status: parseInt(formData.status),
+        uid: UID,
+      };
+      apiPath = API_INSERT;
+      method = 'POST';
     }
+
+    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}${apiPath}`, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (result.success) {
+      // Close modal
+      setIsModalOpen(false);
+      // Reset form and editing state
+      setFormData({ title: '', detail: '', status: '1' });
+      setEditingItem(null);
+      setAttachments([]);
+      setCurrentUploadKey('');
+
+      // Refresh list
+      if (isEditMode) {
+        await refreshList(); // Update: ใช้หน้าเดิม
+      } else {
+        await refreshList(true); // Insert: กลับหน้า 1
+      }
+
+      // Show success toast
+      toast.success(result.message || 'บันทึกข้อมูลสำเร็จ');
+    } else {
+      toast.error(result.message || result.error || 'เกิดข้อผิดพลาดในการบันทึก');
+    }
+
+    setSubmitting(false);
   };
 
   return (
@@ -381,7 +370,6 @@ export default function TestPage() {
       <PageHeader
         title="ทดสอบหน้าลิส"
         subtitle="ตัวอย่างการแสดงข้อมูลจาก API"
-        icon={<List className="w-6 h-6 text-blue-600" />}
         onMenuClick={() => setSidebarOpen(true)}
       />
 
@@ -390,40 +378,13 @@ export default function TestPage() {
         <div className="flex flex-col lg:flex-row gap-4 mb-6">
           {/* Search Section */}
           <div className="flex gap-3 flex-1">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <Input
-                type="text"
-                placeholder="ค้นหาจากหัวข้อ, รายละเอียด..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={handleSearchKeyPress}
-                className="pl-10 pr-20 h-11 bg-white"
-              />
-              {searchQuery && (
-                <button
-                  onClick={handleClearSearch}
-                  className="absolute right-14 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-              <Button
-                onClick={handleSearch}
-                size="sm"
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-9 bg-blue-600 hover:bg-blue-700"
-              >
-                <Search className="w-4 h-4" />
-              </Button>
-            </div>
-            {/* <Button
-              variant="outline"
-              className="h-11 px-4 gap-2"
-              onClick={() => toast.info('ฟีเจอร์ตัวกรองกำลังพัฒนา')}
-            >
-              <Filter className="w-4 h-4" />
-              <span className="hidden sm:inline">ตัวกรอง</span>
-            </Button> */}
+            <SearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              onSearch={handleSearch}
+              onClear={handleClearSearch}
+              placeholder="ค้นหาจากหัวข้อ, รายละเอียด..."
+            />
           </div>
 
           {/* Action Buttons */}
@@ -491,13 +452,13 @@ export default function TestPage() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b-2 border-slate-200">
                   <tr>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">ID</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">หัวข้อ</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">รายละเอียด</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Upload Key</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">สถานะ</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">วันที่สร้าง</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">การดำเนินการ</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 w-[5%]">ID</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 w-[15%]">หัวข้อ</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 w-[20%]">รายละเอียด</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 w-[15%]">Upload Key</th>
+                    <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700 w-[15%]">สถานะ</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 w-[15%]">วันที่สร้าง</th>
+                    <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700 w-[15%]">การดำเนินการ</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -526,40 +487,21 @@ export default function TestPage() {
                           <td className="px-4 py-4 text-sm text-slate-600">
                             {item.upload_key || '-'}
                           </td>
-                          <td className="px-4 py-4">
-                            <Badge className={statusInfo.className}>
+                          <td className="px-4 py-4 !text-center">
+                            <div className={`inline-flex items-center px-3 py-1 rounded text-sm font-medium ${statusInfo.className}`}>
                               {statusInfo.label}
-                            </Badge>
+                            </div>
                           </td>
                           <td className="px-4 py-4 text-sm text-slate-600">
                             {item.create_date_formatted || item.create_date || '-'}
                           </td>
                           <td className="px-4 py-4">
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8"
-                                onClick={() => handleViewClick(item.id)}
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 text-orange-600 hover:text-orange-700"
-                                onClick={() => handleEditClick(item)}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 text-red-600 hover:text-red-700"
-                                onClick={() => handleDeleteClick(item.id)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
+                            <div className="flex justify-center">
+                              <TableActionButtons
+                                onView={() => handleViewClick(item.id)}
+                                onEdit={() => handleEditClick(item)}
+                                onDelete={() => handleDeleteClick(item.id)}
+                              />
                             </div>
                           </td>
                         </tr>
@@ -690,9 +632,9 @@ export default function TestPage() {
                 <div>
                   <Label className="text-slate-500 text-sm">สถานะ</Label>
                   <div className="mt-1">
-                    <Badge className={getStatusBadge(viewData.status).className}>
+                    <div className={`inline-flex items-center px-3 py-1 rounded text-sm font-medium ${getStatusBadge(viewData.status).className}`}>
                       {getStatusBadge(viewData.status).label}
-                    </Badge>
+                    </div>
                   </div>
                 </div>
               </div>
