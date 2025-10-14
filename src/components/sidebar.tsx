@@ -3,15 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import {
-  LayoutDashboard,
-  FileText,
-  Users,
-  Settings,
-  List,
-  X,
-  Receipt
-} from 'lucide-react';
 import { UserMenu } from '@/components/user-menu';
 import { useState } from 'react';
 
@@ -19,33 +10,38 @@ const menuItems = [
   {
     title: 'แดชบอร์ด',
     href: '/dashboard',
-    icon: LayoutDashboard
+    icon: 'fa-chart-line'
   },
   {
     title: 'ค่าใช้จ่าย',
-    icon: Receipt,
+    icon: 'fa-file-invoice-dollar',
     submenu: [
       {
         title: 'จัดการบิล',
         href: '/billing',
-        icon: FileText
+        icon: 'fa-file-alt'
       },
       {
-        title: 'ทดสอบหน้าลิส',
-        href: '/test',
-        icon: List
+        title: 'จัดการการชำระเงิน',
+        href: '/payment',
+        icon: 'fa-credit-card'
       }
     ]
   },
   {
     title: 'จัดการข้อมูลทะเบียน',
     href: '/room',
-    icon: Users
+    icon: 'fa-address-book'
   },
   {
     title: 'ตั้งค่า',
     href: '/settings',
-    icon: Settings
+    icon: 'fa-cog'
+  },
+  {
+    title: 'ทดสอบหน้าลิส',
+    href: '/test',
+    icon: 'fa-list'
   }
 ];
 
@@ -85,7 +81,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             onClick={onClose}
             className="lg:hidden p-2 hover:bg-slate-100 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5" />
+            <i className="fas fa-times w-5 h-5"></i>
           </button>
         </div>
 
@@ -93,7 +89,6 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         <nav className="p-4 flex-1 overflow-y-auto">
           <ul className="space-y-1">
             {menuItems.map((item, index) => {
-              const Icon = item.icon;
               const hasSubmenu = 'submenu' in item;
               const isActive = item.href ? pathname === item.href : false;
               const isSubmenuOpen = openSubmenu === item.title;
@@ -111,7 +106,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                           : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
                       )}
                     >
-                      <Icon className="w-5 h-5" />
+                      <i className={`fas ${item.icon} w-5 h-5`}></i>
                       <span className="flex-1 text-left">{item.title}</span>
                       <svg
                         className={cn(
@@ -128,7 +123,6 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                     {isSubmenuOpen && (
                       <ul className="mt-1 ml-4 space-y-1">
                         {item.submenu?.map((subItem) => {
-                          const SubIcon = subItem.icon;
                           const isSubActive = pathname === subItem.href;
 
                           return (
@@ -143,7 +137,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
                                 )}
                               >
-                                <SubIcon className="w-4 h-4" />
+                                <i className={`fas ${subItem.icon} w-4 h-4`}></i>
                                 <span>{subItem.title}</span>
                               </Link>
                             </li>
@@ -167,7 +161,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                         : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
                     )}
                   >
-                    <Icon className="w-5 h-5" />
+                    <i className={`fas ${item.icon} w-5 h-5`}></i>
                     <span>{item.title}</span>
                   </Link>
                 </li>

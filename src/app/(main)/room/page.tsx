@@ -43,7 +43,6 @@ import { TableActionButtons } from '@/components/table-action-buttons';
 
 // ตัวแปรคงที่
 const MENU = 'room';
-const UID = 5;
 
 // ตัวแปร API path
 const API_LIST = 'room/list';
@@ -228,6 +227,7 @@ export default function RoomPage() {
 
     const user = getCurrentUser();
     const customerId = user?.customer_id || '';
+    const uid = user?.uid || -1;
 
     const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}${API_DELETE}`, {
       method: 'DELETE',
@@ -236,7 +236,7 @@ export default function RoomPage() {
       },
       body: JSON.stringify({
         id: deleteId,
-        uid: UID,
+        uid: uid,
         customer_id: customerId,
       }),
     });
@@ -335,6 +335,7 @@ export default function RoomPage() {
 
     const user = getCurrentUser();
     const customerId = user?.customer_id || '';
+    const uid = user?.uid || -1;
 
     let payload: any;
     let apiPath: string;
@@ -348,7 +349,7 @@ export default function RoomPage() {
         resident_name: formData.resident_name,
         phone: formData.phone,
         status: parseInt(formData.status),
-        uid: UID,
+        uid: uid,
         customer_id: customerId,
       };
       apiPath = API_UPDATE;
@@ -360,7 +361,7 @@ export default function RoomPage() {
         resident_name: formData.resident_name,
         phone: formData.phone,
         status: parseInt(formData.status),
-        uid: UID,
+        uid: uid,
         customer_id: customerId,
       };
       apiPath = API_INSERT;

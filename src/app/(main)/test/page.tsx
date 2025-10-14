@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 import { LIMIT } from '@/config/constants';
 import { generateUploadKey, uploadFiles, deleteFile } from '@/lib/utils';
 import { apiCall } from '@/lib/api';
+import { getCurrentUser } from '@/lib/auth';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Pagination } from '@/components/pagination';
 import { LoadingSpinner } from '@/components/loading-spinner';
@@ -39,7 +40,6 @@ import { TableActionButtons } from '@/components/table-action-buttons';
 
 // ตัวแปรคงที่
 const MENU = 'news';
-const UID = 5;
 
 // ตัวแปร API path
 const API_LIST = 'news/list';
@@ -182,6 +182,9 @@ export default function TestPage() {
 
     setDeleting(true);
 
+    const user = getCurrentUser();
+    const uid = user?.uid || -1;
+
     const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}${API_DELETE}`, {
       method: 'DELETE',
       headers: {
@@ -189,7 +192,7 @@ export default function TestPage() {
       },
       body: JSON.stringify({
         id: deleteId,
-        uid: 1,
+        uid: uid,
       }),
     });
 
@@ -304,6 +307,9 @@ export default function TestPage() {
     e.preventDefault();
     setSubmitting(true);
 
+    const user = getCurrentUser();
+    const uid = user?.uid || -1;
+
     let payload: any;
     let apiPath: string;
     let method: string;
@@ -315,7 +321,7 @@ export default function TestPage() {
         title: formData.title,
         detail: formData.detail,
         status: parseInt(formData.status),
-        uid: UID,
+        uid: uid,
       };
       apiPath = API_UPDATE;
       method = 'PUT';
@@ -326,7 +332,7 @@ export default function TestPage() {
         detail: formData.detail,
         upload_key: currentUploadKey || generateUploadKey(),
         status: parseInt(formData.status),
-        uid: UID,
+        uid: uid,
       };
       apiPath = API_INSERT;
       method = 'POST';
@@ -492,8 +498,15 @@ export default function TestPage() {
                               {statusInfo.label}
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-sm text-slate-600">
-                            {item.create_date_formatted || item.create_date || '-'}
+                          <td className="px-4 py-4">
+                            {item.create_date_formatted ? (
+                              <>
+                                <div className="text-slate-800">{item.create_date_formatted.split(' ')[0]}</div>
+                                <div className="text-sm text-slate-600">{item.create_date_formatted.split(' ')[1]}</div>
+                              </>
+                            ) : (
+                              <div className="text-slate-600">-</div>
+                            )}
                           </td>
                           <td className="px-4 py-4">
                             <div className="flex justify-center">

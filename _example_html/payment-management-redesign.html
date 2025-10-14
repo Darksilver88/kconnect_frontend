@@ -1,0 +1,3341 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จัดการการชำระเงิน - ระบบจัดการโครงการที่พักอาศัย</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #2B6EF3;
+            --primary-blue-dark: #1F4EC2;
+            --primary-blue-light: #EBF2FF;
+            --blue-50: #F8FAFF;
+            --blue-100: #EBF2FF;
+            
+            --gray-50: #F8FAFC;
+            --gray-100: #F1F5F9;
+            --gray-200: #E2E8F0;
+            --gray-300: #CBD5E1;
+            --gray-400: #94A3B8;
+            --gray-500: #64748B;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1E293B;
+            --gray-900: #0F172A;
+            
+            --white: #FFFFFF;
+            --green-500: #22C55E;
+            --green-100: #DCFCE7;
+            --yellow-500: #EAB308;
+            --yellow-100: #FEF3C7;
+            --red-500: #EF4444;
+            --red-100: #FEE2E2;
+            --orange-500: #F97316;
+            --orange-100: #FFEDD5;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-800);
+            line-height: 1.6;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--white);
+            color: var(--gray-700);
+            padding: 24px 0;
+            position: fixed;
+            height: 100vh;
+            z-index: 1000;
+            box-shadow: var(--shadow-sm);
+            border-right: 1px solid var(--gray-200);
+        }
+
+        .sidebar-header {
+            padding: 0 24px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            margin-bottom: 24px;
+        }
+
+        .sidebar-header .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .sidebar-header .logo i {
+            background: var(--blue-100);
+            color: var(--primary-blue);
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .sidebar-header .subtitle {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0 16px;
+        }
+
+        .sidebar-menu li {
+            margin-bottom: 4px;
+        }
+
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            color: var(--gray-600);
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .sidebar-menu a i {
+            width: 20px;
+            margin-right: 12px;
+            color: var(--gray-500);
+        }
+
+        .sidebar-menu a:hover {
+            background: var(--gray-50);
+            color: var(--gray-800);
+        }
+
+        .sidebar-menu a:hover i {
+            color: var(--primary-blue);
+        }
+
+        .sidebar-menu a.active {
+            background: var(--blue-50);
+            color: var(--primary-blue);
+            border-left: 3px solid var(--primary-blue);
+            font-weight: 600;
+        }
+
+        .sidebar-menu a.active i {
+            color: var(--primary-blue);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            background: var(--gray-50);
+        }
+
+        /* Header */
+        .header {
+            background: var(--white);
+            padding: 16px 32px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-top: 4px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .project-selector {
+            position: relative;
+        }
+
+        .project-dropdown {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--blue-50);
+            padding: 12px 16px;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid var(--blue-100);
+        }
+
+        .project-dropdown:hover {
+            background: var(--blue-100);
+        }
+
+        .project-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .project-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary-blue);
+            line-height: 1.2;
+        }
+
+        .project-code {
+            font-size: 12px;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .dropdown-arrow {
+            color: var(--primary-blue);
+            transition: transform 0.3s ease;
+        }
+
+        .project-dropdown.open .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            margin-top: 4px;
+            display: none;
+            overflow: hidden;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+            animation: dropdownSlide 0.2s ease-out;
+        }
+		
+		@keyframes dropdownSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background: var(--gray-50);
+        }
+
+        .dropdown-item.active {
+            background: var(--blue-50);
+        }
+
+        .dropdown-item-name {
+            font-weight: 500;
+            color: var(--gray-800);
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .dropdown-item-code {
+            font-size: 12px;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .notification-btn {
+            position: relative;
+            background: #f0f4f8;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .notification-btn:hover {
+            background: #e2e8f0;
+            transform: scale(1.05);
+        }
+
+        .notification-btn .badge {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: var(--red-500);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            min-width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            background: var(--primary-blue);
+            color: white;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .user-info {
+            font-size: 14px;
+        }
+
+        .user-name {
+            font-weight: 600;
+        }
+
+        .user-role {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* Content */
+        .content {
+            padding: 32px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--white);
+            padding: 24px;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            border-top: 4px solid;
+            position: relative;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-card.total { border-top-color: var(--primary-blue); }
+        .stat-card.pending { border-top-color: var(--yellow-500); }
+        .stat-card.approved { border-top-color: var(--green-500); }
+        .stat-card.rejected { border-top-color: var(--red-500); }
+        .stat-card.manual { border-top-color: #8B5CF6; }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--gray-900);
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--gray-600);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .stat-change {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .stat-change.positive {
+            color: var(--green-500);
+        }
+
+        .stat-change.negative {
+            color: var(--red-500);
+        }
+
+        .stat-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            opacity: 0.7;
+        }
+
+        .stat-card.total .stat-icon {
+            background: var(--blue-100);
+            color: var(--primary-blue);
+        }
+
+        .stat-card.pending .stat-icon {
+            background: var(--yellow-100);
+            color: var(--yellow-500);
+        }
+
+        .stat-card.approved .stat-icon {
+            background: var(--green-100);
+            color: var(--green-500);
+        }
+
+        .stat-card.rejected .stat-icon {
+            background: var(--red-100);
+            color: var(--red-500);
+        }
+
+        .stat-card.manual .stat-icon {
+            background: #EDE9FE;
+            color: #8B5CF6;
+        }
+
+        /* Tabs */
+        .tabs-container {
+            background: var(--white);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid var(--gray-200);
+            padding: 0;
+        }
+
+        .tab {
+            padding: 16px 24px;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-600);
+            transition: all 0.3s ease;
+            position: relative;
+            flex: 1;
+            font-family: 'Sarabun', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab:hover {
+            color: var(--primary-blue);
+            background: var(--gray-50);
+        }
+
+        .tab.active {
+            color: var(--primary-blue);
+            background: var(--blue-50);
+            border-bottom-color: var(--primary-blue);
+        }
+
+        .tab .tab-badge {
+            background: var(--red-500);
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 4px;
+        }
+
+        .tab.active .tab-badge {
+            background: var(--primary-blue);
+        }
+
+        /* Action Bar */
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: var(--white-50);
+            flex-wrap: wrap;
+        }
+
+        .search-section {
+            display: flex;
+            gap: 12px;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .search-box {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 0 16px;
+            height: 44px;
+            border: 1px solid var(--gray-200);
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus-within {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(43, 110, 243, 0.1);
+        }
+
+        .search-box i {
+            color: var(--gray-400);
+            margin-right: 12px;
+        }
+
+        .search-box input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            font-family: 'Sarabun', sans-serif;
+            color: var(--gray-800);
+        }
+
+        .search-box input::placeholder {
+            color: var(--gray-400);
+        }
+
+        .filter-btn {
+            background: white;
+            border: 1px solid var(--gray-200);
+            padding: 0 16px;
+            height: 44px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            color: var(--gray-700);
+            font-family: 'Sarabun', sans-serif;
+            font-weight: 500;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+            background: var(--blue-50);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0 20px;
+            height: 44px;
+            border: none;
+            border-radius: var(--radius-lg);
+            font-family: 'Sarabun', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-blue-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-success {
+            background: var(--green-500);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #16A34A;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-danger {
+            background: var(--red-500);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #DC2626;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--gray-700);
+            border: 1px solid var(--gray-200);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-50);
+            border-color: var(--gray-300);
+        }
+
+        /* Table */
+        .table-container {
+            background: var(--white);
+            border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+            overflow: hidden;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th,
+        .table td {
+            padding: 16px 24px;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .table th {
+            background: var(--gray-50);
+            font-weight: 600;
+            color: var(--gray-800);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .table td {
+            font-size: 14px;
+            color: var(--gray-700);
+        }
+
+        .table tr:hover {
+            background: var(--gray-50);
+        }
+
+        /* Payment Info */
+        .payment-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .payment-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-dark));
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .payment-details h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 2px;
+        }
+
+        .payment-details p {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        /* Amount */
+        .amount {
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--gray-900);
+        }
+
+        /* Status Badge */
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: var(--radius-md);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+
+        .status-pending {
+            background: var(--yellow-100);
+            color: #D97706;
+        }
+
+        .status-approved {
+            background: var(--green-100);
+            color: #059669;
+        }
+
+        .status-rejected {
+            background: var(--red-100);
+            color: var(--red-500);
+        }
+
+        .status-partial {
+            background: rgba(23, 162, 184, 0.1);
+            color: #0891B2;
+            border: 1px solid rgba(23, 162, 184, 0.2);
+        }
+
+        /* Action Buttons */
+        .action-buttons-cell {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        .action-btn-review {
+            background: var(--blue-100);
+            color: var(--primary-blue);
+        }
+
+        .action-btn-review:hover {
+            background: #DBEAFE;
+        }
+
+        .action-btn-payment {
+            background: var(--green-100);
+            color: #059669;
+        }
+
+        .action-btn-payment:hover {
+            background: #D1FAE5;
+        }
+
+        .action-btn-payment.urgent {
+            background: var(--red-100);
+            color: var(--red-500);
+            animation: pulse 2s infinite;
+        }
+
+        .action-btn-payment.partial {
+            background: var(--orange-100);
+            color: var(--orange-500);
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* Checkbox */
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--primary-blue);
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .pagination-info {
+            font-size: 14px;
+            color: var(--gray-600);
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .pagination-btn {
+            padding: 8px 12px;
+            border: 1px solid var(--gray-200);
+            background: white;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            color: var(--gray-700);
+            font-family: 'Sarabun', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background: var(--gray-50);
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-numbers {
+            display: flex;
+            gap: 4px;
+        }
+
+        .pagination-number {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--gray-200);
+            background: white;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            color: var(--gray-700);
+            font-family: 'Sarabun', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+        }
+
+        .pagination-number:hover {
+            background: var(--gray-50);
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+        }
+
+        .pagination-number.active {
+            background: var(--primary-blue);
+            border-color: var(--primary-blue);
+            color: white;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--gray-500);
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            color: var(--gray-300);
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            color: var(--gray-700);
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+        }
+
+        /* Manual Payment Section */
+        .manual-payment-header {
+            background: var(--blue-50);
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            margin-top: 15px;
+			margin-bottom: 15px;
+			margin-left: 15px;
+			margin-right: 15px;
+            border-left: 4px solid var(--primary-blue);
+        }
+
+        .manual-payment-header h3 {
+            color: var(--gray-900);
+            margin-bottom: 8px;
+            font-size: 18px;
+        }
+
+        .manual-payment-header p {
+            color: var(--gray-600);
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .outstanding-bills-section {
+            background: var(--white);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: var(--gray-50);
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .section-header h4 {
+            color: var(--gray-900);
+            margin: 0;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bill-resident-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .resident-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-dark));
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .amount-outstanding {
+            font-weight: 700;
+            color: var(--yellow-500);
+        }
+
+        .amount-outstanding.overdue {
+            color: var(--red-500);
+        }
+
+        .amount-outstanding.partial {
+            color: #0891B2;
+        }
+
+        /* Summary Cards */
+        .manual-payment-summary {
+            background: var(--white);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            padding: 24px;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .summary-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            background: var(--gray-50);
+            border-radius: var(--radius-lg);
+            border-left: 4px solid;
+            transition: transform 0.3s ease;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .summary-card.pending-card {
+            border-left-color: var(--yellow-500);
+        }
+
+        .summary-card.overdue-card {
+            border-left-color: var(--red-500);
+        }
+
+        .summary-card.amount-card {
+            border-left-color: #0891B2;
+        }
+
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .summary-card.pending-card .card-icon {
+            background: var(--yellow-500);
+        }
+
+        .summary-card.overdue-card .card-icon {
+            background: var(--red-500);
+        }
+
+        .summary-card.amount-card .card-icon {
+            background: #0891B2;
+        }
+
+        .card-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+
+        .card-label {
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: var(--radius-xl);
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+            box-shadow: var(--shadow-lg);
+        }
+
+        @keyframes slideUp {
+            from { 
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 24px 30px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--blue-50);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .close-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-md);
+            border: none;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 18px;
+        }
+
+        .close-btn:hover {
+            background: var(--gray-200);
+            color: var(--gray-800);
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .slip-image {
+            width: 100%;
+            max-width: 400px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .slip-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .detail-item {
+            background: var(--gray-50);
+            padding: 16px;
+            border-radius: var(--radius-md);
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: var(--gray-600);
+            margin-bottom: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .bill-info-box {
+            background: var(--blue-50);
+            padding: 20px;
+            border-radius: var(--radius-lg);
+            margin-top: 20px;
+            border-left: 4px solid var(--primary-blue);
+        }
+
+        .bill-info-box h4 {
+            color: var(--gray-900);
+            margin-bottom: 16px;
+        }
+
+        .bill-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .modal-actions,
+        .modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn-modal {
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-family: 'Sarabun', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-cancel {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .btn-cancel:hover {
+            background: var(--gray-300);
+        }
+
+        /* Payment Form */
+        .payment-bill-info {
+            background: var(--gray-50);
+            padding: 20px;
+            border-radius: var(--radius-lg);
+            margin-bottom: 24px;
+            border-left: 4px solid var(--primary-blue);
+        }
+
+        .payment-bill-info h4 {
+            color: var(--gray-900);
+            margin-bottom: 16px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-item.outstanding {
+            background: var(--yellow-100);
+            padding: 12px;
+            border-radius: var(--radius-md);
+            border-left: 3px solid var(--yellow-500);
+            border-bottom: none;
+        }
+
+        .info-item .label {
+            color: var(--gray-600);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .info-item .value {
+            color: var(--gray-900);
+            font-weight: 600;
+        }
+
+        .payment-form-section {
+            margin-bottom: 24px;
+        }
+
+        .payment-form-section h4 {
+            color: var(--gray-900);
+            margin-bottom: 16px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 6px;
+            color: var(--gray-800);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 10px 14px;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-family: 'Sarabun', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(43, 110, 243, 0.1);
+        }
+
+        .payment-suggestions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .suggestion-btn {
+            padding: 6px 12px;
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        .suggestion-btn:hover {
+            background: var(--gray-200);
+        }
+
+        .payment-calculation {
+            background: var(--green-100);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            margin: 20px 0;
+            border-left: 4px solid var(--green-500);
+        }
+
+        .calc-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .calc-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .calc-row.change {
+            background: var(--yellow-100);
+            margin: 12px -16px -16px;
+            padding: 12px 16px;
+            border-radius: 0 0 var(--radius-md) var(--radius-md);
+            border-left: 4px solid var(--yellow-500);
+        }
+
+        .payment-method-details {
+            background: var(--blue-50);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            margin: 16px 0;
+            border-left: 4px solid var(--primary-blue);
+        }
+
+        /* Quick Reason Buttons */
+        .quick-reason-btn {
+            padding: 12px 16px;
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Sarabun', sans-serif;
+            font-size: 14px;
+            color: var(--gray-700);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quick-reason-btn:hover {
+            background: var(--blue-50);
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+            transform: translateX(4px);
+        }
+
+        .quick-reason-btn i {
+            color: var(--primary-blue);
+            width: 20px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .tabs {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-building"></i>
+                <div>
+                    <div>ระบบจัดการโครงการ</div>
+                </div>
+            </div>
+			<div class="subtitle">สำหรับฝ่ายบริการโครงการ K-Connect</div>
+        </div>
+        
+        <nav class="sidebar-menu">
+            <li><a href="#"><i class="fas fa-home"></i> หน้าหลัก</a></li>
+            <li><a href="#" class="active"><i class="fas fa-credit-card"></i> จัดการการชำระเงิน</a></li>
+            <li><a href="#"><i class="fas fa-file-invoice"></i> จัดการบิล</a></li>
+            <li><a href="#"><i class="fas fa-address-book"></i> จัดการข้อมูลทะเบียน</a></li>
+            <li><a href="#"><i class="fas fa-bell"></i> การแจ้งเตือน</a></li>
+            <li><a href="#"><i class="fas fa-chart-bar"></i> รายงาน</a></li>
+            <li><a href="#"><i class="fas fa-cog"></i> ตั้งค่า</a></li>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div>
+                    <div class="breadcrumb">
+                        <span>หน้าหลัก</span>
+                        <i class="fas fa-chevron-right"></i>
+                        <span>จัดการการชำระเงิน</span>
+                    </div>
+                    <div class="page-title">จัดการการชำระเงิน</div>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <div class="project-selector">
+                        <div class="project-dropdown" onclick="toggleProjectDropdown()">
+                            <div class="project-info">
+                                <div class="project-name">โค้ดเด้อทรี</div>
+                                <div class="project-code">CODE-TREE-01</div>
+                            </div>
+                            <i class="fas fa-chevron-down dropdown-arrow"></i>
+                        </div>
+                        <div class="dropdown-menu" id="projectDropdown">
+                            <div class="dropdown-item active" onclick="selectProject('โค้ดเด้อทรี', 'CODE-TREE-01')">
+                                <div class="dropdown-item-name">โค้ดเด้อทรี</div>
+                                <div class="dropdown-item-code">CODE-TREE-01</div>
+                            </div>
+                            <div class="dropdown-item" onclick="selectProject('บลูสกาย คอนโดมิเนียม', 'BLUE-SKY-02')">
+                                <div class="dropdown-item-name">บลูสกาย คอนโดมิเนียม</div>
+                                <div class="dropdown-item-code">BLUE-SKY-02</div>
+                            </div>
+                            <div class="dropdown-item" onclick="selectProject('กรีน วิลเลจ', 'GREEN-VIL-03')">
+                                <div class="dropdown-item-name">กรีน วิลเลจ</div>
+                                <div class="dropdown-item-code">GREEN-VIL-03</div>
+                            </div>
+                            <div class="dropdown-item" onclick="selectProject('โกลเด้น เพลซ', 'GOLD-PLC-04')">
+                                <div class="dropdown-item-name">โกลเด้น เพลซ</div>
+                                <div class="dropdown-item-code">GOLD-PLC-04</div>
+                            </div>
+                            <div class="dropdown-item" onclick="selectProject('ซิลเวอร์ เรสซิเด้นซ์', 'SIL-RES-05')">
+                                <div class="dropdown-item-name">ซิลเวอร์ เรสซิเด้นซ์</div>
+                                <div class="dropdown-item-code">SIL-RES-05</div>
+                            </div>
+                        </div>
+                    </div>
+
+                <button class="notification-btn">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">3</span>
+                </button>
+                
+                <div class="user-menu">
+                    <div class="user-info">
+                        <div class="user-name">Admin</div>
+                        <div class="user-role">ผู้ดูแลระบบ</div>
+                    </div>
+                    <div class="user-avatar">AD</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card total" onclick="switchToTab('pending')">
+                    <div class="stat-number">254</div>
+                    <div class="stat-label">บิลทั้งหมดเดือนนี้</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> +12 จากเดือนที่แล้ว
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </div>
+                </div>
+                
+                <div class="stat-card pending" onclick="switchToTab('pending')">
+                    <div class="stat-number">12</div>
+                    <div class="stat-label">รออนุมัติ</div>
+                    <div class="stat-change negative">
+                        <i class="fas fa-arrow-down"></i> -3 จากเมื่อวาน
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                </div>
+                
+                <div class="stat-card approved" onclick="switchToTab('approved')">
+                    <div class="stat-number">189</div>
+                    <div class="stat-label">อนุมัติแล้ว</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> +15 วันนี้
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                </div>
+                
+                <div class="stat-card rejected" onclick="switchToTab('rejected')">
+                    <div class="stat-number">28</div>
+                    <div class="stat-label">ปฏิเสธ</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> +2 วันนี้
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                </div>
+                
+                <div class="stat-card manual" onclick="switchToTab('manual')">
+                    <div class="stat-number">25</div>
+                    <div class="stat-label">รอชำระ</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> +5 วันนี้
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-hand-holding-usd"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs-container">
+                <div class="tabs">
+                    <button class="tab active" data-tab="manual">
+                        <i class="fas fa-file-invoice-dollar"></i> รอชำระ
+                    </button>
+                    <button class="tab" data-tab="pending">
+                        <i class="fas fa-clock"></i> รอตรวจสอบและอนุมัติ
+                        <span class="tab-badge">12</span>
+                    </button>
+                    <button class="tab" data-tab="approved">
+                        <i class="fas fa-check-circle"></i> อนุมัติและชำระแล้ว
+                    </button>
+                    <button class="tab" data-tab="rejected">
+                        <i class="fas fa-times-circle"></i> ปฏิเสธ
+                    </button>
+                </div>
+
+                <!-- Manual Payment Tab (Now First) -->
+                <div id="manual-tab" class="tab-content active">
+                    <div class="manual-payment-header">
+                        <h3><i class="fas fa-edit"></i> รายการบิลรอชำระ</h3>
+                        <p>รองรับสำหรับกรณีที่ลูกบ้านมาชำระเงินที่นิติบุคคลโดยตรง เป็นบันทึกการชำระเงินแบบ Manual สามารถค้นหาแล้วทำการบันทึกการชำระเงินได้เลย</p>
+                    </div>
+
+                    <div class="outstanding-bills-section">
+                        <!-- <div class="section-header"> -->
+                            <!-- <h4><i class="fas fa-search"></i> ค้นหาบิลค้างชำระ</h4> -->
+                        <!-- </div> -->
+                        
+                        <div class="action-bar">
+                            <div class="search-section">
+                                <div class="search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" id="billSearchInput" placeholder="ค้นหาจากเลขห้อง, ชื่อ, หัวข้อบิล, หรือเลขบิล...">
+                                </div>
+                                <select id="billTypeFilter" class="filter-btn">
+                                    <option value="all">ทุกหัวข้อบิล</option>
+                                    <option value="common_fee">ค่าส่วนกลาง</option>
+                                    <option value="water">ค่าน้ำประปา</option>
+                                    <option value="electricity">ค่าไฟฟ้า</option>
+                                    <option value="parking">ค่าที่จอดรถ</option>
+                                    <option value="other">อื่นๆ</option>
+                                </select>
+                                <select id="billStatusFilter" class="filter-btn">
+                                    <option value="all">ทุกสถานะ</option>
+                                    <option value="pending">รอชำระ</option>
+                                    <option value="overdue">เกินกำหนด</option>
+                                    <option value="partial">ชำระบางส่วน</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="table-container">
+                            <table class="table" id="outstandingBillsTable">
+                                <thead>
+                                    <tr>
+                                        <th>บิลเลขที่</th>
+                                        <th>ลูกบ้าน</th>
+                                        <th>หัวข้อบิล</th>
+                                        <th>ยอดรวม</th>
+                                        <th>คงค้าง</th>
+                                        <th>วันครบกำหนด</th>
+                                        <th>สถานะ</th>
+                                        <th>การดำเนินการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr data-status="pending" data-bill-id="INV-2025-0825-002" data-bill-type="common_fee">
+                                        <td><strong>INV-2025-0825-002</strong></td>
+                                        <td>
+                                            <div class="bill-resident-info">
+                                                <div class="resident-avatar">มล</div>
+                                                <div>
+                                                    <strong>คุณมาลี รักดี</strong>
+                                                    <br><small>ห้อง B205</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>ค่าส่วนกลาง ส.ค. 2025</td>
+                                        <td><strong>฿2,200</strong></td>
+                                        <td><span class="amount-outstanding">฿2,200</span></td>
+                                        <td>25/08/2025</td>
+                                        <td><span class="status-badge status-pending">รอชำระ</span></td>
+                                        <td>
+                                            <button class="action-btn action-btn-payment" onclick="recordPayment('INV-2025-0825-002')">
+                                                <i class="fas fa-dollar-sign"></i> บันทึกการชำระ
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr data-status="overdue" data-bill-id="INV-2025-0725-015" data-bill-type="electricity">
+                                        <td><strong>INV-2025-0725-015</strong></td>
+                                        <td>
+                                            <div class="bill-resident-info">
+                                                <div class="resident-avatar">นร</div>
+                                                <div>
+                                                    <strong>คุณนิรันดร์ ประสิทธิ์</strong>
+                                                    <br><small>ห้อง D412</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>ค่าไฟฟ้า ก.ค. 2025</td>
+                                        <td><strong>฿3,500</strong></td>
+                                        <td><span class="amount-outstanding overdue">฿3,500</span></td>
+                                        <td>25/07/2025</td>
+                                        <td><span class="status-badge status-rejected">เกินกำหนด</span></td>
+                                        <td>
+                                            <button class="action-btn action-btn-payment urgent" onclick="recordPayment('INV-2025-0725-015')">
+                                                <i class="fas fa-dollar-sign"></i> บันทึกการชำระ
+                                            </button>
+                                        </td>
+                                    </tr>
+
+                                    <tr data-status="partial" data-bill-id="INV-2025-0825-004" data-bill-type="water">
+                                        <td><strong>INV-2025-0825-004</strong></td>
+                                        <td>
+                                            <div class="bill-resident-info">
+                                                <div class="resident-avatar">สป</div>
+                                                <div>
+                                                    <strong>คุณสมปอง ชำนาญ</strong>
+                                                    <br><small>ห้อง A205</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>ค่าน้ำประปา ส.ค. 2025</td>
+                                        <td><strong>฿2,500</strong></td>
+                                        <td><span class="amount-outstanding partial">฿1,500</span></td>
+                                        <td>25/08/2025</td>
+                                        <td><span class="status-badge status-partial">ชำระบางส่วน</span></td>
+                                        <td>
+                                            <button class="action-btn action-btn-payment partial" onclick="recordPayment('INV-2025-0825-004')">
+                                                <i class="fas fa-dollar-sign"></i> ชำระส่วนที่เหลือ
+                                            </button>
+                                        </td>
+                                    </tr>
+
+                                    <tr data-status="pending" data-bill-id="INV-2025-0825-005" data-bill-type="parking">
+                                        <td><strong>INV-2025-0825-005</strong></td>
+                                        <td>
+                                            <div class="bill-resident-info">
+                                                <div class="resident-avatar">วช</div>
+                                                <div>
+                                                    <strong>คุณวิชัย สมศรี</strong>
+                                                    <br><small>ห้อง C308</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>ค่าที่จอดรถ ส.ค. 2025</td>
+                                        <td><strong>฿800</strong></td>
+                                        <td><span class="amount-outstanding">฿800</span></td>
+                                        <td>25/08/2025</td>
+                                        <td><span class="status-badge status-pending">รอชำระ</span></td>
+                                        <td>
+                                            <button class="action-btn action-btn-payment" onclick="recordPayment('INV-2025-0825-005')">
+                                                <i class="fas fa-dollar-sign"></i> บันทึกการชำระ
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="manual-payment-summary">
+                        <div class="summary-cards">
+                            <div class="summary-card pending-card">
+                                <div class="card-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="card-info">
+                                    <div class="card-value">15</div>
+                                    <div class="card-label">บิลรอชำระ</div>
+                                </div>
+                            </div>
+                            
+                            <div class="summary-card overdue-card">
+                                <div class="card-icon">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="card-info">
+                                    <div class="card-value">8</div>
+                                    <div class="card-label">เกินกำหนด</div>
+                                </div>
+                            </div>
+                            
+                            <div class="summary-card amount-card">
+                                <div class="card-icon">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                </div>
+                                <div class="card-info">
+                                    <div class="card-value">฿89,400</div>
+                                    <div class="card-label">ยอดค้างรวม</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Tab (Review & Approve) -->
+                <div id="pending-tab" class="tab-content active">
+					<div class="manual-payment-header">
+                        <h3><i class="fas fa-clock"></i> รายการบิลรอรอตรวจสอบและอนุมัติ</h3>
+                        <p>รายการบิลที่ได้รับลูกบ้านได้ทำการส่งหลักฐานการชำระมาให้ทำการตรวจสอบและอนุมัติต่อไป</p>
+                    </div>
+                    <div class="action-bar">
+                        <div class="search-section">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="ค้นหาจากเลขห้อง, ชื่อ, หัวข้อบิล, หรือเลขบิล...">
+                            </div>
+                            <select class="filter-btn">
+                                <option>ทุกจำนวนเงิน</option>
+                                <option>น้อยกว่า 1,000 บาท</option>
+                                <option>1,000 - 3,000 บาท</option>
+                                <option>มากกว่า 3,000 บาท</option>
+                            </select>
+                            <select class="filter-btn">
+                                <option>วันนี้</option>
+                                <option>7 วันที่แล้ว</option>
+                                <option>เดือนนี้</option>
+                                <option>ทั้งหมด</option>
+                            </select>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn btn-success" onclick="bulkApprove()">
+                                <i class="fas fa-check"></i> อนุมัติที่เลือก
+                            </button>
+                            <button class="btn btn-danger" onclick="bulkReject()">
+                                <i class="fas fa-times"></i> ปฏิเสธที่เลือก
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" class="checkbox" id="select-all"></th>
+                                    <th>บิลเลขที่</th>
+                                    <th>ข้อมูลลูกบ้าน</th>
+                                    <th>หัวข้อบิล</th>
+                                    <th>จำนวนเงิน</th>
+                                    <th>วันที่ส่ง</th>
+                                    <th>สถานะ</th>
+                                    <th>การดำเนินการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><input type="checkbox" class="checkbox"></td>
+                                    <td>INV-2025-0721-001</td>
+                                    <td>
+                                        <div class="payment-info">
+                                            <div class="payment-avatar">สจ</div>
+                                            <div class="payment-details">
+                                                <h4>คุณสมใจ ใจดี</h4>
+                                                <p>ห้อง A101 | 085-123-4567</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>ค่าส่วนกลาง ก.ค. 2025</td>
+                                    <td><span class="amount">฿1,500.00</span></td>
+                                    <td>21/07/2025<br><small>10:30:15</small></td>
+                                    <td><span class="status-badge status-pending">รออนุมัติ</span></td>
+                                    <td>
+                                        <div class="action-buttons-cell">
+                                            <button class="action-btn action-btn-review" onclick="reviewSlip('slip1')">
+                                                <i class="fas fa-eye"></i> ตรวจสอบ
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><input type="checkbox" class="checkbox"></td>
+                                    <td>INV-2025-0721-002</td>
+                                    <td>
+                                        <div class="payment-info">
+                                            <div class="payment-avatar">มล</div>
+                                            <div class="payment-details">
+                                                <h4>คุณมาลี รักดี</h4>
+                                                <p>ห้อง B205 | 086-987-6543</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>ค่าน้ำประปา ก.ค. 2025</td>
+                                    <td><span class="amount">฿2,200.00</span></td>
+                                    <td>21/07/2025<br><small>09:15:42</small></td>
+                                    <td><span class="status-badge status-pending">รออนุมัติ</span></td>
+                                    <td>
+                                        <div class="action-buttons-cell">
+                                            <button class="action-btn action-btn-review" onclick="reviewSlip('slip2')">
+                                                <i class="fas fa-eye"></i> ตรวจสอบ
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><input type="checkbox" class="checkbox"></td>
+                                    <td>INV-2025-0721-003</td>
+                                    <td>
+                                        <div class="payment-info">
+                                            <div class="payment-avatar">วช</div>
+                                            <div class="payment-details">
+                                                <h4>คุณวิชัย สมศรี</h4>
+                                                <p>ห้อง C308 | 084-555-7890</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>ค่าไฟฟ้า มิ.ย. 2025</td>
+                                    <td><span class="amount">฿1,800.00</span></td>
+                                    <td>21/07/2025<br><small>08:45:20</small></td>
+                                    <td><span class="status-badge status-pending">รออนุมัติ</span></td>
+                                    <td>
+                                        <div class="action-buttons-cell">
+                                            <button class="action-btn action-btn-review" onclick="reviewSlip('slip3')">
+                                                <i class="fas fa-eye"></i> ตรวจสอบ
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="pagination">
+                        <div class="pagination-info">
+                            แสดง <strong>1</strong>-<strong>3</strong> จาก <strong>12</strong> รายการ
+                        </div>
+                        <div class="pagination-controls">
+                            <button class="pagination-btn" disabled>
+                                <i class="fas fa-chevron-left"></i>
+                                ก่อนหน้า
+                            </button>
+                            <div class="pagination-numbers">
+                                <button class="pagination-number active">1</button>
+                                <button class="pagination-number">2</button>
+                            </div>
+                            <button class="pagination-btn">
+                                ถัดไป
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manual Payment Tab -->
+                <div id="manual-tab" class="tab-content">
+                    <div class="manual-payment-header">
+                        <h3><i class="fas fa-edit"></i> บันทึกการชำระเงินแบบ Manual</h3>
+                        <p>สำหรับกรณีที่ลูกบ้านมาชำระเงินที่นิติบุคคลโดยตรง หรือการชำระผ่านช่องทางอื่นๆ</p>
+                    </div>
+
+                    <div class="outstanding-bills-section">
+                        <div class="section-header">
+                            <h4><i class="fas fa-search"></i> ค้นหาบิลค้างชำระ</h4>
+                        </div>
+                        
+                        <div class="action-bar">
+                            <div class="search-section">
+                                <div class="search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" id="billSearchInput" placeholder="ค้นหาจากเลขห้อง, ชื่อ, หัวข้อบิล, หรือเลขบิล...">
+                                </div>
+                                <select id="billStatusFilter" class="filter-btn">
+                                    <option value="all">ทุกสถานะ</option>
+                                    <option value="pending">รอชำระ</option>
+                                    <option value="overdue">เกินกำหนด</option>
+                                    <option value="partial">ชำระบางส่วน</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="table-container">
+                            <table class="table" id="outstandingBillsTable">
+                                <thead>
+                                    <tr>
+                                        <th>บิลเลขที่</th>
+                                        <th>ลูกบ้าน</th>
+                                        <th>ยอดรวม</th>
+                                        <th>ชำระแล้ว</th>
+                                        <th>คงค้าง</th>
+                                        <th>วันครบกำหนด</th>
+                                        <th>สถานะ</th>
+                                        <th>การดำเนินการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr data-status="pending" data-bill-id="INV-2025-0825-002">
+                                        <td><strong>INV-2025-0825-002</strong></td>
+                                        <td>
+                                            <div class="bill-resident-info">
+                                                <div class="resident-avatar">มล</div>
+                                                <div>
+                                                    <strong>คุณมาลี รักดี</strong>
+                                                    <br><small>ห้อง B205</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td><strong>฿2,200</strong></td>
+                                        <td>฿0</td>
+                                        <td><span class="amount-outstanding">฿2,200</span></td>
+                                        <td>25/08/2025</td>
+                                        <td><span class="status-badge status-pending">รอชำระ</span></td>
+                                        <td>
+                                            <button class="action-btn action-btn-payment" onclick="recordPayment('INV-2025-0825-002')">
+                                                <i class="fas fa-dollar-sign"></i> บันทึกการชำระ
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr data-status="overdue" data-bill-id="INV-2025-0725-015">
+                                        <td><strong>INV-2025-0725-015</strong></td>
+                                        <td>
+                                            <div class="bill-resident-info">
+                                                <div class="resident-avatar">นร</div>
+                                                <div>
+                                                    <strong>คุณนิรันดร์ ประสิทธิ์</strong>
+                                                    <br><small>ห้อง D412</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td><strong>฿3,500</strong></td>
+                                        <td>฿0</td>
+                                        <td><span class="amount-outstanding overdue">฿3,500</span></td>
+                                        <td>25/07/2025</td>
+                                        <td><span class="status-badge status-rejected">เกินกำหนด</span></td>
+                                        <td>
+                                            <button class="action-btn action-btn-payment urgent" onclick="recordPayment('INV-2025-0725-015')">
+                                                <i class="fas fa-dollar-sign"></i> บันทึกการชำระ
+                                            </button>
+                                        </td>
+                                    </tr>
+
+                                    <tr data-status="partial" data-bill-id="INV-2025-0825-004">
+                                        <td><strong>INV-2025-0825-004</strong></td>
+                                        <td>
+                                            <div class="bill-resident-info">
+                                                <div class="resident-avatar">สป</div>
+                                                <div>
+                                                    <strong>คุณสมปอง ชำนาญ</strong>
+                                                    <br><small>ห้อง A205</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td><strong>฿2,500</strong></td>
+                                        <td>฿1,000</td>
+                                        <td><span class="amount-outstanding partial">฿1,500</span></td>
+                                        <td>25/08/2025</td>
+                                        <td><span class="status-badge status-partial">ชำระบางส่วน</span></td>
+                                        <td>
+                                            <button class="action-btn action-btn-payment partial" onclick="recordPayment('INV-2025-0825-004')">
+                                                <i class="fas fa-dollar-sign"></i> ชำระส่วนที่เหลือ
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="manual-payment-summary">
+                        <div class="summary-cards">
+                            <div class="summary-card pending-card">
+                                <div class="card-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="card-info">
+                                    <div class="card-value">15</div>
+                                    <div class="card-label">บิลรอชำระ</div>
+                                </div>
+                            </div>
+                            
+                            <div class="summary-card overdue-card">
+                                <div class="card-icon">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="card-info">
+                                    <div class="card-value">8</div>
+                                    <div class="card-label">เกินกำหนด</div>
+                                </div>
+                            </div>
+                            
+                            <div class="summary-card amount-card">
+                                <div class="card-icon">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                </div>
+                                <div class="card-info">
+                                    <div class="card-value">฿89,400</div>
+                                    <div class="card-label">ยอดค้างรวม</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Approved Tab -->
+                <div id="approved-tab" class="tab-content">
+					<div class="manual-payment-header">
+                        <h3><i class="fas fa-check-circle"></i> รายการบิลที่ได้รับอนุมัติชำระเงิน</h3>
+                        <p>รายการบิลที่ได้รับการตรวจสอบหลักฐานการชำระแล้วผ่านการอนุมัติความถูกต้อง รวมทั้งบิลที่มีการชำระเงินโดยตรงกับนิติ</p>
+                    </div>
+                    <div class="action-bar">
+                        <div class="search-section">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="ค้นหาจากเลขห้อง, ชื่อ, หัวข้อบิล, หรือเลขบิล...">
+                            </div>
+                            <select class="filter-btn">
+                                <option>ทุกจำนวนเงิน</option>
+                                <option>น้อยกว่า 1,000 บาท</option>
+                                <option>1,000 - 3,000 บาท</option>
+                                <option>มากกว่า 3,000 บาท</option>
+                            </select>
+                            <select class="filter-btn">
+                                <option>วันนี้</option>
+                                <option>7 วันที่แล้ว</option>
+                                <option>เดือนนี้</option>
+                                <option>ทั้งหมด</option>
+                            </select>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary">
+                                <i class="fas fa-download"></i> ส่งออกข้อมูล
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>บิลเลขที่</th>
+                                    <th>ข้อมูลลูกบ้าน</th>
+                                    <th>หัวข้อบิล</th>
+                                    <th>จำนวนเงิน</th>
+                                    <th>วันที่ส่ง</th>
+                                    <th>วันที่อนุมัติ</th>
+                                    <th>ผู้อนุมัติ</th>
+                                    <th>การดำเนินการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>INV-2025-0720-008</td>
+                                    <td>
+                                        <div class="payment-info">
+                                            <div class="payment-avatar">สร</div>
+                                            <div class="payment-details">
+                                                <h4>คุณสมร สุขใจ</h4>
+                                                <p>ห้อง A203 | 089-234-5678</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>ค่าส่วนกลาง ก.ค. 2025</td>
+                                    <td><span class="amount">฿1,800.00</span></td>
+                                    <td>20/07/2025<br><small>14:22:10</small></td>
+                                    <td>20/07/2025<br><small>15:30:45</small></td>
+                                    <td>
+                                        <div style="font-size: 13px; color: var(--gray-600);">
+                                            <strong style="color: var(--gray-800);">Admin</strong>
+                                            <br><small>ผู้ดูแลระบบ</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons-cell">
+                                            <button class="action-btn action-btn-review" onclick="viewApprovedSlip('slip-approved-1')">
+                                                <i class="fas fa-eye"></i> ดูรายละเอียด
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>INV-2025-0719-012</td>
+                                    <td>
+                                        <div class="payment-info">
+                                            <div class="payment-avatar">ปณ</div>
+                                            <div class="payment-details">
+                                                <h4>คุณปณิดา รักษ์ดี</h4>
+                                                <p>ห้อง E501 | 086-777-8899</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>ค่าน้ำประปา ก.ค. 2025</td>
+                                    <td><span class="amount">฿650.00</span></td>
+                                    <td>19/07/2025<br><small>16:45:30</small></td>
+                                    <td>19/07/2025<br><small>17:20:15</small></td>
+                                    <td>
+                                        <div style="font-size: 13px; color: var(--gray-600);">
+                                            <strong style="color: var(--gray-800);">Admin</strong>
+                                            <br><small>ผู้ดูแลระบบ</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons-cell">
+                                            <button class="action-btn action-btn-review" onclick="viewApprovedSlip('slip-approved-2')">
+                                                <i class="fas fa-eye"></i> ดูรายละเอียด
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>INV-2025-0618-025</td>
+                                    <td>
+                                        <div class="payment-info">
+                                            <div class="payment-avatar">ทส</div>
+                                            <div class="payment-details">
+                                                <h4>คุณทศพล สว่างมงคล</h4>
+                                                <p>ห้อง B104 | 082-333-4444</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>ค่าไฟฟ้า มิ.ย. 2025</td>
+                                    <td><span class="amount">฿2,450.00</span></td>
+                                    <td>18/07/2025<br><small>09:10:25</small></td>
+                                    <td>18/07/2025<br><small>10:05:50</small></td>
+                                    <td>
+                                        <div style="font-size: 13px; color: var(--gray-600);">
+                                            <strong style="color: var(--gray-800);">Admin</strong>
+                                            <br><small>ผู้ดูแลระบบ</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons-cell">
+                                            <button class="action-btn action-btn-review" onclick="viewApprovedSlip('slip-approved-3')">
+                                                <i class="fas fa-eye"></i> ดูรายละเอียด
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="pagination">
+                        <div class="pagination-info">
+                            แสดง <strong>1</strong>-<strong>3</strong> จาก <strong>189</strong> รายการ
+                        </div>
+                        <div class="pagination-controls">
+                            <button class="pagination-btn" disabled>
+                                <i class="fas fa-chevron-left"></i>
+                                ก่อนหน้า
+                            </button>
+                            <div class="pagination-numbers">
+                                <button class="pagination-number active">1</button>
+                                <button class="pagination-number">2</button>
+                                <button class="pagination-number">3</button>
+                                <button class="pagination-number">4</button>
+                                <button class="pagination-number">5</button>
+                            </div>
+                            <button class="pagination-btn">
+                                ถัดไป
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rejected Tab -->
+                <div id="rejected-tab" class="tab-content">
+					<div class="manual-payment-header">
+                        <h3><i class="fas fa-times-circle"></i> รายการบิลที่ถูกปฏิเสธ</h3>
+                        <p>รายการบิลที่ได้รับการตรวจสอบหลักฐานการชำระแล้วถูกปฏิเสธ ด้วยเหตุผล...</p>
+                    </div>
+                    <div class="action-bar">
+                        <div class="search-section">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="ค้นหาจากเลขห้อง, ชื่อ, หัวข้อบิล, หรือเลขบิล...">
+                            </div>
+                            <select class="filter-btn">
+                                <option>ทุกจำนวนเงิน</option>
+                                <option>น้อยกว่า 1,000 บาท</option>
+                                <option>1,000 - 3,000 บาท</option>
+                                <option>มากกว่า 3,000 บาท</option>
+                            </select>
+                            <select class="filter-btn">
+                                <option>วันนี้</option>
+                                <option>7 วันที่แล้ว</option>
+                                <option>เดือนนี้</option>
+                                <option>ทั้งหมด</option>
+                            </select>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary">
+                                <i class="fas fa-download"></i> ส่งออกข้อมูล
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>บิลเลขที่</th>
+                                    <th>ข้อมูลลูกบ้าน</th>
+                                    <th>หัวข้อบิล</th>
+                                    <th>จำนวนเงิน</th>
+                                    <th>วันที่ส่ง</th>
+                                    <th>วันที่ปฏิเสธ</th>
+                                    <th>ผู้ปฏิเสธ</th>
+									<th>เหตุผล</th>
+                                    <th>การดำเนินการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>INV-2025-0719-005</td>
+                                    <td>
+                                        <div class="payment-info">
+                                            <div class="payment-avatar">อน</div>
+                                            <div class="payment-details">
+                                                <h4>คุณอนงค์ ดีมาก</h4>
+                                                <p>ห้อง C215 | 085-666-7777</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>ค่าส่วนกลาง ก.ค. 2025</td>
+                                    <td><span class="amount">฿1,500.00</span></td>
+                                    <td>19/07/2025<br><small>11:20:30</small></td>
+                                    <td>19/07/2025<br><small>14:15:20</small></td>
+									<td>
+                                        <div style="font-size: 13px; color: var(--gray-600);">
+                                            <strong style="color: var(--gray-800);">Admin</strong>
+                                            <br><small>ผู้ดูแลระบบ</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div style="max-width: 300px;">
+                                            <span class="status-badge status-rejected" style="margin-bottom: 6px; display: inline-block;">
+                                                <i class="fas fa-times-circle"></i> ปฏิเสธ
+                                            </span>
+                                            <div style="font-size: 12px; color: var(--gray-600); line-height: 1.5;">
+                                                ข้อมูลในสลิปไม่ชัดเจน กรุณาถ่ายภาพใหม่ให้ชัดเจนยิ่งขึ้น
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons-cell">
+                                            <button class="action-btn action-btn-review" onclick="viewRejectedSlip('slip-rejected-1')">
+                                                <i class="fas fa-eye"></i> ดูรายละเอียด
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>INV-2025-0618-018</td>
+                                    <td>
+                                        <div class="payment-info">
+                                            <div class="payment-avatar">กว</div>
+                                            <div class="payment-details">
+                                                <h4>คุณกวิน เจริญสุข</h4>
+                                                <p>ห้อง F602 | 087-888-9999</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>ค่าไฟฟ้า มิ.ย. 2025</td>
+                                    <td><span class="amount">฿3,200.00</span></td>
+                                    <td>18/07/2025<br><small>15:30:45</small></td>
+                                    <td>18/07/2025<br><small>16:45:10</small></td>
+									<td>
+                                        <div style="font-size: 13px; color: var(--gray-600);">
+                                            <strong style="color: var(--gray-800);">Admin</strong>
+                                            <br><small>ผู้ดูแลระบบ</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div style="max-width: 300px;">
+                                            <span class="status-badge status-rejected" style="margin-bottom: 6px; display: inline-block;">
+                                                <i class="fas fa-times-circle"></i> ปฏิเสธ
+                                            </span>
+                                            <div style="font-size: 12px; color: var(--gray-600); line-height: 1.5;">
+                                                จำนวนเงินไม่ตรงกับบิล กรุณาตรวจสอบและชำระให้ครบถ้วน
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons-cell">
+                                            <button class="action-btn action-btn-review" onclick="viewRejectedSlip('slip-rejected-2')">
+                                                <i class="fas fa-eye"></i> ดูรายละเอียด
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>INV-2025-0717-032</td>
+                                    <td>
+                                        <div class="payment-info">
+                                            <div class="payment-avatar">ชล</div>
+                                            <div class="payment-details">
+                                                <h4>คุณชลธิชา สดใส</h4>
+                                                <p>ห้อง D308 | 089-111-2222</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>ค่าที่จอดรถ ก.ค. 2025</td>
+                                    <td><span class="amount">฿800.00</span></td>
+                                    <td>17/07/2025<br><small>10:15:20</small></td>
+                                    <td>17/07/2025<br><small>11:30:55</small></td>
+									<td>
+                                        <div style="font-size: 13px; color: var(--gray-600);">
+                                            <strong style="color: var(--gray-800);">Admin</strong>
+                                            <br><small>ผู้ดูแลระบบ</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div style="max-width: 300px;">
+                                            <span class="status-badge status-rejected" style="margin-bottom: 6px; display: inline-block;">
+                                                <i class="fas fa-times-circle"></i> ปฏิเสธ
+                                            </span>
+                                            <div style="font-size: 12px; color: var(--gray-600); line-height: 1.5;">
+                                                สลิปไม่ตรงกับเลขที่บัญชีของนิติบุคคล
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons-cell">
+                                            <button class="action-btn action-btn-review" onclick="viewRejectedSlip('slip-rejected-3')">
+                                                <i class="fas fa-eye"></i> ดูรายละเอียด
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="pagination">
+                        <div class="pagination-info">
+                            แสดง <strong>1</strong>-<strong>3</strong> จาก <strong>28</strong> รายการ
+                        </div>
+                        <div class="pagination-controls">
+                            <button class="pagination-btn" disabled>
+                                <i class="fas fa-chevron-left"></i>
+                                ก่อนหน้า
+                            </button>
+                            <div class="pagination-numbers">
+                                <button class="pagination-number active">1</button>
+                                <button class="pagination-number">2</button>
+                                <button class="pagination-number">3</button>
+                            </div>
+                            <button class="pagination-btn">
+                                ถัดไป
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Review Slip Modal -->
+    <div class="modal" id="reviewModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-receipt"></i> ตรวจสอบสลิปการโอน
+                </h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <img src="https://placehold.co/400x600/E0F2F7/2B6EF3?text=Payment+Slip" 
+                     alt="Slip Image" class="slip-image" onclick="expandImage(this)">
+                
+                <div class="slip-details">
+                    <div class="detail-item">
+                        <div class="detail-label">ผู้โอน</div>
+                        <div class="detail-value">คุณสมใจ ใจดี (ห้อง A101)</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">จำนวนเงิน</div>
+                        <div class="detail-value">฿1,500.00</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">วันที่โอน (ตามสลิป)</div>
+                        <div class="detail-value">21/07/2025 10:30:15</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">ธนาคาร</div>
+                        <div class="detail-value">ธนาคาร ABC</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">บิลที่อ้างอิง</div>
+                        <div class="detail-value">INV-2025-0721-001</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">หมายเหตุจากลูกบ้าน</div>
+                        <div class="detail-value">ค่าส่วนกลางเดือน ก.ค. 2025</div>
+                    </div>
+                </div>
+
+                <div class="bill-info-box">
+                    <h4><i class="fas fa-info-circle"></i> ข้อมูลบิลที่เกี่ยวข้อง</h4>
+                    <div class="bill-info-grid">
+                        <div class="info-item">
+                            <span class="label">หัวข้อบิล:</span>
+                            <span class="value" id="reviewBillTitle">ค่าส่วนกลาง ก.ค. 2025</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">ประเภทบิล:</span>
+                            <span class="value" id="reviewBillType">ค่าส่วนกลาง</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">งวด:</span>
+                            <span class="value">กรกฎาคม 2025</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">จำนวนที่ต้องชำระ:</span>
+                            <span class="value">฿1,500.00</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">วันครบกำหนด:</span>
+                            <span class="value">25/07/2025</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">สถานะ:</span>
+                            <span class="value">
+                                <span class="status-badge status-pending">
+                                    <i class="fas fa-clock"></i> รอชำระ
+                                </span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+				<button class="btn-modal btn-cancel" onclick="">ยกเลิก</button>
+                <button class="btn-modal btn-danger" onclick="showRejectReasonModal()">
+                    <i class="fas fa-times"></i> ปฏิเสธ
+                </button>
+                <button class="btn-modal btn-success" onclick="approveSlip()">
+                    <i class="fas fa-check"></i> อนุมัติ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Reason Modal -->
+    <div class="modal" id="rejectReasonModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> ระบุเหตุผลการปฏิเสธ
+                </h3>
+                <button class="close-btn" onclick="closeRejectReasonModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="background: var(--red-100); padding: 16px; border-radius: var(--radius-md); margin-bottom: 20px; border-left: 4px solid var(--red-500);">
+                    <strong style="color: var(--red-500);">
+                        <i class="fas fa-info-circle"></i> กรุณาระบุเหตุผลในการปฏิเสธ
+                    </strong>
+                    <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--gray-700);">
+                        เหตุผลจะถูกส่งไปยังลูกบ้านเพื่อทำการแก้ไขและส่งสลิปใหม่
+                    </p>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="margin-bottom: 12px; font-weight: 600; color: var(--gray-800);">
+                        <i class="fas fa-list"></i> เลือกเหตุผลด่วน (Quick Text)
+                    </label>
+                    <div style="display: grid; gap: 8px;">
+                        <button class="quick-reason-btn" onclick="selectQuickReason('ข้อมูลในสลิปไม่ชัดเจน กรุณาถ่ายภาพใหม่ให้ชัดเจนยิ่งขึ้น')">
+                            <i class="fas fa-image"></i> ข้อมูลในสลิปไม่ชัดเจน
+                        </button>
+                        <button class="quick-reason-btn" onclick="selectQuickReason('จำนวนเงินไม่ตรงกับบิล กรุณาตรวจสอบและชำระให้ครบถ้วน')">
+                            <i class="fas fa-calculator"></i> จำนวนเงินไม่ตรงกับบิล
+                        </button>
+                        <button class="quick-reason-btn" onclick="selectQuickReason('วันที่โอนเงินไม่ตรงกับระบบ กรุณาตรวจสอบอีกครั้ง')">
+                            <i class="fas fa-calendar"></i> วันที่โอนเงินไม่ตรง
+                        </button>
+                        <button class="quick-reason-btn" onclick="selectQuickReason('ไม่พบหลักฐานการโอนเงินในระบบธนาคาร กรุณาตรวจสอบ')">
+                            <i class="fas fa-university"></i> ไม่พบหลักฐานในระบบธนาคาร
+                        </button>
+                        <button class="quick-reason-btn" onclick="selectQuickReason('สลิปไม่ตรงกับเลขที่บัญชีของนิติบุคคล')">
+                            <i class="fas fa-credit-card"></i> บัญชีปลายทางไม่ถูกต้อง
+                        </button>
+                        <button class="quick-reason-btn" onclick="selectQuickReason('สลิปถูกใช้ไปแล้ว หรืออาจเป็นสลิปปลอม')">
+                            <i class="fas fa-shield-alt"></i> สลิปถูกใช้แล้ว/ปลอม
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 600; color: var(--gray-800);">
+                        <i class="fas fa-comment-dots"></i> เหตุผลการปฏิเสธ *
+                    </label>
+                    <textarea id="rejectReasonText" rows="4" 
+                              style="width: 100%; padding: 12px; border: 1px solid var(--gray-200); border-radius: var(--radius-md); font-family: 'Sarabun', sans-serif; font-size: 14px;"
+                              placeholder="กรอกเหตุผลการปฏิเสธ หรือเลือกจากปุ่มด่วนด้านบน..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-cancel" onclick="closeRejectReasonModal()">
+                    <i class="fas fa-arrow-left"></i> ย้อนกลับ
+                </button>
+                <button class="btn-modal btn-danger" onclick="confirmRejectSlip()">
+                    <i class="fas fa-times-circle"></i> ยืนยันการปฏิเสธ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Payment Record Modal -->
+    <div class="modal" id="manualPaymentModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-dollar-sign"></i> บันทึกการชำระเงินแบบ Manual
+                </h3>
+                <button class="close-btn" onclick="closeManualPaymentModal()">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Bill Information -->
+                <div class="payment-bill-info">
+                    <h4><i class="fas fa-file-invoice"></i> ข้อมูลบิล</h4>
+                    <div class="bill-info-grid">
+                        <div class="info-item">
+                            <span class="label">เลขที่บิล:</span>
+                            <span class="value" id="paymentBillNumber">INV-2025-0825-002</span>
+                        </div>
+						<div class="info-item">
+                            <span class="label">หัวข้อบิล:</span>
+                            <span class="value" id="paymentBillTopic">ค่าส่วนกลาง ส.ค. 2025</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">ลูกบ้าน:</span>
+                            <span class="value" id="paymentResidentName">คุณมาลี รักดี (ห้อง B205)</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">ยอดรวมบิล:</span>
+                            <span class="value" id="paymentTotalAmount">฿2,200</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">ชำระแล้ว:</span>
+                            <span class="value" id="paymentPaidAmount">฿0</span>
+                        </div>
+                        <div class="info-item outstanding">
+                            <span class="label">ยอดค้าง:</span>
+                            <span class="value" id="paymentOutstandingAmount">฿2,200</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Details Form -->
+                <div class="payment-form-section">
+                    <h4><i class="fas fa-credit-card"></i> รายละเอียดการชำระเงิน</h4>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>วิธีการชำระเงิน *</label>
+                            <select id="paymentMethod" onchange="updatePaymentMethodInfo()">
+                                <option value="">เลือกวิธีการชำระ</option>
+                                <option value="cash">เงินสด</option>
+                                <option value="bank_transfer">โอนเงินธนาคาร</option>
+                                <option value="check">เช็ค</option>
+                                <option value="credit_card">บัตรเครดิต</option>
+                                <option value="other">อื่นๆ</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>จำนวนเงินที่ชำระ *</label>
+                            <input type="number" id="paymentAmountInput" placeholder="0.00" min="0" step="0.01" 
+                                   onchange="calculateChange()" onkeyup="calculateChange()">
+                            <div class="payment-suggestions">
+                                <button type="button" class="suggestion-btn" onclick="setPaymentAmount('full')">ชำระเต็มจำนวน</button>
+                                <!-- <button type="button" class="suggestion-btn" onclick="setPaymentAmount('half')">ชำระครึ่งหนึ่ง</button> -->
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>วันที่ชำระ</label>
+                            <input type="date" id="paymentDate">
+                        </div>
+
+                        <div class="form-group">
+                            <label>เวลาที่ชำระ</label>
+                            <input type="time" id="paymentTime">
+                        </div>
+                    </div>
+
+                    <!-- Payment Method Specific Fields -->
+                    <div class="payment-method-details" id="paymentMethodDetails" style="display: none;">
+                        <!-- จะแสดงฟิลด์เพิ่มเติมตามวิธีการชำระที่เลือก -->
+                    </div>
+
+                    <!-- Payment Calculation -->
+                    <div class="payment-calculation">
+                        <div class="calc-row">
+                            <span>จำนวนเงินที่ชำระ:</span>
+                            <span id="calcPaymentAmount">฿0</span>
+                        </div>
+                        <div class="calc-row">
+                            <span>ยอดคงเหลือหลังชำระ:</span>
+                            <span id="calcRemainingAmount">฿2,200</span>
+                        </div>
+                        <div class="calc-row change" id="calcChangeRow" style="display: none;">
+                            <span>เงินทอน:</span>
+                            <span id="calcChangeAmount">฿0</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>หมายเหตุเพิ่มเติม</label>
+                        <textarea id="paymentNotes" rows="3" placeholder="บันทึกรายละเอียดเพิ่มเติม เช่น หมายเลขเช็ค, การอ้างอิง, ฯลฯ"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn-modal btn-cancel" onclick="closeManualPaymentModal()">ยกเลิก</button>
+                <button class="btn-modal btn-success" onclick="confirmManualPayment()">
+                    <i class="fas fa-save"></i> บันทึกการชำระเงิน
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+		// Project dropdown functions
+        function toggleProjectDropdown() {
+            const dropdown = document.getElementById('projectDropdown');
+            const dropdownButton = document.querySelector('.project-dropdown');
+            
+            if (dropdown.classList.contains('show')) {
+                dropdown.classList.remove('show');
+                dropdownButton.classList.remove('open');
+            } else {
+                dropdown.classList.add('show');
+                dropdownButton.classList.add('open');
+            }
+        }
+
+        function selectProject(name, code) {
+            const projectName = document.querySelector('.project-name');
+            const projectCode = document.querySelector('.project-code');
+            
+            projectName.textContent = name;
+            projectCode.textContent = code;
+            
+            const dropdownItems = document.querySelectorAll('.dropdown-item');
+            dropdownItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.textContent.includes(code)) {
+                    item.classList.add('active');
+                }
+            });
+            
+            const dropdown = document.getElementById('projectDropdown');
+            const dropdownButton = document.querySelector('.project-dropdown');
+            dropdown.classList.remove('show');
+            dropdownButton.classList.remove('open');
+            
+            const statCards = document.querySelectorAll('.stat-card');
+            statCards.forEach(card => card.classList.add('loading'));
+            
+            setTimeout(() => {
+                statCards.forEach(card => card.classList.remove('loading'));
+            }, 1000);
+        }
+		
+	
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                this.classList.add('active');
+                const tabName = this.dataset.tab;
+                document.getElementById(`${tabName}-tab`).classList.add('active');
+            });
+        });
+
+        // Function to switch to specific tab (called from stat cards)
+        function switchToTab(tabName) {
+            const tab = document.querySelector(`.tab[data-tab="${tabName}"]`);
+            if (tab) tab.click();
+        }
+
+        // Select all checkbox functionality
+        const selectAllCheckbox = document.getElementById('select-all');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                const checkboxes = document.querySelectorAll('.table tbody input[type="checkbox"]');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+            });
+        }
+
+        // Bulk approve function
+        function bulkApprove() {
+            const checkedBoxes = document.querySelectorAll('.table tbody input[type="checkbox"]:checked');
+            
+            if (checkedBoxes.length === 0) {
+                alert('กรุณาเลือกรายการที่ต้องการอนุมัติ');
+                return;
+            }
+
+            const count = checkedBoxes.length;
+            if (confirm(`คุณแน่ใจว่าต้องการอนุมัติรายการที่เลือก ${count} รายการ?`)) {
+                alert(`✓ อนุมัติเรียบร้อยแล้ว ${count} รายการ\nระบบได้ส่งแจ้งเตือนให้ลูกบ้านทั้งหมดแล้ว`);
+                
+                // Update badge count
+                const badge = document.querySelector('.tab.active .tab-badge');
+                if (badge) {
+                    const currentCount = parseInt(badge.textContent);
+                    badge.textContent = Math.max(0, currentCount - count);
+                }
+
+                // Remove rows with animation
+                checkedBoxes.forEach(checkbox => {
+                    const row = checkbox.closest('tr');
+                    row.style.opacity = '0';
+                    row.style.transform = 'translateX(-100%)';
+                    row.style.transition = 'all 0.5s ease';
+                    setTimeout(() => row.remove(), 500);
+                });
+                
+                // Uncheck select all
+                if (selectAllCheckbox) selectAllCheckbox.checked = false;
+            }
+        }
+
+        // Bulk reject function
+        function bulkReject() {
+            const checkedBoxes = document.querySelectorAll('.table tbody input[type="checkbox"]:checked');
+            
+            if (checkedBoxes.length === 0) {
+                alert('กรุณาเลือกรายการที่ต้องการปฏิเสธ');
+                return;
+            }
+
+            const count = checkedBoxes.length;
+            const reason = prompt(`คุณต้องการปฏิเสธรายการ ${count} รายการ\n\nกรุณาระบุเหตุผลในการปฏิเสธ:`);
+            
+            if (!reason || !reason.trim()) {
+                alert('กรุณาระบุเหตุผลในการปฏิเสธ');
+                return;
+            }
+
+            if (confirm(`คุณแน่ใจว่าต้องการปฏิเสธรายการที่เลือก ${count} รายการ?\n\nเหตุผล: ${reason}`)) {
+                alert(`✓ ปฏิเสธเรียบร้อยแล้ว ${count} รายการ\nเหตุผล: ${reason}\nระบบได้ส่งแจ้งเตือนและเหตุผลให้ลูกบ้านทั้งหมดแล้ว`);
+                
+                // Update badge count
+                const badge = document.querySelector('.tab.active .tab-badge');
+                if (badge) {
+                    const currentCount = parseInt(badge.textContent);
+                    badge.textContent = Math.max(0, currentCount - count);
+                }
+
+                // Remove rows with animation
+                checkedBoxes.forEach(checkbox => {
+                    const row = checkbox.closest('tr');
+                    row.style.opacity = '0';
+                    row.style.transform = 'translateX(100%)';
+                    row.style.transition = 'all 0.5s ease';
+                    setTimeout(() => row.remove(), 500);
+                });
+                
+                // Uncheck select all
+                if (selectAllCheckbox) selectAllCheckbox.checked = false;
+            }
+        }
+
+        // Review slip modal
+        function reviewSlip(slipId, billTitle, billType) {
+            // Update bill info in modal
+            if (billTitle) {
+                document.getElementById('reviewBillTitle').textContent = billTitle;
+            }
+            if (billType) {
+                document.getElementById('reviewBillType').textContent = billType;
+            }
+            
+            document.getElementById('reviewModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('reviewModal').classList.remove('active');
+        }
+
+        function approveSlip() {
+            if (confirm('คุณแน่ใจว่าต้องการอนุมัติสลิปนี้?')) {
+                alert('✓ อนุมัติสลิปเรียบร้อยแล้ว\nระบบได้ส่งแจ้งเตือนให้ลูกบ้านแล้ว');
+                closeModal();
+                // Refresh data
+                setTimeout(() => location.reload(), 1000);
+            }
+        }
+
+        // Reject reason modal functions
+        function showRejectReasonModal() {
+            closeModal();
+            document.getElementById('rejectReasonModal').classList.add('active');
+            document.getElementById('rejectReasonText').value = '';
+        }
+
+        function closeRejectReasonModal() {
+            document.getElementById('rejectReasonModal').classList.remove('active');
+            document.getElementById('reviewModal').classList.add('active');
+        }
+
+        function selectQuickReason(reason) {
+            const textarea = document.getElementById('rejectReasonText');
+            textarea.value = reason;
+            textarea.focus();
+        }
+
+        function confirmRejectSlip() {
+            const reason = document.getElementById('rejectReasonText').value.trim();
+            
+            if (!reason) {
+                alert('⚠️ กรุณาระบุเหตุผลในการปฏิเสธ');
+                return;
+            }
+
+            if (confirm(`คุณแน่ใจว่าต้องการปฏิเสธสลิปนี้?\n\nเหตุผล: ${reason}`)) {
+                alert(`✓ ปฏิเสธสลิปเรียบร้อยแล้ว\n\nเหตุผล: ${reason}\n\nระบบได้ส่งแจ้งเตือนและเหตุผลให้ลูกบ้านแล้ว`);
+                closeRejectReasonModal();
+                document.getElementById('reviewModal').classList.remove('active');
+                setTimeout(() => location.reload(), 1000);
+            }
+        }
+
+        // View approved slip details
+        function viewApprovedSlip(slipId) {
+            alert('📋 แสดงรายละเอียดสลิปที่อนุมัติแล้ว\n\nID: ' + slipId + '\n\nฟังก์ชันนี้จะแสดง Modal รายละเอียดสลิปที่ได้รับการอนุมัติ พร้อมข้อมูลผู้อนุมัติและเวลาที่อนุมัติ');
+        }
+
+        // View rejected slip details
+        function viewRejectedSlip(slipId) {
+            alert('❌ แสดงรายละเอียดสลิปที่ปฏิเสธ\n\nID: ' + slipId + '\n\nฟังก์ชันนี้จะแสดง Modal รายละเอียดสลิปที่ถูกปฏิเสธ พร้อมเหตุผลการปฏิเสธและผู้ปฏิเสธ');
+        }
+
+        function expandImage(img) {
+            const imageModal = document.createElement('div');
+            imageModal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.9);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 3000;
+                cursor: pointer;
+            `;
+            
+            const enlargedImg = document.createElement('img');
+            enlargedImg.src = img.src;
+            enlargedImg.style.cssText = `
+                max-width: 90%;
+                max-height: 90%;
+                border-radius: 10px;
+            `;
+            
+            imageModal.appendChild(enlargedImg);
+            document.body.appendChild(imageModal);
+            
+            imageModal.addEventListener('click', () => {
+                document.body.removeChild(imageModal);
+            });
+        }
+
+        // Manual payment functions
+        const billData = {
+            'INV-2025-0825-002': {
+                billNumber: 'INV-2025-0825-002',
+				billTopic: 'ค่าส่วนกลาง ส.ค. 2025',
+                residentName: 'คุณมาลี รักดี (ห้อง B205)',
+                totalAmount: 2200,
+                paidAmount: 0,
+                outstandingAmount: 2200
+            },
+            'INV-2025-0725-015': {
+                billNumber: 'INV-2025-0725-015',
+				billTopic: 'ค่าไฟฟ้า ก.ค. 2025',
+                residentName: 'คุณนิรันดร์ ประสิทธิ์ (ห้อง D412)',
+                totalAmount: 3500,
+                paidAmount: 0,
+                outstandingAmount: 3500
+            },
+            'INV-2025-0825-004': {
+                billNumber: 'INV-2025-0825-004',
+				billTopic: 'ค่าน้ำประปา ส.ค. 2025',
+                residentName: 'คุณสมปอง ชำนาญ (ห้อง A205)',
+                totalAmount: 2500,
+                paidAmount: 1000,
+                outstandingAmount: 1500
+            },
+            'INV-2025-0825-005': {
+                billNumber: 'INV-2025-0825-005',
+				billTopic: 'ค่าที่จอดรถ ส.ค. 2025',
+                residentName: 'คุณวิชัย สมศรี (ห้อง C308)',
+                totalAmount: 800,
+                paidAmount: 0,
+                outstandingAmount: 800
+            }
+        };
+
+        // Search and filter functions for outstanding bills
+        function searchOutstandingBills() {
+            const searchTerm = document.getElementById('billSearchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#outstandingBillsTable tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        function filterOutstandingBills() {
+            const statusFilter = document.getElementById('billStatusFilter').value;
+            const typeFilter = document.getElementById('billTypeFilter').value;
+            const rows = document.querySelectorAll('#outstandingBillsTable tbody tr');
+            
+            rows.forEach(row => {
+                const rowStatus = row.dataset.status;
+                const rowType = row.dataset.billType;
+                
+                const statusMatch = statusFilter === 'all' || rowStatus === statusFilter;
+                const typeMatch = typeFilter === 'all' || rowType === typeFilter;
+                
+                if (statusMatch && typeMatch) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // Add event listeners for filters
+        document.addEventListener('DOMContentLoaded', function() {
+            const billSearchInput = document.getElementById('billSearchInput');
+            const billStatusFilter = document.getElementById('billStatusFilter');
+            const billTypeFilter = document.getElementById('billTypeFilter');
+            
+            if (billSearchInput) {
+                billSearchInput.addEventListener('keyup', searchOutstandingBills);
+            }
+            
+            if (billStatusFilter) {
+                billStatusFilter.addEventListener('change', filterOutstandingBills);
+            }
+            
+            if (billTypeFilter) {
+                billTypeFilter.addEventListener('change', filterOutstandingBills);
+            }
+            
+            // Set current date/time for payment form
+            const now = new Date();
+            const dateInput = document.getElementById('paymentDate');
+            const timeInput = document.getElementById('paymentTime');
+            if (dateInput) dateInput.value = now.toISOString().split('T')[0];
+            if (timeInput) timeInput.value = now.toTimeString().slice(0, 5);
+        });
+
+        function recordPayment(billId) {
+            const bill = billData[billId] || billData['INV-2025-0825-002'];
+
+            document.getElementById('paymentBillNumber').textContent = bill.billNumber;
+			document.getElementById('paymentBillTopic').textContent = bill.billTopic;
+            document.getElementById('paymentResidentName').textContent = bill.residentName;
+            document.getElementById('paymentTotalAmount').textContent = `฿${bill.totalAmount.toLocaleString()}`;
+            document.getElementById('paymentPaidAmount').textContent = `฿${bill.paidAmount.toLocaleString()}`;
+            document.getElementById('paymentOutstandingAmount').textContent = `฿${bill.outstandingAmount.toLocaleString()}`;
+
+            const modal = document.getElementById('manualPaymentModal');
+            modal.dataset.billId = billId;
+            modal.dataset.outstandingAmount = bill.outstandingAmount;
+
+            resetPaymentForm();
+            document.getElementById('manualPaymentModal').classList.add('active');
+        }
+
+        function closeManualPaymentModal() {
+            document.getElementById('manualPaymentModal').classList.remove('active');
+        }
+
+        function resetPaymentForm() {
+            document.getElementById('paymentMethod').value = '';
+            document.getElementById('paymentAmountInput').value = '';
+            document.getElementById('paymentNotes').value = '';
+            document.getElementById('paymentMethodDetails').style.display = 'none';
+            document.getElementById('calcChangeRow').style.display = 'none';
+            
+            document.getElementById('calcPaymentAmount').textContent = '฿0';
+            document.getElementById('calcRemainingAmount').textContent = document.getElementById('paymentOutstandingAmount').textContent;
+            document.getElementById('calcChangeAmount').textContent = '฿0';
+
+            const now = new Date();
+            document.getElementById('paymentDate').value = now.toISOString().split('T')[0];
+            document.getElementById('paymentTime').value = now.toTimeString().slice(0, 5);
+        }
+
+        function updatePaymentMethodInfo() {
+            const method = document.getElementById('paymentMethod').value;
+            const detailsDiv = document.getElementById('paymentMethodDetails');
+            
+            if (method === '') {
+                detailsDiv.style.display = 'none';
+                return;
+            }
+
+            let detailsHTML = '';
+
+            switch (method) {
+                case 'cash':
+                    detailsHTML = `
+                        <h5><i class="fas fa-money-bill-wave"></i> การชำระด้วยเงินสด</h5>
+                        <p>กรุณาตรวจนับเงินสดให้ถูกต้องก่อนบันทึก</p>
+                    `;
+                    break;
+
+                case 'bank_transfer':
+                    detailsHTML = `
+                        <h5><i class="fas fa-university"></i> การโอนเงินธนาคาร</h5>
+                        <div class="form-grid" style="margin-top: 15px;">
+                            <div class="form-group">
+                                <label>ธนาคารที่โอน</label>
+                                <input type="text" id="transferBank" placeholder="เช่น: ธนาคารกสิกรไทย">
+                            </div>
+                            <div class="form-group">
+                                <label>เลขที่อ้างอิง</label>
+                                <input type="text" id="transferRef" placeholder="เลขที่อ้างอิงการโอน">
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                case 'check':
+                    detailsHTML = `
+                        <h5><i class="fas fa-file-invoice"></i> การชำระด้วยเช็ค</h5>
+                        <div class="form-grid" style="margin-top: 15px;">
+                            <div class="form-group">
+                                <label>หมายเลขเช็ค</label>
+                                <input type="text" id="checkNumber" placeholder="เลขที่เช็ค">
+                            </div>
+                            <div class="form-group">
+                                <label>ธนาคารที่ออกเช็ค</label>
+                                <input type="text" id="checkBank" placeholder="ชื่อธนาคาร">
+                            </div>
+                            <div class="form-group">
+                                <label>วันที่เช็ค</label>
+                                <input type="date" id="checkDate">
+                            </div>
+                        </div>
+                        <div style="background: var(--yellow-100); padding: 10px; border-radius: 6px; margin-top: 10px;">
+                            <small><i class="fas fa-exclamation-triangle"></i> กรุณาเก็บเช็คต้นฉบับไว้เป็นหลักฐาน</small>
+                        </div>
+                    `;
+                    break;
+
+                case 'credit_card':
+                    detailsHTML = `
+                        <h5><i class="fas fa-credit-card"></i> การชำระด้วยบัตรเครดิต</h5>
+                        <div class="form-grid" style="margin-top: 15px;">
+                            <div class="form-group">
+                                <label>หมายเลขอ้างอิง</label>
+                                <input type="text" id="cardRef" placeholder="เลขที่ Approval Code">
+                            </div>
+                            <div class="form-group">
+                                <label>4 หลักท้ายของบัตร</label>
+                                <input type="text" id="cardLast4" placeholder="XXXX" maxlength="4">
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                case 'other':
+                    detailsHTML = `
+                        <h5><i class="fas fa-ellipsis-h"></i> วิธีการอื่นๆ</h5>
+                        <div class="form-group" style="margin-top: 15px;">
+                            <label>ระบุวิธีการชำระ</label>
+                            <input type="text" id="otherMethod" placeholder="เช่น: คูปอง, บัตรกำนัล">
+                        </div>
+                    `;
+                    break;
+            }
+
+            detailsDiv.innerHTML = detailsHTML;
+            detailsDiv.style.display = 'block';
+        }
+
+        function setPaymentAmount(type) {
+            const outstandingAmount = parseFloat(document.getElementById('manualPaymentModal').dataset.outstandingAmount);
+            const amountInput = document.getElementById('paymentAmountInput');
+
+            if (type === 'full') {
+                amountInput.value = outstandingAmount;
+            } else if (type === 'half') {
+                amountInput.value = (outstandingAmount / 2).toFixed(2);
+            }
+
+            calculateChange();
+        }
+
+        function calculateChange() {
+            const outstandingAmount = parseFloat(document.getElementById('manualPaymentModal').dataset.outstandingAmount);
+            const paymentAmount = parseFloat(document.getElementById('paymentAmountInput').value) || 0;
+            const remainingAmount = Math.max(0, outstandingAmount - paymentAmount);
+            const changeAmount = Math.max(0, paymentAmount - outstandingAmount);
+
+            document.getElementById('calcPaymentAmount').textContent = `฿${paymentAmount.toLocaleString()}`;
+            document.getElementById('calcRemainingAmount').textContent = `฿${remainingAmount.toLocaleString()}`;
+            document.getElementById('calcChangeAmount').textContent = `฿${changeAmount.toLocaleString()}`;
+
+            const changeRow = document.getElementById('calcChangeRow');
+            if (changeAmount > 0) {
+                changeRow.style.display = 'flex';
+            } else {
+                changeRow.style.display = 'none';
+            }
+        }
+
+        function confirmManualPayment() {
+            const paymentMethod = document.getElementById('paymentMethod').value;
+            const paymentAmount = parseFloat(document.getElementById('paymentAmountInput').value) || 0;
+            const billId = document.getElementById('manualPaymentModal').dataset.billId;
+
+            if (!paymentMethod) {
+                alert('กรุณาเลือกวิธีการชำระเงิน');
+                return;
+            }
+
+            if (paymentAmount <= 0) {
+                alert('กรุณากรอกจำนวนเงินที่ชำระ');
+                return;
+            }
+
+            const methodText = {
+                'cash': 'เงินสด',
+                'bank_transfer': 'โอนเงินธนาคาร',
+                'check': 'เช็ค',
+                'credit_card': 'บัตรเครดิต',
+                'other': 'อื่นๆ'
+            };
+
+            if (confirm(`คุณแน่ใจว่าต้องการบันทึกการชำระเงิน?\n\nบิล: ${billId}\nจำนวน: ฿${paymentAmount.toLocaleString()}\nวิธีการ: ${methodText[paymentMethod]}`)) {
+                alert(`✓ บันทึกการชำระเงินเรียบร้อยแล้ว!\n\nบิล: ${billId}\nจำนวนที่ชำระ: ฿${paymentAmount.toLocaleString()}\nวิธีการ: ${methodText[paymentMethod]}\n\nระบบได้ส่งแจ้งเตือนให้ลูกบ้านแล้ว`);
+                
+                closeManualPaymentModal();
+            }
+        }
+
+        // Close modals when clicking outside
+        document.getElementById('reviewModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        document.getElementById('rejectReasonModal').addEventListener('click', function(e) {
+            if (e.target === this) closeRejectReasonModal();
+        });
+
+        document.getElementById('manualPaymentModal').addEventListener('click', function(e) {
+            if (e.target === this) closeManualPaymentModal();
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up bill search and filters
+            const billSearchInput = document.getElementById('billSearchInput');
+            const billStatusFilter = document.getElementById('billStatusFilter');
+            const billTypeFilter = document.getElementById('billTypeFilter');
+            
+            if (billSearchInput) {
+                billSearchInput.addEventListener('keyup', searchOutstandingBills);
+            }
+            
+            if (billStatusFilter) {
+                billStatusFilter.addEventListener('change', filterOutstandingBills);
+            }
+            
+            if (billTypeFilter) {
+                billTypeFilter.addEventListener('change', filterOutstandingBills);
+            }
+            
+            // Set current date/time
+            const now = new Date();
+            const dateInput = document.getElementById('paymentDate');
+            const timeInput = document.getElementById('paymentTime');
+            if (dateInput) dateInput.value = now.toISOString().split('T')[0];
+            if (timeInput) timeInput.value = now.toTimeString().slice(0, 5);
+        });
+    </script>
+</body>
+</html>

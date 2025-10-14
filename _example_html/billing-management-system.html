@@ -1,0 +1,2585 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จัดการข้อมูลชำระเงิน - ระบบจัดการโครงการ</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #2B6EF3;
+            --primary-blue-dark: #1F4EC2;
+            --primary-blue-light: #EBF2FF;
+            --blue-50: #F8FAFF;
+            --blue-100: #EBF2FF;
+            --blue-500: #2B6EF3;
+            --blue-600: #1F4EC2;
+            
+            --gray-50: #F8FAFC;
+            --gray-100: #F1F5F9;
+            --gray-200: #E2E8F0;
+            --gray-300: #CBD5E1;
+            --gray-400: #94A3B8;
+            --gray-500: #64748B;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1E293B;
+            --gray-900: #0F172A;
+            
+            --white: #FFFFFF;
+            --green-500: #22C55E;
+            --green-100: #DCFCE7;
+            --yellow-500: #EAB308;
+            --yellow-100: #FEF3C7;
+            --red-500: #EF4444;
+            --red-100: #FEE2E2;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-800);
+            line-height: 1.6;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--white);
+            color: var(--gray-700);
+            padding: 24px 0;
+            position: fixed;
+            height: 100vh;
+            z-index: 1000;
+            box-shadow: var(--shadow-sm);
+            border-right: 1px solid var(--gray-200);
+        }
+
+        .sidebar-header {
+            padding: 0 24px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            margin-bottom: 24px;
+        }
+
+        .sidebar-header .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .sidebar-header .logo i {
+            background: var(--blue-100);
+            color: var(--primary-blue);
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .sidebar-header .subtitle {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0 16px;
+        }
+
+        .sidebar-menu li {
+            margin-bottom: 4px;
+        }
+
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            color: var(--gray-600);
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .sidebar-menu a i {
+            width: 20px;
+            margin-right: 12px;
+            color: var(--gray-500);
+        }
+
+        .sidebar-menu a:hover {
+            background: var(--gray-50);
+            color: var(--gray-800);
+        }
+
+        .sidebar-menu a:hover i {
+            color: var(--primary-blue);
+        }
+
+        .sidebar-menu a.active {
+            background: var(--blue-50);
+            color: var(--primary-blue);
+            border-left: 3px solid var(--primary-blue);
+            font-weight: 600;
+        }
+
+        .sidebar-menu a.active i {
+            color: var(--primary-blue);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            background: var(--gray-50);
+        }
+
+        /* Header */
+        .header {
+            background: var(--white);
+            padding: 16px 32px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .project-selector {
+            position: relative;
+        }
+
+        .project-dropdown {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--blue-50);
+            padding: 12px 16px;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid var(--blue-100);
+        }
+
+        .project-dropdown:hover {
+            background: var(--blue-100);
+        }
+
+        .project-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .project-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary-blue);
+            line-height: 1.2;
+        }
+
+        .project-code {
+            font-size: 12px;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .dropdown-arrow {
+            color: var(--primary-blue);
+            transition: transform 0.3s ease;
+        }
+
+        .project-dropdown.open .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            margin-top: 4px;
+            display: none;
+            overflow: hidden;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+            animation: dropdownSlide 0.2s ease-out;
+        }
+
+        @keyframes dropdownSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background: var(--gray-50);
+        }
+
+        .dropdown-item.active {
+            background: var(--blue-50);
+        }
+
+        .dropdown-item-name {
+            font-weight: 500;
+            color: var(--gray-800);
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .dropdown-item-code {
+            font-size: 12px;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--gray-500);
+            font-size: 14px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-top: 4px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .notification-btn {
+            position: relative;
+            background: #f0f4f8;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .notification-btn:hover {
+            background: #e2e8f0;
+            transform: scale(1.05);
+        }
+
+        .notification-btn .badge {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: var(--red-500);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            min-width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            background: var(--primary-blue);
+            color: white;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .user-info {
+            font-size: 14px;
+        }
+
+        .user-name {
+            font-weight: 600;
+        }
+
+        .user-role {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* Content Area */
+        .content {
+            padding: 32px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--white);
+            padding: 24px;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            border-top: 4px solid;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-card.blue {
+            border-top-color: var(--primary-blue);
+        }
+
+        .stat-card.green {
+            border-top-color: var(--green-500);
+        }
+
+        .stat-card.yellow {
+            border-top-color: var(--yellow-500);
+        }
+
+        .stat-card.purple {
+            border-top-color: #8B5CF6;
+        }
+
+        .stat-card.teal {
+            border-top-color: #14B8A6;
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--gray-900);
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--gray-600);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .stat-change {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .stat-change.positive {
+            color: var(--green-500);
+        }
+
+        .stat-change.negative {
+            color: var(--red-500);
+        }
+
+        .stat-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            opacity: 0.7;
+        }
+
+        .stat-card.blue .stat-icon {
+            background: var(--blue-100);
+            color: var(--primary-blue);
+        }
+
+        .stat-card.green .stat-icon {
+            background: var(--green-100);
+            color: var(--green-500);
+        }
+
+        .stat-card.yellow .stat-icon {
+            background: var(--yellow-100);
+            color: var(--yellow-500);
+        }
+
+        .stat-card.purple .stat-icon {
+            background: #EDE9FE;
+            color: #8B5CF6;
+        }
+
+        .stat-card.teal .stat-icon {
+            background: #F0FDFA;
+            color: #14B8A6;
+        }
+
+        /* Controls Section */
+        .controls {
+            background: var(--white);
+            padding: 20px 24px;
+            border-radius: var(--radius-xl);
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .search-box {
+            flex: 1;
+            position: relative;
+            max-width: 400px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 16px 12px 44px;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-lg);
+            font-size: 14px;
+            background: var(--white);
+            transition: all 0.3s ease;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(43, 110, 243, 0.1);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+        }
+
+        .controls-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .filter-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--gray-100);
+            border: none;
+            border-radius: var(--radius-lg);
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        .filter-btn:hover {
+            background: var(--gray-200);
+        }
+
+        .export-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--primary-blue);
+            border: none;
+            border-radius: var(--radius-lg);
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        .export-btn:hover {
+            background: var(--primary-blue-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .add-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--primary-blue);
+            border: none;
+            border-radius: var(--radius-lg);
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        .add-btn:hover {
+            background: var(--primary-blue-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Table */
+        .table-container {
+            background: var(--white);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        .table-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .table-info {
+            font-size: 14px;
+            color: var(--gray-500);
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background: var(--gray-50);
+            padding: 12px 24px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--gray-600);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .table td {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            font-size: 14px;
+        }
+
+        .table tr:hover {
+            background: var(--gray-50);
+        }
+
+        .table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .room-number {
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .room-type {
+            color: var(--gray-600);
+            font-size: 13px;
+        }
+
+        .resident-count {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--primary-blue);
+            font-weight: 500;
+        }
+
+        .room-count-link {
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .room-count-link:hover {
+            color: var(--primary-blue-dark);
+            text-decoration: underline;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .status-badge.active {
+            background: var(--green-100);
+            color: var(--green-500);
+        }
+
+        .status-badge.pending {
+            background: var(--yellow-100);
+            color: var(--yellow-500);
+        }
+
+        .status-badge.inactive {
+            background: var(--gray-200);
+            color: var(--gray-600);
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .action-btn.view {
+            background: var(--blue-100);
+            color: var(--primary-blue);
+        }
+
+        .action-btn.edit {
+            background: var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        .action-btn.send {
+            background: var(--green-100);
+            color: var(--green-500);
+        }
+
+        .action-btn.delete {
+            background: var(--red-100);
+            color: var(--red-500);
+        }
+		
+		.action-btn.suspend {
+            background: var(--yellow-100);
+            color: var(--yellow-500);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .amount {
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--white);
+            border-radius: var(--radius-xl);
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            animation: modalSlideUp 0.3s ease-out;
+        }
+
+        @keyframes modalSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .modal-close {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-600);
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: var(--gray-200);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-actions {
+            padding: 24px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--radius-lg);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        .btn-secondary {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-300);
+        }
+
+        .btn-primary {
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-blue-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-danger {
+            background: var(--red-500);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #DC2626;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: var(--gray-700);
+            font-size: 14px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-lg);
+            font-size: 14px;
+            background: var(--white);
+            transition: all 0.3s ease;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(43, 110, 243, 0.1);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-lg);
+            font-size: 14px;
+            background: var(--white);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(43, 110, 243, 0.1);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: var(--gray-600);
+            font-size: 14px;
+        }
+
+        .info-value {
+            color: var(--gray-900);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .content {
+                padding: 16px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 16px;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 16px;
+            }
+
+            .controls-right {
+                justify-content: flex-start;
+                flex-wrap: wrap;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+        }
+
+        /* Loading Animation */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .loading {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-building"></i>
+                    <div>
+                        <div>ระบบจัดการโครงการ</div>
+                    </div>
+                </div>
+				<div class="subtitle">สำหรับฝ่ายบริการโครงการ K-Connect</div>
+            </div>
+			<nav class="sidebar-menu">
+				<li><a href="#"><i class="fas fa-home"></i> หน้าหลัก</a></li>
+				<li><a href="#"><i class="fas fa-file-invoice-dollar"></i> จัดการการเงิน</a></li>
+				<li><a href="#" class="active"><i class="fas fa-file-alt"></i> จัดการบิล</a></li>
+				<li><a href="#"><i class="fas fa-address-book"></i> จัดการข้อมูลทะเบียน</a></li>
+				<li><a href="#"><i class="fas fa-bell"></i> การแจ้งเตือน</a></li>
+				<li><a href="#"><i class="fas fa-chart-bar"></i> รายงาน</a></li>
+				<li><a href="#"><i class="fas fa-cog"></i> ตั้งค่า</a></li>
+        </nav>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <div>
+                        <div class="breadcrumb">
+                            <span>หน้าหลัก</span>
+                            <i class="fas fa-chevron-right"></i>
+                            <span>จัดการบิล</span>
+                        </div>
+                        <div class="page-title">จัดการบิล</div>
+                    </div>
+                </div>
+                <div class="header-right">
+					<div class="project-selector">
+                        <div class="project-dropdown" onclick="toggleProjectDropdown()">
+                            <div class="project-info">
+                                <div class="project-name">โค้ดเด้อทรี</div>
+                                <div class="project-code">CODE-TREE-01</div>
+                            </div>
+                            <i class="fas fa-chevron-down dropdown-arrow"></i>
+                        </div>
+                        <div class="dropdown-menu" id="projectDropdown">
+                            <div class="dropdown-item active" onclick="selectProject('โค้ดเด้อทรี', 'CODE-TREE-01')">
+                                <div class="dropdown-item-name">โค้ดเด้อทรี</div>
+                                <div class="dropdown-item-code">CODE-TREE-01</div>
+                            </div>
+                            <div class="dropdown-item" onclick="selectProject('บลูสกาย คอนโดมิเนียม', 'BLUE-SKY-02')">
+                                <div class="dropdown-item-name">บลูสกาย คอนโดมิเนียม</div>
+                                <div class="dropdown-item-code">BLUE-SKY-02</div>
+                            </div>
+                            <div class="dropdown-item" onclick="selectProject('กรีน วิลเลจ', 'GREEN-VIL-03')">
+                                <div class="dropdown-item-name">กรีน วิลเลจ</div>
+                                <div class="dropdown-item-code">GREEN-VIL-03</div>
+                            </div>
+                            <div class="dropdown-item" onclick="selectProject('โกลเด้น เพลซ', 'GOLD-PLC-04')">
+                                <div class="dropdown-item-name">โกลเด้น เพลซ</div>
+                                <div class="dropdown-item-code">GOLD-PLC-04</div>
+                            </div>
+                            <div class="dropdown-item" onclick="selectProject('ซิลเวอร์ เรสซิเด้นซ์', 'SIL-RES-05')">
+                                <div class="dropdown-item-name">ซิลเวอร์ เรสซิเด้นซ์</div>
+                                <div class="dropdown-item-code">SIL-RES-05</div>
+                            </div>
+                        </div>
+                    </div>
+				
+                    <button class="notification-btn">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">3</span>
+                    </button>
+                    <div class="user-menu">
+                        <div class="user-info">
+                            <div class="user-name">Admin</div>
+                            <div class="user-role">ผู้ดูแลระบบ</div>
+                        </div>
+                        <div class="user-avatar">AD</div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <div class="content">
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card blue">
+                        <div class="stat-number">6</div>
+                        <div class="stat-label">หัวข้อบิลในระบบ</div>
+                        <div class="stat-change positive">
+                            <i class="fas fa-arrow-up"></i>
+                            +2 เดือนนี้
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-file-invoice"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card green">
+                        <div class="stat-number">892</div>
+                        <div class="stat-label">บิลที่แจ้งแล้ว</div>
+                        <div class="stat-change positive">
+                            <i class="fas fa-arrow-up"></i>
+                            +45 เดือนนี้
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card yellow">
+                        <div class="stat-number">127</div>
+                        <div class="stat-label">รอการชำระ</div>
+                        <div class="stat-change positive">
+                            <i class="fas fa-arrow-up"></i>
+                            +12 เดือนนี้
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card purple">
+                        <div class="stat-number">765</div>
+                        <div class="stat-label">ชำระเสร็จแล้ว</div>
+                        <div class="stat-change positive">
+                            <i class="fas fa-arrow-up"></i>
+                            +33 เดือนนี้
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-money-check"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card teal">
+                        <div class="stat-number">324</div>
+                        <div class="stat-label">ห้องทั้งหมด</div>
+                        <div class="stat-change">
+                            <i class="fas fa-minus"></i>
+                            ไม่เปลี่ยนแปลง
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-home"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="controls">
+                    <div class="search-box">
+                        <input type="text" placeholder="ค้นหาจากหัวข้อบิล, งวด หรือ วันที่..." id="searchInput" onkeyup="searchTable()">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <div class="controls-right">
+                        <button class="filter-btn">
+                            <i class="fas fa-filter"></i>
+                            ตัวกรอง
+                        </button>
+                        <button class="export-btn">
+                            <i class="fas fa-download"></i>
+                            ส่งออกรายงาน
+                        </button>
+                        <button class="add-btn" onclick="openCreateModal()">
+                            <i class="fas fa-plus"></i>
+                            สร้างบิลใหม่
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="table-title">รายการหัวข้อบิลทั้งหมด</div>
+                        <div class="table-info">แสดง <span id="displayedCount">6</span> หัวข้อบิล จากทั้งหมด</div>
+                    </div>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>หัวข้อแจ้งบิล</th>
+                                <th>วันเวลาที่สร้าง</th>
+                                <th>วันเวลาที่แจ้ง</th>
+                                <th>จำนวนห้อง</th>
+                                <th>ยอดรวม (บาท)</th>
+                                <th>สถานะการแจ้ง</th>
+                                <th>การดำเนินการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Data will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Bill Details Modal (แสดงรายละเอียดบิลแต่ละห้อง) -->
+    <div class="modal" id="billDetailsModal">
+        <div class="modal-content" style="max-width: 1200px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-list"></i> รายละเอียดบิลภายใต้หัวข้อบิล
+                </h3>
+                <button class="modal-close" onclick="closeBillDetailsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Bill Header Info -->
+                <div style="background: var(--blue-50); padding: 24px; border-radius: 12px; margin-bottom: 24px;">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--blue-100);">
+                        <div>
+                            <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">หัวข้อบิล</div>
+                            <div style="font-weight: 600; color: var(--gray-900); font-size: 15px;" id="modalBillTitle"></div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">จำนวนห้องทั้งหมด</div>
+                            <div style="font-weight: 600; color: var(--primary-blue); font-size: 15px;" id="modalRoomCount"></div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">ยอดรวมทั้งหมด</div>
+                            <div style="font-weight: 600; color: var(--gray-900); font-size: 15px;" id="modalTotalAmount"></div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                        <div>
+                            <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">วันเวลาที่สร้าง</div>
+                            <div style="font-weight: 500; color: var(--gray-700); font-size: 14px;" id="modalCreatedDate"></div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">วันเวลาที่แจ้ง</div>
+                            <div style="font-weight: 500; color: var(--gray-700); font-size: 14px;" id="modalSentDate"></div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">สถานะการแจ้ง</div>
+                            <div id="modalBillStatus"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 16px;">
+                    <div class="search-box" style="flex: 1; max-width: 300px;">
+                        <input type="text" placeholder="ค้นหาเลขห้อง หรือ ชื่อลูกบ้าน..." id="modalSearchInput" onkeyup="searchModalTable()">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <select class="form-select" onchange="filterModalByStatus(this.value)" style="width: auto;">
+                            <option value="">ทุกสถานะ</option>
+                            <option value="paid">ชำระแล้ว</option>
+                            <option value="pending">รอชำระ</option>
+                            <option value="overdue">เกินกำหนด</option>
+                        </select>
+                        <button class="export-btn" onclick="alert('ส่งออกรายงาน')">
+                            <i class="fas fa-download"></i>
+                            ส่งออก
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Bills Table -->
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>เลขบิล</th>
+                                <th>เลขห้อง</th>
+                                <th>ชื่อลูกบ้าน</th>
+                                <th>ยอดรวม</th>
+                                <th>ครบกำหนด</th>
+                                <th>สถานะชำระ</th>
+                                <th>การดำเนินการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalTableBody">
+                            <!-- จะถูกเติมข้อมูลด้วย JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Summary Stats -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--gray-200);">
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: 700; color: var(--green-500);" id="modalPaidCount">0</div>
+                        <div style="font-size: 12px; color: var(--gray-500);">ชำระแล้ว</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: 700; color: var(--yellow-500);" id="modalPendingCount">0</div>
+                        <div style="font-size: 12px; color: var(--gray-500);">รอชำระ</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: 700; color: var(--red-500);" id="modalOverdueCount">0</div>
+                        <div style="font-size: 12px; color: var(--gray-500);">เกินกำหนด</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: 700; color: var(--primary-blue);" id="modalPaidAmount">฿0</div>
+                        <div style="font-size: 12px; color: var(--gray-500);">ยอดที่ชำระแล้ว</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Bill Summary Modal -->
+    <div class="modal" id="viewModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-eye"></i> รายละเอียดบิล
+                </h3>
+                <button class="modal-close" onclick="closeViewModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="viewModalBody">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeViewModal()">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Bill Modal -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-edit"></i> แก้ไขบิล
+                </h3>
+                <button class="modal-close" onclick="closeEditModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">หัวข้อบิล</label>
+                    <input type="text" class="form-input" id="editBillTitle">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">งวด</label>
+                    <input type="text" class="form-input" id="editBillPeriod">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">วันครบกำหนด</label>
+                    <input type="date" class="form-input" id="editDueDate">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">สถานะ</label>
+                    <select class="form-select" id="editStatus">
+                        <option value="active">แจ้งแล้ว</option>
+                        <option value="pending">รอการแจ้ง</option>
+                        <option value="inactive">ฉบับร่าง</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeEditModal()">ยกเลิก</button>
+                <button class="btn btn-primary" onclick="saveEdit()">
+                    <i class="fas fa-save"></i>
+                    บันทึก
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send Notification Modal -->
+    <div class="modal" id="sendModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-paper-plane"></i> ส่งการแจ้งเตือน
+                </h3>
+                <button class="modal-close" onclick="closeSendModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 20px; color: var(--gray-600);">
+                    เลือกช่องทางการส่งการแจ้งเตือนไปยังลูกบ้าน
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <label style="display: flex; align-items: center; padding: 12px; border: 1px solid var(--gray-300); border-radius: 8px; cursor: pointer;">
+                        <input type="checkbox" id="sendApp" checked style="margin-right: 12px;">
+                        <div>
+                            <div style="font-weight: 600; color: var(--gray-900);">Application</div>
+                            <div style="font-size: 12px; color: var(--gray-500);">แจ้งเตือนผ่านแอปพลิเคชัน</div>
+                        </div>
+                    </label>
+                    <label style="display: flex; align-items: center; padding: 12px; border: 1px solid var(--gray-300); border-radius: 8px; cursor: pointer;">
+                        <input type="checkbox" id="sendSMS" checked style="margin-right: 12px;">
+                        <div>
+                            <div style="font-weight: 600; color: var(--gray-900);">SMS</div>
+                            <div style="font-size: 12px; color: var(--gray-500);">ส่งข้อความ SMS</div>
+                        </div>
+                    </label>
+                    <label style="display: flex; align-items: center; padding: 12px; border: 1px solid var(--gray-300); border-radius: 8px; cursor: pointer;">
+                        <input type="checkbox" id="sendEmail" checked style="margin-right: 12px;">
+                        <div>
+                            <div style="font-weight: 600; color: var(--gray-900);">Email</div>
+                            <div style="font-size: 12px; color: var(--gray-500);">ส่งอีเมล</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeSendModal()">ยกเลิก</button>
+                <button class="btn btn-primary" onclick="confirmSend()">
+                    <i class="fas fa-paper-plane"></i>
+                    ส่งการแจ้งเตือน
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> ยืนยันการลบ
+                </h3>
+                <button class="modal-close" onclick="closeDeleteModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--gray-600); margin-bottom: 16px;">
+                    คุณแน่ใจหรือไม่ที่จะลบบิลนี้?
+                </p>
+                <div style="background: var(--red-100); padding: 16px; border-radius: 8px; border-left: 4px solid var(--red-500);">
+                    <div style="font-weight: 600; color: var(--red-500); margin-bottom: 8px;">
+                        <i class="fas fa-exclamation-circle"></i> คำเตือน
+                    </div>
+                    <div style="font-size: 14px; color: var(--gray-700);" id="deleteWarningText">
+                        <!-- Content will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeDeleteModal()">ยกเลิก</button>
+                <button class="btn btn-danger" onclick="confirmDelete()">
+                    <i class="fas fa-trash"></i>
+                    ยืนยันการลบ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Modal (รักษาของเดิมไว้) -->
+    <div class="modal" id="createModal">
+        <div class="modal-content" style="max-width: 1000px;">
+            <div class="modal-header">
+                <h3 class="modal-title">สร้างหัวข้อบิลใหม่</h3>
+                <button class="modal-close" onclick="closeCreateModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+                    <div class="form-group">
+                        <label class="form-label">หัวข้อบิล</label>
+                        <input type="text" class="form-input" id="billTitle" placeholder="เช่น: ค่าส่วนกลาง ประจำเดือน กันยายน 2025">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">ประเภทบิล</label>
+                        <select class="form-select" id="billType">
+                            <option value="common">ค่าส่วนกลาง</option>
+                            <option value="water">ค่าน้ำ</option>
+                            <option value="electricity">ค่าไฟ</option>
+                            <option value="parking">ค่าจอดรถ</option>
+                            <option value="maintenance">ค่าซ่อมแซม</option>
+                            <option value="other">อื่นๆ</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">งวดที่เรียกเก็บ</label>
+                        <input type="text" class="form-input" id="billPeriod" placeholder="เช่น: กันยายน 2025">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">วันครบกำหนดชำระ</label>
+                        <input type="date" class="form-input" id="dueDate">
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 32px;">
+                    <label class="form-label">หมายเหตุ</label>
+                    <textarea class="form-input" id="billNote" rows="2" placeholder="หมายเหตุเพิ่มเติม"></textarea>
+                </div>
+
+                <div style="border: 2px solid var(--gray-200); border-radius: 12px; padding: 24px; background: var(--gray-50); margin-bottom: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h4 style="margin: 0; color: var(--gray-900); font-size: 16px; font-weight: 600;">นำเข้าข้อมูลรายการบิล</h4>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" onclick="downloadTemplateCSV()" style="background: var(--green-500); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; cursor: pointer; font-family: 'Sarabun', sans-serif;">
+                                <i class="fas fa-download"></i> CSV
+                            </button>
+                            <button type="button" onclick="downloadTemplateXLSX()" style="background: var(--primary-blue); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; cursor: pointer; font-family: 'Sarabun', sans-serif;">
+                                <i class="fas fa-download"></i> XLSX
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                        <div style="flex: 1;">
+                            <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" onchange="handleFileImport()" style="display: none;">
+                            <button type="button" onclick="document.getElementById('excelFile').click()" class="btn" style="background: white; border: 2px dashed var(--primary-blue); color: var(--primary-blue); width: 100%; padding: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; cursor: pointer;">
+                                <i class="fas fa-upload"></i>
+                                <span id="uploadButtonText">เลือกไฟล์ Excel (.xlsx) หรือ CSV (.csv)</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="font-size: 12px; color: var(--gray-500); line-height: 1.4;">
+                        <strong>รูปแบบไฟล์ที่รองรับ:</strong> Excel (.xlsx, .xls) หรือ CSV (.csv) <br>
+                        <strong>คอลัมน์ที่ต้องมี:</strong> เลขห้อง, ชื่อลูกบ้าน, ยอดเงิน, หมายเหตุ (ถ้ามี)
+                    </div>
+                </div>
+
+                <!-- Data Preview Section -->
+                <div id="dataPreviewSection" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h4 style="margin: 0; color: var(--gray-900); font-size: 16px; font-weight: 600;">
+                            <i class="fas fa-table"></i> ตรวจสอบข้อมูลที่นำเข้า
+                        </h4>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span id="recordCount" style="font-size: 14px; color: var(--gray-600); font-weight: 500;"></span>
+                            <button type="button" onclick="clearImportedData()" style="background: var(--red-500); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: 'Sarabun', sans-serif;">
+                                <i class="fas fa-trash"></i> ล้างข้อมูล
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-container" style="max-height: 350px; overflow-y: auto; margin-bottom: 16px;">
+                        <table class="table" style="font-size: 13px;">
+                            <thead style="position: sticky; top: 0; z-index: 1;">
+                                <tr>
+                                    <th style="min-width: 60px;">#</th>
+                                    <th style="min-width: 100px;">เลขห้อง</th>
+                                    <th style="min-width: 200px;">ชื่อลูกบ้าน</th>
+                                    <th style="min-width: 120px;">ยอดเงิน</th>
+                                    <th style="min-width: 150px;">หมายเหตุ</th>
+                                    <th style="min-width: 100px;">สถานะ</th>
+                                    <th style="min-width: 80px; text-align: center;">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="previewTableBody">
+                                <!-- ข้อมูลจะถูกเติมด้วย JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Summary -->
+                    <div style="background: var(--blue-50); padding: 16px; border-radius: 8px; border: 1px solid var(--blue-100);">
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; text-align: center;">
+                            <div>
+                                <div style="font-size: 24px; font-weight: 700; color: var(--primary-blue);" id="totalRecords">0</div>
+                                <div style="font-size: 12px; color: var(--gray-600); margin-top: 4px;">รายการทั้งหมด</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 24px; font-weight: 700; color: var(--green-500);" id="validRecords">0</div>
+                                <div style="font-size: 12px; color: var(--gray-600); margin-top: 4px;">รายการถูกต้อง</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 24px; font-weight: 700; color: var(--red-500);" id="errorRecords">0</div>
+                                <div style="font-size: 12px; color: var(--gray-600); margin-top: 4px;">รายการผิดพลาด</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 24px; font-weight: 700; color: var(--primary-blue);" id="totalAmount">฿0</div>
+                                <div style="font-size: 12px; color: var(--gray-600); margin-top: 4px;">ยอดรวม</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeCreateModal()">ยกเลิก</button>
+                <button class="btn" style="background: var(--gray-500); color: white;" onclick="saveBillDraft()" id="saveDraftBtn" disabled>
+                    <i class="fas fa-save"></i>
+                    บันทึกฉบับร่าง
+                </button>
+                <button class="btn btn-primary" onclick="createAndSendBill()" id="createSendBtn" disabled>
+                    <i class="fas fa-paper-plane"></i>
+                    สร้างและส่งแจ้งเตือน
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data - ตรงกับไฟล์ต้นฉบับ
+        const billsData = [
+            {
+                id: 'BILL-2025-08-001',
+                title: 'ค่าส่วนกลาง ประจำเดือน สิงหาคม 2025',
+                period: 'สิงหาคม 2025',
+                dueDate: '25/08/2025',
+                createdDate: '21/07/2025',
+                createdTime: '09:30',
+                sentDate: '21/07/2025',
+                sentTime: '14:15',
+                roomCount: 324,
+                totalAmount: 486000,
+                status: 'active'
+            },
+            {
+                id: 'BILL-2025-08-002',
+                title: 'ค่าน้ำ ประจำเดือน สิงหาคม 2025',
+                period: 'สิงหาคม 2025',
+                dueDate: '25/08/2025',
+                createdDate: '20/07/2025',
+                createdTime: '16:45',
+                sentDate: '21/07/2025',
+                sentTime: '08:30',
+                roomCount: 318,
+                totalAmount: 159000,
+                status: 'active'
+            },
+            {
+                id: 'BILL-2025-07-001',
+                title: 'ค่าส่วนกลาง ประจำเดือน กรกฎาคม 2025',
+                period: 'กรกฎาคม 2025',
+                dueDate: '25/07/2025',
+                createdDate: '21/06/2025',
+                createdTime: '10:15',
+                sentDate: '21/06/2025',
+                sentTime: '15:30',
+                roomCount: 324,
+                totalAmount: 486000,
+                status: 'active'
+            },
+            {
+                id: 'BILL-2025-08-003',
+                title: 'ค่าจอดรถ ประจำเดือน สิงหาคม 2025',
+                period: 'สิงหาคม 2025',
+                dueDate: '30/08/2025',
+                createdDate: '22/07/2025',
+                createdTime: '11:20',
+                sentDate: null,
+                sentTime: null,
+                roomCount: 142,
+                totalAmount: 71000,
+                status: 'inactive'
+            },
+            {
+                id: 'BILL-2025-07-002',
+                title: 'ค่าน้ำ ประจำเดือน กรกฎาคม 2025',
+                period: 'กรกฎาคม 2025',
+                dueDate: '25/07/2025',
+                createdDate: '20/06/2025',
+                createdTime: '14:30',
+                sentDate: '20/06/2025',
+                sentTime: '18:45',
+                roomCount: 315,
+                totalAmount: 157500,
+                status: 'active'
+            },
+            {
+                id: 'BILL-2025-ANNUAL-001',
+                title: 'ค่าซ่อมแซมสิ่งปลูกสร้าง ประจำปี 2025',
+                period: 'ประจำปี 2025',
+                dueDate: '31/12/2025',
+                createdDate: '15/07/2025',
+                createdTime: '09:00',
+                sentDate: null,
+                sentTime: null,
+                roomCount: 324,
+                totalAmount: 972000,
+                status: 'inactive'
+            }
+        ];
+
+        // Sample room bills data
+        const roomBillsData = {
+            'BILL-2025-08-001': [
+                { billNo: 'INV-2025-0821-001', room: 'A101', customer: 'คุณสมใจ ใจดี', amount: 1500, dueDate: '25/08/2025', status: 'paid' },
+                { billNo: 'INV-2025-0821-002', room: 'A102', customer: 'คุณประชา ดีงาม', amount: 1500, dueDate: '25/08/2025', status: 'paid' },
+                { billNo: 'INV-2025-0821-003', room: 'B205', customer: 'คุณมาลี รักดี', amount: 2200, dueDate: '25/08/2025', status: 'pending' },
+                { billNo: 'INV-2025-0821-004', room: 'C308', customer: 'คุณวิชัย สมศรี', amount: 1800, dueDate: '25/08/2025', status: 'pending' },
+                { billNo: 'INV-2025-0821-005', room: 'D412', customer: 'คุณนิรันดร์ ประสิทธิ์', amount: 3500, dueDate: '25/08/2025', status: 'overdue' }
+            ]
+        };
+
+        let currentBillId = null;
+        let currentRoomBills = [];
+        let filteredRoomBills = [];
+
+        // Render table
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            let visibleCount = 0;
+            
+            billsData.forEach(bill => {
+                const statusBadge = getStatusBadge(bill.status);
+                const sentDateDisplay = bill.sentDate ? `${bill.sentDate}<br><span style="font-size: 12px; color: var(--gray-500);">${bill.sentTime}</span>` : '-';
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <strong>${bill.title}</strong>
+                        <div style="font-size: 12px; color: var(--gray-500); margin-top: 2px;">
+                            งวด: ${bill.period} • ครบกำหนด: ${bill.dueDate}
+                        </div>
+                    </td>
+                    <td>${bill.createdDate}<br><span style="font-size: 12px; color: var(--gray-500);">${bill.createdTime}</span></td>
+                    <td>${sentDateDisplay}</td>
+                    <td>
+                        <a href="#" class="room-count-link" onclick="event.preventDefault(); viewBillDetails('${bill.id}')">
+                            <strong>${bill.roomCount} ห้อง</strong>
+                        </a>
+                    </td>
+                    <td class="amount">฿${bill.totalAmount.toLocaleString()}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-btn view" title="ดูรายละเอียด" onclick="viewBill('${bill.id}')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            ${bill.status === 'pending' || bill.status === 'inactive' ? `
+                                <button class="action-btn edit" title="แก้ไข" onclick="editBill('${bill.id}')">
+									<i class="fas fa-edit"></i>
+								</button>
+								<button class="action-btn send" title="ส่งการแจ้งเตือน" onclick="sendBill('${bill.id}')">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+								<button class="action-btn delete" title="ลบ" onclick="deleteBill('${bill.id}')">
+									<i class="fas fa-trash"></i>
+								</button>
+                            ` : ''}
+							${bill.status === 'active' ? `
+                            <button class="action-btn suspend" title="ยกเลิกการแจ้ง" onclick="alert('ยกเลิกการแจ้งรายการนี้')">
+                                <i class="fas fa-ban"></i>
+                            </button>
+							` : ''}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+                visibleCount++;
+            });
+            
+            document.getElementById('displayedCount').textContent = visibleCount;
+        }
+
+        function getStatusBadge(status) {
+            const badges = {
+                'active': '<span class="status-badge active">แจ้งแล้ว</span>',
+                'pending': '<span class="status-badge pending">รอการแจ้ง</span>',
+                'inactive': '<span class="status-badge inactive">ฉบับร่าง</span>'
+            };
+            return badges[status] || '';
+        }
+
+        function getPaymentStatusBadge(status) {
+            const badges = {
+                'paid': '<span class="status-badge active">ชำระแล้ว</span>',
+                'pending': '<span class="status-badge pending">รอชำระ</span>',
+                'overdue': '<span class="status-badge" style="background: var(--red-100); color: var(--red-500);">เกินกำหนด</span>'
+            };
+            return badges[status] || '';
+        }
+
+        // View Bill Details (แสดงรายละเอียดบิลแต่ละห้อง)
+        function viewBillDetails(billId) {
+            const bill = billsData.find(b => b.id === billId);
+            if (!bill) return;
+
+            currentBillId = billId;
+            
+            // สร้างข้อมูลตัวอย่างถ้ายังไม่มี
+            if (!roomBillsData[billId]) {
+                roomBillsData[billId] = generateSampleRoomBills(bill);
+            }
+
+            currentRoomBills = roomBillsData[billId];
+            filteredRoomBills = [...currentRoomBills];
+
+            // Update modal header
+            document.getElementById('modalBillTitle').textContent = bill.title;
+            document.getElementById('modalRoomCount').textContent = `${bill.roomCount} ห้อง`;
+            document.getElementById('modalTotalAmount').textContent = `฿${bill.totalAmount.toLocaleString()}`;
+            
+            // Update created date
+            document.getElementById('modalCreatedDate').textContent = `${bill.createdDate} ${bill.createdTime}`;
+            
+            // Update sent date
+            const sentDateText = bill.sentDate ? `${bill.sentDate} ${bill.sentTime}` : 'ยังไม่ได้แจ้ง';
+            document.getElementById('modalSentDate').textContent = sentDateText;
+            
+            // Update status
+            document.getElementById('modalBillStatus').innerHTML = getStatusBadge(bill.status);
+
+            // Render table
+            renderModalTable();
+            updateModalStats();
+
+            // Show modal
+            document.getElementById('billDetailsModal').classList.add('active');
+        }
+
+        function generateSampleRoomBills(bill) {
+            const rooms = [];
+            const baseAmount = Math.floor(bill.totalAmount / bill.roomCount);
+            
+            for (let i = 1; i <= Math.min(bill.roomCount, 20); i++) {
+                const building = String.fromCharCode(65 + Math.floor((i - 1) / 5));
+                const floor = Math.floor((i - 1) / 5) + 1;
+                const roomNum = ((i - 1) % 5) + 1;
+                const room = `${building}${floor}0${roomNum}`;
+                
+                let status = 'paid';
+                if (i % 5 === 0) status = 'overdue';
+                else if (i % 3 === 0) status = 'pending';
+                
+                const variation = Math.floor(Math.random() * 500) - 250;
+                const amount = baseAmount + variation;
+                
+                rooms.push({
+                    billNo: `INV-2025-${String(Math.floor(Math.random() * 9000) + 1000)}`,
+                    room: room,
+                    customer: `คุณลูกบ้าน ห้อง${room}`,
+                    amount: amount,
+                    dueDate: bill.dueDate,
+                    status: status
+                });
+            }
+            
+            return rooms;
+        }
+
+        function renderModalTable() {
+            const tbody = document.getElementById('modalTableBody');
+            tbody.innerHTML = '';
+
+            filteredRoomBills.forEach((roomBill, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight: 500; color: var(--gray-700);">${roomBill.billNo}</td>
+                    <td style="font-weight: 600; color: var(--primary-blue);">${roomBill.room}</td>
+                    <td>${roomBill.customer}</td>
+                    <td class="amount">฿${roomBill.amount.toLocaleString()}</td>
+                    <td>${roomBill.dueDate}</td>
+                    <td>${getPaymentStatusBadge(roomBill.status)}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-btn view" title="ดูรายละเอียด" onclick="alert('ดูรายละเอียดบิล ${roomBill.billNo}')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            ${roomBill.status !== 'paid' ? `
+                                <button class="action-btn send" title="ส่งแจ้งเตือน" onclick="alert('ส่งแจ้งเตือนไปยังห้อง ${roomBill.room}')">
+                                    <i class="fas fa-bell"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateModalStats() {
+            let paidCount = 0;
+            let pendingCount = 0;
+            let overdueCount = 0;
+            let paidAmount = 0;
+
+            currentRoomBills.forEach(bill => {
+                if (bill.status === 'paid') {
+                    paidCount++;
+                    paidAmount += bill.amount;
+                } else if (bill.status === 'pending') {
+                    pendingCount++;
+                } else if (bill.status === 'overdue') {
+                    overdueCount++;
+                }
+            });
+
+            document.getElementById('modalPaidCount').textContent = paidCount;
+            document.getElementById('modalPendingCount').textContent = pendingCount;
+            document.getElementById('modalOverdueCount').textContent = overdueCount;
+            document.getElementById('modalPaidAmount').textContent = `฿${paidAmount.toLocaleString()}`;
+        }
+
+        function searchModalTable() {
+            const input = document.getElementById('modalSearchInput');
+            const filter = input.value.toLowerCase();
+
+            filteredRoomBills = currentRoomBills.filter(bill => {
+                return bill.room.toLowerCase().includes(filter) || 
+                       bill.customer.toLowerCase().includes(filter) ||
+                       bill.billNo.toLowerCase().includes(filter);
+            });
+
+            renderModalTable();
+        }
+
+        function filterModalByStatus(status) {
+            if (status === '') {
+                filteredRoomBills = [...currentRoomBills];
+            } else {
+                filteredRoomBills = currentRoomBills.filter(bill => bill.status === status);
+            }
+            renderModalTable();
+        }
+
+        function closeBillDetailsModal() {
+            document.getElementById('billDetailsModal').classList.remove('active');
+            document.getElementById('modalSearchInput').value = '';
+            currentBillId = null;
+        }
+
+        // View Bill
+        function viewBill(billId) {
+            const bill = billsData.find(b => b.id === billId);
+            if (!bill) return;
+
+            const modalBody = document.getElementById('viewModalBody');
+            modalBody.innerHTML = `
+                <div class="info-row">
+                    <span class="info-label">รหัสบิล</span>
+                    <span class="info-value">${bill.id}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">หัวข้อบิล</span>
+                    <span class="info-value">${bill.title}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">งวด</span>
+                    <span class="info-value">${bill.period}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">วันที่สร้าง</span>
+                    <span class="info-value">${bill.createdDate} ${bill.createdTime}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">วันที่แจ้ง</span>
+                    <span class="info-value">${bill.sentDate ? `${bill.sentDate} ${bill.sentTime}` : 'ยังไม่ได้แจ้ง'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">วันครบกำหนด</span>
+                    <span class="info-value">${bill.dueDate}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">จำนวนห้อง</span>
+                    <span class="info-value">${bill.roomCount} ห้อง</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">ยอดรวม</span>
+                    <span class="info-value" style="color: var(--primary-blue); font-weight: 600;">฿${bill.totalAmount.toLocaleString()}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">สถานะ</span>
+                    <span class="info-value">${getStatusBadge(bill.status)}</span>
+                </div>
+            `;
+
+            document.getElementById('viewModal').classList.add('active');
+        }
+
+        function closeViewModal() {
+            document.getElementById('viewModal').classList.remove('active');
+        }
+
+        // Edit Bill
+        function editBill(billId) {
+            const bill = billsData.find(b => b.id === billId);
+            if (!bill) return;
+
+            currentBillId = billId;
+            document.getElementById('editBillTitle').value = bill.title;
+            document.getElementById('editBillPeriod').value = bill.period;
+            document.getElementById('editDueDate').value = bill.dueDate.split('/').reverse().join('-');
+            document.getElementById('editStatus').value = bill.status;
+
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+            currentBillId = null;
+        }
+
+        function saveEdit() {
+            const billIndex = billsData.findIndex(b => b.id === currentBillId);
+            if (billIndex === -1) return;
+
+            billsData[billIndex].title = document.getElementById('editBillTitle').value;
+            billsData[billIndex].period = document.getElementById('editBillPeriod').value;
+            const dueDate = document.getElementById('editDueDate').value;
+            billsData[billIndex].dueDate = dueDate.split('-').reverse().join('/');
+            billsData[billIndex].status = document.getElementById('editStatus').value;
+
+            closeEditModal();
+            renderTable();
+            
+            alert('✓ บันทึกการแก้ไขเรียบร้อยแล้ว!');
+        }
+
+        // Send Bill
+        function sendBill(billId) {
+            currentBillId = billId;
+            const bill = billsData.find(b => b.id === billId);
+            if (!bill) return;
+
+            document.getElementById('sendModal').classList.add('active');
+        }
+
+        function closeSendModal() {
+            document.getElementById('sendModal').classList.remove('active');
+            currentBillId = null;
+        }
+
+        function confirmSend() {
+            const billIndex = billsData.findIndex(b => b.id === currentBillId);
+            if (billIndex === -1) return;
+
+            const sendApp = document.getElementById('sendApp').checked;
+            const sendSMS = document.getElementById('sendSMS').checked;
+            const sendEmail = document.getElementById('sendEmail').checked;
+
+            if (!sendApp && !sendSMS && !sendEmail) {
+                alert('กรุณาเลือกช่องทางการส่งอย่างน้อย 1 ช่องทาง');
+                return;
+            }
+
+            const channels = [];
+            if (sendApp) channels.push('Application');
+            if (sendSMS) channels.push('SMS');
+            if (sendEmail) channels.push('Email');
+
+            // Update bill status and sent date
+            const now = new Date();
+            const thaiDate = now.toLocaleDateString('th-TH', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric' 
+            }).replace(/\//g, '/');
+            const thaiTime = now.toLocaleTimeString('th-TH', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false
+            });
+
+            billsData[billIndex].status = 'active';
+            billsData[billIndex].sentDate = thaiDate;
+            billsData[billIndex].sentTime = thaiTime;
+
+            closeSendModal();
+            renderTable();
+
+            alert(`✓ ส่งการแจ้งเตือนเรียบร้อยแล้ว!\n\nช่องทางที่ใช้: ${channels.join(', ')}\nจำนวน: ${billsData[billIndex].roomCount} ห้อง\n\nระบบกำลังส่งการแจ้งเตือนไปยังลูกบ้าน`);
+        }
+
+        // Delete Bill
+        function deleteBill(billId) {
+            currentBillId = billId;
+            const bill = billsData.find(b => b.id === billId);
+            if (!bill) return;
+
+            const warningText = document.getElementById('deleteWarningText');
+            warningText.innerHTML = `
+                การลบบิลนี้จะส่งผลต่อ:<br>
+                • <strong>${bill.roomCount} ห้อง</strong> จะไม่สามารถเห็นบิลนี้ได้<br>
+                • ข้อมูลการชำระเงินที่เกี่ยวข้องจะถูกลบ<br>
+                • <strong>ไม่สามารถกู้คืนข้อมูลได้</strong> หลังจากลบแล้ว
+            `;
+
+            document.getElementById('deleteModal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('active');
+            currentBillId = null;
+        }
+
+        function confirmDelete() {
+            const billIndex = billsData.findIndex(b => b.id === currentBillId);
+            if (billIndex === -1) return;
+
+            const deletedBill = billsData[billIndex];
+            billsData.splice(billIndex, 1);
+
+            closeDeleteModal();
+            renderTable();
+
+            alert(`✓ ลบบิลเรียบร้อยแล้ว!\n\nรายการที่ถูกลบ: ${deletedBill.title}\nจำนวน: ${deletedBill.roomCount} ห้อง`);
+        }
+
+        // Project dropdown functions
+        function toggleProjectDropdown() {
+            const dropdown = document.getElementById('projectDropdown');
+            const dropdownButton = document.querySelector('.project-dropdown');
+            
+            if (dropdown.classList.contains('show')) {
+                dropdown.classList.remove('show');
+                dropdownButton.classList.remove('open');
+            } else {
+                dropdown.classList.add('show');
+                dropdownButton.classList.add('open');
+            }
+        }
+
+        function selectProject(name, code) {
+            const projectName = document.querySelector('.project-name');
+            const projectCode = document.querySelector('.project-code');
+            
+            projectName.textContent = name;
+            projectCode.textContent = code;
+            
+            const dropdownItems = document.querySelectorAll('.dropdown-item');
+            dropdownItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.textContent.includes(code)) {
+                    item.classList.add('active');
+                }
+            });
+            
+            const dropdown = document.getElementById('projectDropdown');
+            const dropdownButton = document.querySelector('.project-dropdown');
+            dropdown.classList.remove('show');
+            dropdownButton.classList.remove('open');
+            
+            const statCards = document.querySelectorAll('.stat-card');
+            statCards.forEach(card => card.classList.add('loading'));
+            
+            setTimeout(() => {
+                statCards.forEach(card => card.classList.remove('loading'));
+            }, 1000);
+        }
+
+        // Search function
+        function searchTable() {
+            const input = document.getElementById('searchInput');
+            const filter = input.value.toLowerCase();
+            const tbody = document.getElementById('tableBody');
+            const rows = tbody.getElementsByTagName('tr');
+            let visibleCount = 0;
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const cells = row.getElementsByTagName('td');
+                let found = false;
+
+                for (let j = 0; j < cells.length; j++) {
+                    const cell = cells[j];
+                    if (cell.textContent.toLowerCase().includes(filter)) {
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (found) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+            
+            document.getElementById('displayedCount').textContent = visibleCount;
+        }
+
+        // Create Modal functions
+        let importedData = [];
+
+        function openCreateModal() {
+            document.getElementById('createModal').classList.add('active');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createModal').classList.remove('active');
+            clearImportedData();
+            // Reset form
+            document.getElementById('billTitle').value = '';
+            document.getElementById('billType').value = 'common';
+            document.getElementById('billPeriod').value = '';
+            document.getElementById('dueDate').value = '';
+            document.getElementById('billNote').value = '';
+        }
+
+        function downloadTemplateCSV() {
+            // สร้าง CSV template สำหรับดาวน์โหลด
+            const csvContent = "เลขห้อง,ชื่อลูกบ้าน,ยอดเงิน,หมายเหตุ\n" +
+                "A101,คุณสมใจ ใจดี,1500,\n" +
+                "A102,คุณมาลี รักดี,1500,\n" +
+                "B201,คุณวิชัย สมศรี,1800,ห้องใหญ่\n" +
+                "B202,คุณสุดา ใจงาม,1500,\n" +
+                "C301,คุณนิรันดร์ สมบูรณ์,2000,เพนท์เฮาส์\n";
+            
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'แม่แบบรายการบิล.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadTemplateXLSX() {
+            // สร้าง HTML table ที่สามารถเปิดได้ใน Excel
+            const excelContent = `
+                <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+                <head>
+                    <meta charset="utf-8">
+                    <!--[if gte mso 9]>
+                    <xml>
+                        <x:ExcelWorkbook>
+                            <x:ExcelWorksheets>
+                                <x:ExcelWorksheet>
+                                    <x:Name>รายการบิล</x:Name>
+                                    <x:WorksheetOptions>
+                                        <x:DisplayGridlines/>
+                                    </x:WorksheetOptions>
+                                </x:ExcelWorksheet>
+                            </x:ExcelWorksheets>
+                        </x:ExcelWorkbook>
+                    </xml>
+                    <![endif]-->
+                </head>
+                <body>
+                    <table border="1">
+                        <thead>
+                            <tr style="background-color: #4472C4; color: white; font-weight: bold;">
+                                <th>เลขห้อง</th>
+                                <th>ชื่อลูกบ้าน</th>
+                                <th>ยอดเงิน</th>
+                                <th>หมายเหตุ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>A101</td>
+                                <td>คุณสมใจ ใจดี</td>
+                                <td>1500</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>A102</td>
+                                <td>คุณมาลี รักดี</td>
+                                <td>1500</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>B201</td>
+                                <td>คุณวิชัย สมศรี</td>
+                                <td>1800</td>
+                                <td>ห้องใหญ่</td>
+                            </tr>
+                            <tr>
+                                <td>B202</td>
+                                <td>คุณสุดา ใจงาม</td>
+                                <td>1500</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>C301</td>
+                                <td>คุณนิรันดร์ สมบูรณ์</td>
+                                <td>2000</td>
+                                <td>เพนท์เฮาส์</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </body>
+                </html>
+            `;
+            
+            const blob = new Blob(['\uFEFF' + excelContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'แม่แบบรายการบิล.xls');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function handleFileImport() {
+            const fileInput = document.getElementById('excelFile');
+            const file = fileInput.files[0];
+            
+            if (!file) return;
+            
+            // Update button text
+            document.getElementById('uploadButtonText').innerHTML = `<i class="fas fa-file-excel"></i> ${file.name}`;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const text = e.target.result;
+                    parseCSVData(text);
+                } catch (error) {
+                    alert('เกิดข้อผิดพลาดในการอ่านไฟล์: ' + error.message);
+                }
+            };
+            
+            // Read as text for CSV
+            if (file.name.endsWith('.csv')) {
+                reader.readAsText(file, 'UTF-8');
+            } else {
+                // For Excel files, simulate with sample data
+                // ในระบบจริงจะใช้ library เช่น SheetJS
+                alert('กำลังประมวลผลไฟล์ Excel...');
+                setTimeout(() => {
+                    const sampleData = generateSampleImportData();
+                    importedData = sampleData;
+                    displayImportedData();
+                }, 500);
+            }
+        }
+
+        function parseCSVData(text) {
+            const lines = text.split('\n');
+            const data = [];
+            
+            // Skip header (first line)
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                const values = line.split(',');
+                if (values.length < 3) continue;
+                
+                const room = values[0].trim();
+                const customer = values[1].trim();
+                const amount = values[2].trim();
+                const note = values[3] ? values[3].trim() : '';
+                
+                // Validate
+                let status = 'valid';
+                if (!room) status = 'error';
+                if (!customer) status = 'error';
+                if (!amount || isNaN(parseFloat(amount))) status = 'error';
+                
+                data.push({
+                    room: room,
+                    customer: customer,
+                    amount: parseFloat(amount) || 0,
+                    note: note,
+                    status: status
+                });
+            }
+            
+            importedData = data;
+            displayImportedData();
+        }
+
+        function generateSampleImportData() {
+            return [
+                { room: 'A101', customer: 'คุณสมใจ ใจดี', amount: 1500, note: '', status: 'valid' },
+                { room: 'A102', customer: 'คุณมาลี รักดี', amount: 1500, note: '', status: 'valid' },
+                { room: 'A103', customer: 'คุณสมชาย ใจดี', amount: 1500, note: '', status: 'valid' },
+                { room: 'B201', customer: 'คุณวิชัย สมศรี', amount: 1800, note: 'ห้องใหญ่', status: 'valid' },
+                { room: 'B202', customer: 'คุณสุดา ใจงาม', amount: 1500, note: '', status: 'valid' },
+                { room: 'B203', customer: '', amount: 1500, note: '', status: 'error' }, // Missing customer
+                { room: 'C301', customer: 'คุณนิรันดร์ สมบูรณ์', amount: 2000, note: 'เพนท์เฮาส์', status: 'valid' },
+                { room: 'C302', customer: 'คุณจิรศักดิ์ แสงทอง', amount: 0, note: '', status: 'error' }, // Invalid amount
+                { room: 'C303', customer: 'คุณปราณี สวยงาม', amount: 1500, note: '', status: 'valid' },
+                { room: 'D401', customer: 'คุณอนุชา เก่งกาจ', amount: 2200, note: 'ห้องพิเศษ', status: 'valid' },
+                { room: 'D402', customer: 'คุณสมศรี รุ่งเรือง', amount: 1500, note: '', status: 'valid' },
+                { room: 'D403', customer: 'คุณวิไล สุขสันต์', amount: 1500, note: '', status: 'valid' }
+            ];
+        }
+
+        function displayImportedData() {
+            const previewSection = document.getElementById('dataPreviewSection');
+            const tbody = document.getElementById('previewTableBody');
+            
+            previewSection.style.display = 'block';
+            tbody.innerHTML = '';
+            
+            let totalAmount = 0;
+            let validCount = 0;
+            let errorCount = 0;
+            
+            importedData.forEach((row, index) => {
+                const isValid = row.status === 'valid';
+                if (isValid) {
+                    validCount++;
+                    totalAmount += parseFloat(row.amount) || 0;
+                } else {
+                    errorCount++;
+                }
+                
+                const statusBadge = isValid ? 
+                    '<span class="status-badge active"><i class="fas fa-check-circle"></i> ถูกต้อง</span>' : 
+                    '<span class="status-badge" style="background: var(--red-100); color: var(--red-500);"><i class="fas fa-exclamation-circle"></i> ผิดพลาด</span>';
+                
+                const tr = document.createElement('tr');
+                tr.style.backgroundColor = isValid ? '' : 'rgba(239, 68, 68, 0.05)';
+                tr.innerHTML = `
+                    <td style="text-align: center; color: var(--gray-500);">${index + 1}</td>
+                    <td style="font-weight: 600; color: ${isValid ? 'var(--primary-blue)' : 'var(--red-500)'};">${row.room || '<span style="color: var(--red-500);">ไม่ระบุ</span>'}</td>
+                    <td>${row.customer || '<span style="color: var(--red-500);">ไม่ระบุ</span>'}</td>
+                    <td style="font-weight: 600;">${row.amount && row.amount > 0 ? `฿${parseFloat(row.amount).toLocaleString()}` : '<span style="color: var(--red-500);">ไม่ระบุ</span>'}</td>
+                    <td style="color: var(--gray-600);">${row.note || '-'}</td>
+                    <td>${statusBadge}</td>
+                    <td style="text-align: center;">
+                        <button class="action-btn delete" title="ลบรายการนี้" onclick="deleteImportedRow(${index})" style="width: 28px; height: 28px;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            // Update summary
+            document.getElementById('totalRecords').textContent = importedData.length;
+            document.getElementById('validRecords').textContent = validCount;
+            document.getElementById('errorRecords').textContent = errorCount;
+            document.getElementById('totalAmount').textContent = `฿${totalAmount.toLocaleString()}`;
+            document.getElementById('recordCount').textContent = `${importedData.length} รายการ (${validCount} ถูกต้อง, ${errorCount} ผิดพลาด)`;
+            
+            // Enable/disable buttons
+            const hasValidData = validCount > 0;
+            document.getElementById('saveDraftBtn').disabled = !hasValidData;
+            document.getElementById('createSendBtn').disabled = !hasValidData;
+            
+            if (hasValidData) {
+                document.getElementById('saveDraftBtn').style.opacity = '1';
+                document.getElementById('createSendBtn').style.opacity = '1';
+            } else {
+                document.getElementById('saveDraftBtn').style.opacity = '0.5';
+                document.getElementById('createSendBtn').style.opacity = '0.5';
+            }
+        }
+
+        function deleteImportedRow(index) {
+            if (confirm(`ยืนยันการลบรายการนี้?\n\nเลขห้อง: ${importedData[index].room}\nชื่อลูกบ้าน: ${importedData[index].customer}`)) {
+                importedData.splice(index, 1);
+                
+                if (importedData.length === 0) {
+                    clearImportedData();
+                } else {
+                    displayImportedData();
+                }
+            }
+        }
+
+        function clearImportedData() {
+            importedData = [];
+            document.getElementById('dataPreviewSection').style.display = 'none';
+            document.getElementById('excelFile').value = '';
+            document.getElementById('uploadButtonText').innerHTML = '<i class="fas fa-upload"></i> เลือกไฟล์ Excel (.xlsx)';
+            
+            // Disable buttons
+            document.getElementById('saveDraftBtn').disabled = true;
+            document.getElementById('createSendBtn').disabled = true;
+            document.getElementById('saveDraftBtn').style.opacity = '0.5';
+            document.getElementById('createSendBtn').style.opacity = '0.5';
+        }
+
+        function saveBillDraft() {
+            if (importedData.length === 0) {
+                alert('กรุณานำเข้าข้อมูลก่อน');
+                return;
+            }
+            
+            const billTitle = document.getElementById('billTitle').value;
+            const billPeriod = document.getElementById('billPeriod').value;
+            const dueDate = document.getElementById('dueDate').value;
+            
+            if (!billTitle || !billPeriod || !dueDate) {
+                alert('กรุณากรอกข้อมูลพื้นฐานให้ครบถ้วน');
+                return;
+            }
+            
+            const validRecords = importedData.filter(row => row.status === 'valid');
+            const totalAmount = validRecords.reduce((sum, row) => sum + parseFloat(row.amount), 0);
+            
+            if (confirm(`ยืนยันการบันทึกฉบับร่าง?\n\nหัวข้อบิล: ${billTitle}\nจำนวนรายการ: ${validRecords.length} รายการ\nยอดรวม: ฿${totalAmount.toLocaleString()}\n\nสถานะ: ฉบับร่าง (สามารถแก้ไขได้)`)) {
+                alert('✓ บันทึกฉบับร่างเรียบร้อยแล้ว!\nสามารถกลับมาแก้ไขและส่งแจ้งเตือนได้ในภายหลัง');
+                closeCreateModal();
+            }
+        }
+
+        function createAndSendBill() {
+            if (importedData.length === 0) {
+                alert('กรุณานำเข้าข้อมูลก่อน');
+                return;
+            }
+            
+            const billTitle = document.getElementById('billTitle').value;
+            const billPeriod = document.getElementById('billPeriod').value;
+            const dueDate = document.getElementById('dueDate').value;
+            
+            if (!billTitle || !billPeriod || !dueDate) {
+                alert('กรุณากรอกข้อมูลพื้นฐานให้ครบถ้วน');
+                return;
+            }
+            
+            const validRecords = importedData.filter(row => row.status === 'valid');
+            const totalAmount = validRecords.reduce((sum, row) => sum + parseFloat(row.amount), 0);
+            
+            if (confirm(`ยืนยันการสร้างบิลและส่งแจ้งเตือน?\n\nหัวข้อบิล: ${billTitle}\nจำนวนรายการ: ${validRecords.length} รายการ\nยอดรวม: ฿${totalAmount.toLocaleString()}\n\nระบบจะส่งแจ้งเตือนไปยังลูกบ้านทันที`)) {
+                alert(`✓ สร้างบิลและส่งแจ้งเตือนเรียบร้อยแล้ว!\n\nรายละเอียด:\n- ส่งแจ้งเตือนไป ${validRecords.length} ห้อง\n- ผ่าน Application, SMS และ Email\n- สถานะ: แจ้งแล้ว`);
+                closeCreateModal();
+                setTimeout(() => location.reload(), 1000);
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const projectSelector = document.querySelector('.project-selector');
+            const dropdown = document.getElementById('projectDropdown');
+            const dropdownButton = document.querySelector('.project-dropdown');
+            
+            if (projectSelector && !projectSelector.contains(e.target)) {
+                dropdown.classList.remove('show');
+                dropdownButton.classList.remove('open');
+            }
+            
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('active');
+            }
+        });
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            renderTable();
+            
+            const statCards = document.querySelectorAll('.stat-card');
+            statCards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    card.style.transition = 'all 0.6s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+    </script>
+</body>
+</html>

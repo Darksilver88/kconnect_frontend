@@ -73,7 +73,7 @@ src/
 - **Styling**: Tailwind CSS 4 with PostCSS
 - **UI Library**: shadcn/ui (Radix UI primitives)
 - **Charts**: Recharts for Dashboard visualization
-- **Icons**: Lucide React
+- **Icons**: Font Awesome 6 (installed via @fortawesome/fontawesome-free)
 
 ### Authentication Flow
 
@@ -110,15 +110,22 @@ interface User {
 - **UserMenu บนมือถือ**: แสดงใน Sidebar ด้านล่างสุด (fixed position ไม่ scroll)
 
 #### PageHeader Component
-- แสดงชื่อหน้า + icon + subtitle
+- แสดงชื่อหน้า + subtitle (ไม่มี icon แล้ว)
 - มีปุ่ม hamburger menu (mobile only)
+- **Customer ID Badge**: แสดง customer_id badge (bg-blue-50, text-blue-700) ก่อน UserMenu (Desktop only)
 - **UserMenu**: แสดงบน Desktop เท่านั้น (mobile แสดงใน Sidebar)
 
 #### UserMenu Component
-- แสดงชื่อผู้ใช้ + Avatar
+- **Layout**:
+  - ซ้าย: ชื่อผู้ใช้ (username) + บทบาท (name)
+  - ขวา: Avatar (2 ตัวอักษรแรกจาก username, bg-white, text-blue-600)
+- **Styling**:
+  - พื้นหลัง: bg-blue-600 พร้อม border-blue-700
+  - ข้อความ: username (font-bold, text-white) + name (text-blue-100)
+  - Avatar: rounded-lg, w-10 h-10, flex-shrink-0, ชิดขวา
 - กดแล้วเปิด Dialog ยืนยันออกจากระบบ
 - **Responsive**:
-  - Desktop: อยู่ใน PageHeader ด้านขวาบน
+  - Desktop: อยู่ใน PageHeader ด้านขวาบน (justify-between)
   - Mobile: อยู่ใน Sidebar ด้านล่างสุด (fixed)
 
 ### TypeScript Configuration
@@ -135,34 +142,54 @@ interface User {
 ### Key Pages
 
 1. **Dashboard** (`/dashboard`): หน้าแรกหลัง login, มี summary cards + charts (Bar, Line)
-2. **Billing** (`/billing`): จัดการบิลและการเรียกเก็บเงิน (placeholder)
-3. **Room** (`/room`): จัดการห้องและผู้อยู่อาศัย - **Main CRUD Page**
-4. **Test** (`/test`): Template หน้า CRUD สำหรับทดสอบ pattern
-5. **Settings** (`/settings`): ตั้งค่าระบบ (placeholder)
+2. **Billing** (`/billing`): จัดการบิลและการเรียกเก็บเงิน - **Main Bill Management with Excel Import**
+3. **Payment** (`/payment`): จัดการการชำระเงิน (placeholder)
+4. **Room** (`/room`): จัดการห้องและผู้อยู่อาศัย - **Main CRUD Page**
+5. **Test** (`/test`): Template หน้า CRUD สำหรับทดสอบ pattern
+6. **Settings** (`/settings`): ตั้งค่าระบบ (placeholder)
 
 ### Room Management Page (`/room`)
 
 **Main Features:**
+- **Summary Cards** (5 cards): แสดงสถิติด้านบน
 - รายการห้องพร้อมข้อมูลสมาชิก
 - ค้นหา: ห้อง, ชื่อ, เบอร์โทรศัพท์
 - View Modal แสดงรายละเอียดห้องพร้อม 3 tabs
+- Member Detail Modal แสดงรายละเอียดสมาชิกแต่ละคน
+
+**Summary Cards:**
+```
+Grid 5 columns (responsive: 1 col mobile, 2 tablet, 5 desktop)
+├── Card 1: ห้องที่มีผู้อยู่อาศัย (Blue, fa-door-open)
+├── Card 2: ผู้อยู่อาศัยทั้งหมด (Green, fa-users)
+├── Card 3: เจ้าของห้อง (Yellow, fa-key)
+├── Card 4: ผู้เช่า (Purple, fa-user-tag)
+└── Card 5: สมาชิกครอบครัว (Teal, fa-user-friends)
+
+Card Structure:
+- Border-top: h-1 colored bar
+- Icon: w-12 h-12 rounded-full, top-right
+- Number: text-3xl font-bold
+- Label: text-sm text-slate-600
+- Change: text-xs font-bold (green/red with arrow icon)
+```
 
 **Table Columns:**
 - เลขห้อง (title)
-- จำนวนสมาชิก (badge with icon, blue >0 / gray =0)
+- จำนวนสมาชิก (clickable badge with fa-users icon, blue >0 / gray =0)
 - เจ้าของ (prefix_name + full_name)
 - สถานะ (badge: ใช้งานปกติ/ไม่ใช้งาน)
-- การดำเนินการ (View button)
+- การดำเนินการ (View button with fa-eye icon)
 
 **View Modal Structure:**
 ```
-Dialog (45vw width)
+Dialog (35vw, responsive: 95vw mobile, 85vw tablet)
 ├── Header
 │   ├── Title: "รายละเอียดห้อง {room_title}"
 │   └── Badge: "{count} สมาชิก" (bg-blue-600, text-white)
 │
-└── Tabs (3 tabs, h-12)
-    ├── Tab 1: สมาชิกในห้อง
+└── Tabs (3 tabs, h-12, flex overflow-x-auto สำหรับ mobile)
+    ├── Tab 1: สมาชิกในห้อง (fa-users)
     │   ├── Table with Avatar (2 letters from name)
     │   ├── Columns: สมาชิก, ประเภท, อีเมล, สถานะ, เข้าร่วมเมื่อ, การดำเนินการ
     │   ├── Badge Types:
@@ -172,23 +199,147 @@ Dialog (45vw width)
     │   │   ├── 1: อนุมัติแล้ว (green)
     │   │   ├── 0: รออนุมัติ (yellow)
     │   │   └── 3: ถูกระงับ (red)
+    │   ├── Action: View button (fa-eye) เปิด Member Detail Modal
     │   └── Pagination (API: member/list with page & limit)
     │
-    ├── Tab 2: ประวัติการชำระ
+    ├── Tab 2: ประวัติการชำระ (fa-file-invoice-dollar)
     │   └── Placeholder: "ฟีเจอร์นี้กำลังพัฒนา"
     │
-    └── Tab 3: ข้อมูลการติดต่อ
+    └── Tab 3: ข้อมูลการติดต่อ (fa-address-card)
         └── Grid 2 columns (owner info)
-            ├── เจ้าของห้อง (User icon)
-            ├── เบอร์โทรศัพท์ (Phone icon)
-            ├── อีเมล (Mail icon)
-            └── วันที่เข้าอยู่ (Calendar icon)
+            ├── เจ้าของห้อง (fa-user)
+            ├── เบอร์โทรศัพท์ (fa-phone)
+            ├── อีเมล (fa-envelope)
+            └── วันที่เข้าอยู่ (fa-calendar)
+```
+
+**Member Detail Modal:**
+```
+Dialog (35vw, responsive)
+├── Header
+│   ├── Avatar: 2 letters, bg-blue-600, rounded-lg
+│   ├── Name: prefix + full_name
+│   └── Badges:
+│       ├── ประเภท: owner (yellow) / resident (blue)
+│       ├── สถานะ: อนุมัติแล้ว / รออนุมัติ / ถูกระงับ
+│       └── ห้อง: bg-blue-50, text-blue-700 (fa-door-open)
+│
+├── Section 1: ข้อมูลส่วนตัว
+│   ├── ชื่อ-นามสกุล (fa-user)
+│   ├── เบอร์โทรศัพท์ (fa-phone)
+│   └── อีเมล (fa-envelope)
+│
+├── Section 2: ข้อมูลการพักอาศัย
+│   ├── ห้องเลขที่ (fa-door-open)
+│   ├── วันที่เข้าอยู่ (fa-calendar)
+│   └── ประเภทสมาชิก (fa-user-tag)
+│
+└── Footer
+    └── ปิด Button
 ```
 
 **API Endpoints:**
-- List: `api/room/list?page={page}&limit={limit}&customer_id={customer_id}&keyword={keyword}`
-- Members: `api/member/list?page={page}&limit={limit}&customer_id={customer_id}&room_id={room_id}`
+- Room List: `api/room/list?page={page}&limit={limit}&customer_id={customer_id}&keyword={keyword}`
+- Member List: `api/member/list?page={page}&limit={limit}&customer_id={customer_id}&room_id={room_id}`
+- Member Detail: `api/member/{id}?customer_id={customer_id}`
 - Delete: `api/room/delete` (POST with id, uid, customer_id)
+
+### Billing Management Page (`/billing`)
+
+**Main Features:**
+- จัดการหัวข้อบิลพร้อมนำเข้าข้อมูลจาก Excel/CSV
+- Search: หัวข้อบิล, งวด, วันที่
+- View Modal แสดงรายละเอียดบิลแบบ info-row
+- สร้างบิลพร้อมนำเข้ารายการห้องจาก Excel
+
+**Table Columns:**
+- หัวข้อแจ้งบิล (title + งวด + ครบกำหนด)
+- วันเวลาที่สร้าง (แยก 2 บรรทัด)
+- วันเวลาที่แจ้ง (แยก 2 บรรทัด)
+- จำนวนห้อง (total_room + " ห้อง")
+- ยอดรวม (บาท) - font-semibold, ชิดขวา
+- สถานะการแจ้ง (0=ฉบับร่าง, 1=แจ้งแล้ว)
+- การดำเนินการ (View only)
+
+**Create Bill Modal (1000px):**
+```
+Dialog
+├── Form Fields (Grid 2 columns)
+│   ├── หัวข้อบิล (title)
+│   ├── ประเภทบิล (bill_type_id) - Dropdown จาก api/bill_type/list
+│   ├── งวดที่เรียกเก็บ (detail)
+│   └── วันครบกำหนดชำระ (expire_date) - Date picker
+│
+├── หมายเหตุ (remark) - Textarea, optional
+│
+├── นำเข้าข้อมูลรายการบิล Section
+│   ├── ปุ่มดาวน์โหลด Template (CSV, XLSX)
+│   ├── Upload Excel/CSV file
+│   └── คำอธิบาย: เลขห้อง, ชื่อลูกบ้าน, ยอดเงิน, หมายเหตุ
+│
+├── ตรวจสอบข้อมูลที่นำเข้า (แสดงหลัง upload)
+│   ├── Table: #, เลขห้อง, ชื่อลูกบ้าน, ยอดเงิน (฿x,xxx), หมายเหตุ, สถานะ, จัดการ (ลบ)
+│   └── Summary Cards (Grid 4 columns)
+│       ├── รายการทั้งหมด (total_rows)
+│       ├── รายการถูกต้อง (valid_rows) - green
+│       ├── รายการผิดพลาด (invalid_rows) - red
+│       └── ยอดรวม (total_price)
+│
+└── Footer Buttons
+    ├── ยกเลิก
+    ├── บันทึกฉบับร่าง (status=0)
+    └── สร้างและส่งแจ้งเตือน (status=1)
+```
+
+**Upload & Preview Flow:**
+1. User เลือกไฟล์ Excel/CSV
+2. Upload ไป `api/upload_file` (params: upload_key, menu="bill", files)
+3. เรียก `api/bill/bill_excel_list?upload_key=xxx` เพื่อดึงข้อมูล preview
+4. แสดงตารางพร้อม summary
+5. User สามารถลบรายการได้ (frontend only, เก็บใน excluded_rows)
+6. ถ้าลบจนหมด → รีเซ็ตกลับไปสถานะยังไม่ upload
+
+**Delete Row Logic:**
+- Delete frontend only (ไม่เรียก API)
+- เก็บ row_number ไว้ใน excluded_rows array
+- Submit ส่งเป็น comma-separated: "1,2,3"
+- Summary อัปเดตตาม status:
+  - Status 0: ลด total_rows, invalid_rows
+  - Status 1: ลด total_rows, valid_rows, total_price
+
+**View Modal (info-row pattern):**
+```
+Dialog (600px)
+├── รหัสบิล: bill_no
+├── หัวข้อบิล: title
+├── งวด: detail
+├── วันที่สร้าง: create_date_formatted
+├── วันที่แจ้ง: send_date_formatted
+├── วันครบกำหนด: expire_date_formatted (ตัดเวลาออก)
+├── จำนวนห้อง: total_room + " ห้อง"
+├── ยอดรวม: total_price (text-blue-600 font-semibold)
+└── สถานะ: Badge (แจ้งแล้ว/ฉบับร่าง)
+
+Layout: flex justify-between, label ซ้าย value ขวา
+```
+
+**API Endpoints:**
+- Bill List: `api/bill/list?page={page}&limit={limit}&customer_id={customer_id}&keyword={keyword}`
+- Bill Types: `api/bill_type/list?page=1&limit=100`
+- Upload File: `api/upload_file` (POST: upload_key, menu, files)
+- Bill Excel List: `api/bill/bill_excel_list?upload_key={upload_key}`
+- Insert with Excel: `api/bill/insert_with_excel` (POST)
+  - Payload: upload_key, title, bill_type_id, detail, expire_date, remark, customer_id, status, uid=-1, excluded_rows
+- Bill Detail: `api/bill/{id}`
+- Template Downloads:
+  - CSV: `{baseUrl}/uploads/template_bill_csv.csv`
+  - XLSX: `{baseUrl}/uploads/template_bill_excel.xlsx`
+
+**Button States:**
+- ปุ่ม Insert disabled เมื่อ:
+  - ยังไม่ upload file (!showDataPreview)
+  - Form ไม่ครบ
+  - กำลัง submit
 
 ### Reusable Components
 
@@ -198,10 +349,11 @@ Dialog (45vw width)
 - Placeholder customizable
 
 #### TableActionButtons
-- View button: bg-blue-50, text-blue-700, no border
-- Edit button: bg-blue-50, text-blue-700, no border
-- Delete button: bg-red-50, text-red-700, no border
+- View button: bg-blue-50, text-blue-700, no border, fa-eye icon
+- Edit button: bg-blue-50, text-blue-700, no border, fa-edit icon
+- Delete button: bg-[#fee2e2], text-[#ef4444], no border, fa-trash icon
 - Show/hide each button via props
+- Icons: Font Awesome (ไม่ใช้ Lucide React)
 
 #### Pagination
 - Shows current page, total pages
@@ -369,11 +521,14 @@ const url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}`;
 
 1. **ไม่ใช้ TypeScript interfaces สำหรับ API responses** - ใช้ `any` type เพื่อความยืดหยุ่น
 2. **customer_id เป็น required parameter** - ต้องส่งในทุก API request
-3. **Badge styling** - ใช้ `rounded` (4px) ไม่ใช้ `rounded-full`
-4. **Modal width** - ต้องใช้ `!` prefix เพื่อ override default
-5. **Reusable components** - SearchBar, TableActionButtons, Pagination, ConfirmDialog, LoadingSpinner, ErrorAlert
-6. **Avatar in table** - แสดง 2 ตัวอักษรแรกของชื่อ, bg-blue-600, rounded-lg
-7. **Tab spacing** - ต้องมี `mt-6` เพื่อเว้นระยะจาก tab header
+3. **Icons** - ใช้ Font Awesome (`<i className="fas fa-icon-name"></i>`) แทน Lucide React ทั้งหมด
+4. **Badge styling** - ใช้ `rounded` (4px) ไม่ใช้ `rounded-full`
+5. **Modal width** - ต้องใช้ `!` prefix เพื่อ override default (35vw with responsive)
+6. **Reusable components** - SearchBar, TableActionButtons, Pagination, ConfirmDialog, LoadingSpinner, ErrorAlert
+7. **Avatar in table** - แสดง 2 ตัวอักษรแรกของชื่อ, bg-blue-600, rounded-lg
+8. **Tab spacing** - ต้องมี `mt-6` เพื่อเว้นระยะจาก tab header
+9. **Tab responsive** - ใช้ `flex overflow-x-auto` แทน `grid grid-cols-3` สำหรับ mobile
+10. **Summary cards** - Icon ใช้ `rounded-full` (w-12 h-12), number (text-3xl font-bold), change (font-bold)
 
 ### shadcn/ui Components Installed
 
@@ -391,3 +546,79 @@ const url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}`;
 ```bash
 npx shadcn@latest add [component-name]
 ```
+
+### Font Awesome Setup
+
+**Installation:**
+```bash
+npm install @fortawesome/fontawesome-free
+```
+
+**Import in `src/app/layout.tsx`:**
+```typescript
+import '@fortawesome/fontawesome-free/css/all.min.css';
+```
+
+**Usage:**
+```tsx
+<i className="fas fa-door-open"></i>  // Solid icons
+<i className="far fa-user"></i>       // Regular icons
+<i className="fab fa-github"></i>     // Brand icons
+```
+
+**Common Icons Used:**
+- `fa-eye` - View action
+- `fa-edit` - Edit action
+- `fa-trash` - Delete action
+- `fa-users` - Members/Users
+- `fa-door-open` - Room/Door
+- `fa-user` - Single user
+- `fa-phone` - Phone
+- `fa-envelope` - Email
+- `fa-calendar` - Calendar/Date
+- `fa-user-tag` - User type/tag
+- `fa-key` - Owner/Key
+- `fa-user-friends` - Family/Friends
+- `fa-file-invoice-dollar` - Payment/Invoice
+- `fa-address-card` - Contact info
+- `fa-arrow-up` / `fa-arrow-down` - Trend indicators
+
+---
+
+## Recent Updates
+
+### 2025-10-13: Billing Management System
+
+**Billing Page (จัดการบิล):**
+1. **List View**:
+   - ตารางแสดงบิลพร้อม search
+   - Columns: หัวข้อแจ้งบิล, วันที่สร้าง, วันที่แจ้ง, จำนวนห้อง, ยอดรวม, สถานะ
+   - View Modal แบบ info-row pattern
+
+2. **Create Bill with Excel Import**:
+   - Form: หัวข้อบิล, ประเภทบิล (dropdown จาก API), งวด, วันครบกำหนด, หมายเหตุ
+   - Upload Excel/CSV file พร้อม preview data
+   - ดาวน์โหลด Template (CSV, XLSX)
+   - ตาราง preview พร้อม delete row (frontend only)
+   - Summary cards แบบ real-time (รายการทั้งหมด, ถูกต้อง, ผิดพลาด, ยอดรวม)
+   - 2 ปุ่ม submit: บันทึกฉบับร่าง (status=0), สร้างและส่งแจ้งเตือน (status=1)
+
+3. **Key Features**:
+   - Delete row อัปเดต summary ตาม status (0=ลบจาก invalid, 1=ลบจาก valid+price)
+   - ลบจนหมดรีเซ็ตกลับสถานะยังไม่ upload
+   - Excluded rows ส่งเป็น comma-separated ตอน submit
+   - ปุ่ม Insert disabled จนกว่าจะ upload file และกรอกฟอร์มครบ
+
+### 2025-10-13: UI Updates
+1. **Sidebar Icons Migration**: เปลี่ยนจาก Lucide React เป็น Font Awesome ทั้งหมด
+2. **Menu Structure**:
+   - เพิ่มเมนู "จัดการการชำระเงิน" ภายใต้ "ค่าใช้จ่าย" (fa-credit-card)
+   - ย้าย "ทดสอบหน้าลิส" ไปเป็นเมนูหลักหลัง "ตั้งค่า"
+3. **Login Page Redesign**:
+   - Two-column layout (branding + form)
+   - Animated floating background circles
+   - Modern form styling with icons inside inputs
+   - Password toggle, remember me checkbox
+   - Responsive design (single column on mobile)
+   - Custom CSS animations (float, slide-up, slide-down)
+   - Maintained customer_id dialog flow

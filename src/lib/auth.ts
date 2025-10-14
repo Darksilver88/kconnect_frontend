@@ -5,6 +5,7 @@ export interface User {
   username: string;
   name: string;
   customer_id?: string;
+  uid?: number;
 }
 
 // Fixed credentials for demo
@@ -19,7 +20,8 @@ export function login(username: string, password: string, customer_id?: string):
     const user: User = {
       username: DEMO_CREDENTIALS.username,
       name: DEMO_CREDENTIALS.name,
-      customer_id: customer_id
+      customer_id: customer_id,
+      uid: 99
     };
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
