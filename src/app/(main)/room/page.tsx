@@ -95,6 +95,29 @@ export default function RoomPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchKeyword, setSearchKeyword] = useState(''); // keyword ที่ส่งไป API
 
+  // Summary data states
+  const [roomSummaryData, setRoomSummaryData] = useState<any>(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+
+  // Fetch summary data (once on mount)
+  const fetchSummary = async () => {
+    setSummaryLoading(true);
+
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}room/get_summary_data?customer_id=${encodeURIComponent(customerId)}`;
+    const result = await apiCall(url);
+
+    if (result.success) {
+      setRoomSummaryData(result.data);
+    } else {
+      console.error('Failed to fetch summary:', result.error || result.message);
+    }
+
+    setSummaryLoading(false);
+  };
+
   // Fetch data from API (with loading state)
   const fetchList = async () => {
     setLoading(true);
@@ -145,6 +168,10 @@ export default function RoomPage() {
       console.error('Failed to refresh list:', result.error || result.message);
     }
   };
+
+  useEffect(() => {
+    fetchSummary(); // Fetch summary once on mount
+  }, []);
 
   useEffect(() => {
     fetchList();
@@ -405,82 +432,111 @@ export default function RoomPage() {
 
       <div className="p-4 lg:p-8">
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          {/* Card 1: Blue */}
-          <Card className="relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500"></div>
-            <div className="p-4 relative">
-              <div className="absolute top-3 right-3 w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
-                <i className="fas fa-door-open text-blue-500 text-lg"></i>
+        {summaryLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            {[...Array(5)].map((_, i) => (
+              <Card key={i} className="relative overflow-hidden">
+                <div className="p-4 animate-pulse">
+                  <div className="h-8 bg-slate-200 rounded mb-2"></div>
+                  <div className="h-4 bg-slate-200 rounded mb-2"></div>
+                  <div className="h-3 bg-slate-200 rounded w-2/3"></div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : roomSummaryData ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            {/* Card 1: Blue - ห้องทั้งหมด */}
+            <Card className="relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500"></div>
+              <div className="p-4 relative">
+                <div className="absolute top-3 right-3 w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
+                  <i className="fas fa-door-open text-blue-500 text-lg"></i>
+                </div>
+                <div className="text-3xl font-bold text-slate-900 mb-1">
+                  {roomSummaryData.total_rooms?.count || 0}
+                </div>
+                <div className="text-sm text-slate-600 mb-2">ห้องทั้งหมด</div>
+                <div className={`text-xs font-bold ${roomSummaryData.total_rooms?.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <i className={`fas fa-arrow-${roomSummaryData.total_rooms?.change >= 0 ? 'up' : 'down'}`}></i>{' '}
+                  {roomSummaryData.total_rooms?.change_text || '-'}
+                </div>
               </div>
-              <div className="text-3xl font-bold text-slate-900 mb-1">127</div>
-              <div className="text-sm text-slate-600 mb-2">ห้องที่มีผู้อยู่อาศัย</div>
-              <div className="text-xs text-green-600 font-bold">
-                <i className="fas fa-arrow-up"></i> +5 เดือนนี้
-              </div>
-            </div>
-          </Card>
+            </Card>
 
-          {/* Card 2: Green */}
-          <Card className="relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-green-500"></div>
-            <div className="p-4 relative">
-              <div className="absolute top-3 right-3 w-12 h-12 rounded-full bg-green-50 flex items-center justify-center">
-                <i className="fas fa-users text-green-500 text-lg"></i>
+            {/* Card 2: Green - สมาชิกทั้งหมด */}
+            <Card className="relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-green-500"></div>
+              <div className="p-4 relative">
+                <div className="absolute top-3 right-3 w-12 h-12 rounded-full bg-green-50 flex items-center justify-center">
+                  <i className="fas fa-users text-green-500 text-lg"></i>
+                </div>
+                <div className="text-3xl font-bold text-slate-900 mb-1">
+                  {roomSummaryData.total_members?.count || 0}
+                </div>
+                <div className="text-sm text-slate-600 mb-2">สมาชิกทั้งหมด</div>
+                <div className={`text-xs font-bold ${roomSummaryData.total_members?.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <i className={`fas fa-arrow-${roomSummaryData.total_members?.change >= 0 ? 'up' : 'down'}`}></i>{' '}
+                  {roomSummaryData.total_members?.change_text || '-'}
+                </div>
               </div>
-              <div className="text-3xl font-bold text-slate-900 mb-1">342</div>
-              <div className="text-sm text-slate-600 mb-2">ผู้อยู่อาศัยทั้งหมด</div>
-              <div className="text-xs text-green-600 font-bold">
-                <i className="fas fa-arrow-up"></i> +12 เดือนนี้
-              </div>
-            </div>
-          </Card>
+            </Card>
 
-          {/* Card 3: Yellow */}
-          <Card className="relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-yellow-500"></div>
-            <div className="p-4 relative">
-              <div className="absolute top-3 right-3 w-12 h-12 rounded-full bg-yellow-50 flex items-center justify-center">
-                <i className="fas fa-key text-yellow-500 text-lg"></i>
+            {/* Card 3: Yellow - เจ้าของห้อง */}
+            <Card className="relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-yellow-500"></div>
+              <div className="p-4 relative">
+                <div className="absolute top-3 right-3 w-12 h-12 rounded-full bg-yellow-50 flex items-center justify-center">
+                  <i className="fas fa-key text-yellow-500 text-lg"></i>
+                </div>
+                <div className="text-3xl font-bold text-slate-900 mb-1">
+                  {roomSummaryData.total_owners?.count || 0}
+                </div>
+                <div className="text-sm text-slate-600 mb-2">เจ้าของห้อง</div>
+                <div className={`text-xs font-bold ${roomSummaryData.total_owners?.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <i className={`fas fa-arrow-${roomSummaryData.total_owners?.change >= 0 ? 'up' : 'down'}`}></i>{' '}
+                  {roomSummaryData.total_owners?.change_text || '-'}
+                </div>
               </div>
-              <div className="text-3xl font-bold text-slate-900 mb-1">127</div>
-              <div className="text-sm text-slate-600 mb-2">เจ้าของห้อง</div>
-              <div className="text-xs text-green-600 font-bold">
-                <i className="fas fa-arrow-up"></i> +5 เดือนนี้
-              </div>
-            </div>
-          </Card>
+            </Card>
 
-          {/* Card 4: Purple */}
-          <Card className="relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-purple-500"></div>
-            <div className="p-4 relative">
-              <div className="absolute top-3 right-3 w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center">
-                <i className="fas fa-user-tag text-purple-500 text-lg"></i>
+            {/* Card 4: Purple - ผู้เช่า */}
+            <Card className="relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-purple-500"></div>
+              <div className="p-4 relative">
+                <div className="absolute top-3 right-3 w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center">
+                  <i className="fas fa-user-tag text-purple-500 text-lg"></i>
+                </div>
+                <div className="text-3xl font-bold text-slate-900 mb-1">
+                  {roomSummaryData.total_renters?.count || 0}
+                </div>
+                <div className="text-sm text-slate-600 mb-2">ผู้เช่า</div>
+                <div className={`text-xs font-bold ${roomSummaryData.total_renters?.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <i className={`fas fa-arrow-${roomSummaryData.total_renters?.change >= 0 ? 'up' : 'down'}`}></i>{' '}
+                  {roomSummaryData.total_renters?.change_text || '-'}
+                </div>
               </div>
-              <div className="text-3xl font-bold text-slate-900 mb-1">45</div>
-              <div className="text-sm text-slate-600 mb-2">ผู้เช่า</div>
-              <div className="text-xs text-red-600 font-bold">
-                <i className="fas fa-arrow-down"></i> -2 เดือนนี้
-              </div>
-            </div>
-          </Card>
+            </Card>
 
-          {/* Card 5: Teal */}
-          <Card className="relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-teal-500"></div>
-            <div className="p-4 relative">
-              <div className="absolute top-3 right-3 w-12 h-12 rounded-full bg-teal-50 flex items-center justify-center">
-                <i className="fas fa-user-friends text-teal-500 text-lg"></i>
+            {/* Card 5: Teal - สมาชิกครอบครัว */}
+            <Card className="relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-teal-500"></div>
+              <div className="p-4 relative">
+                <div className="absolute top-3 right-3 w-12 h-12 rounded-full bg-teal-50 flex items-center justify-center">
+                  <i className="fas fa-user-friends text-teal-500 text-lg"></i>
+                </div>
+                <div className="text-3xl font-bold text-slate-900 mb-1">
+                  {roomSummaryData.family_members?.count || 0}
+                </div>
+                <div className="text-sm text-slate-600 mb-2">สมาชิกครอบครัว</div>
+                <div className={`text-xs font-bold ${roomSummaryData.family_members?.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <i className={`fas fa-arrow-${roomSummaryData.family_members?.change >= 0 ? 'up' : 'down'}`}></i>{' '}
+                  {roomSummaryData.family_members?.change_text || '-'}
+                </div>
               </div>
-              <div className="text-3xl font-bold text-slate-900 mb-1">170</div>
-              <div className="text-sm text-slate-600 mb-2">สมาชิกครอบครัว</div>
-              <div className="text-xs text-green-600 font-bold">
-                <i className="fas fa-arrow-up"></i> +9 เดือนนี้
-              </div>
-            </div>
-          </Card>
-        </div>
+            </Card>
+          </div>
+        ) : null}
 
         {/* Action Bar */}
         <div className="flex flex-col lg:flex-row gap-4 mb-6">

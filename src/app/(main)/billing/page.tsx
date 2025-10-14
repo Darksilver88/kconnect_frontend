@@ -1703,51 +1703,51 @@ export default function BillingPage() {
             <div className="space-y-3 py-4">
               {/* Info Row Pattern */}
               <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-500">รหัสบิล</span>
+                <span className="text-sm text-slate-900">รหัสบิล</span>
                 <span className="text-sm text-slate-900 font-medium">{viewData.bill_no || '-'}</span>
               </div>
 
               <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-500">หัวข้อบิล</span>
+                <span className="text-sm text-slate-900">หัวข้อบิล</span>
                 <span className="text-sm text-slate-900 font-medium text-right">{viewData.title || '-'}</span>
               </div>
 
               <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-500">งวด</span>
+                <span className="text-sm text-slate-900">งวด</span>
                 <span className="text-sm text-slate-900 font-medium">{viewData.detail || '-'}</span>
               </div>
 
               <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-500">วันที่สร้าง</span>
+                <span className="text-sm text-slate-900">วันที่สร้าง</span>
                 <span className="text-sm text-slate-900 font-medium">{viewData.create_date_formatted || '-'}</span>
               </div>
 
               <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-500">วันที่แจ้ง</span>
+                <span className="text-sm text-slate-900">วันที่แจ้ง</span>
                 <span className="text-sm text-slate-900 font-medium">{viewData.send_date_formatted || '-'}</span>
               </div>
 
               <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-500">วันครบกำหนด</span>
+                <span className="text-sm text-slate-900">วันครบกำหนด</span>
                 <span className="text-sm text-slate-900 font-medium">
                   {viewData.expire_date_formatted ? viewData.expire_date_formatted.split(' ')[0] : '-'}
                 </span>
               </div>
 
               <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-500">จำนวนห้อง</span>
+                <span className="text-sm text-slate-900">จำนวนห้อง</span>
                 <span className="text-sm text-slate-900 font-medium">
                   {viewData.total_room ? `${viewData.total_room} ห้อง` : '-'}
                 </span>
               </div>
 
               <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-500">ยอดรวม</span>
+                <span className="text-sm text-slate-900">ยอดรวม</span>
                 <span className="text-sm text-blue-600 font-semibold">{viewData.total_price || '-'}</span>
               </div>
 
               <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-500">สถานะ</span>
+                <span className="text-sm text-slate-900">สถานะ</span>
                 <span>
                   <span className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium ${getStatusBadge(viewData.status).className}`}>
                     {getStatusBadge(viewData.status).label}
@@ -1938,7 +1938,8 @@ export default function BillingPage() {
                                 {item.total_price ? `฿${Number(item.total_price).toLocaleString()}` : '-'}
                               </td>
                               <td className="px-4 py-3 text-center text-slate-600">
-                                {billDetailsData.bill_info?.expire_date_formatted || '-'}
+                                {billDetailsData.bill_info?.expire_date_formatted ?
+                                  billDetailsData.bill_info.expire_date_formatted.split(' ')[0] : '-'}
                               </td>
                               <td className="px-4 py-3 text-center">
                                 <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${paymentStatus.className}`}>
