@@ -91,6 +91,13 @@ export default function RoomPage() {
   const [memberDetail, setMemberDetail] = useState<any>(null);
   const [loadingMemberDetail, setLoadingMemberDetail] = useState(false);
 
+  // Payment history states
+  const [paymentHistoryData, setPaymentHistoryData] = useState<any>(null);
+  const [paymentHistoryPage, setPaymentHistoryPage] = useState(1);
+  const [paymentHistoryPagination, setPaymentHistoryPagination] = useState<any>(null);
+  const [loadingPaymentHistory, setLoadingPaymentHistory] = useState(false);
+  const [viewRoomHouseNo, setViewRoomHouseNo] = useState('');
+
   // Search states
   const [searchQuery, setSearchQuery] = useState('');
   const [searchKeyword, setSearchKeyword] = useState(''); // keyword ที่ส่งไป API
@@ -302,14 +309,54 @@ export default function RoomPage() {
     setLoadingView(false);
   };
 
+  // Fetch payment history
+  const fetchPaymentHistory = async (houseNo: string, page: number = 1) => {
+    // Don't clear data on subsequent fetches (page changes)
+    if (page === 1) {
+      setPaymentHistoryData(null);
+    }
+    setLoadingPaymentHistory(true);
+
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}bill/bill_room_each_list?page=${page}&limit=${LIMIT}&house_no=${encodeURIComponent(houseNo)}&customer_id=${encodeURIComponent(customerId)}`;
+    const result = await apiCall(url);
+
+    if (result.success) {
+      setPaymentHistoryData(result.data);
+      setPaymentHistoryPagination(result.pagination);
+    } else {
+      toast.error(result.message || result.error || 'ไม่พบข้อมูล');
+      if (page === 1) {
+        setPaymentHistoryData(null);
+        setPaymentHistoryPagination(null);
+      }
+    }
+
+    setLoadingPaymentHistory(false);
+  };
+
+  // Handle payment history page change
+  const handlePaymentHistoryPageChange = (page: number) => {
+    setPaymentHistoryPage(page);
+    if (viewRoomHouseNo) {
+      fetchPaymentHistory(viewRoomHouseNo, page);
+    }
+  };
+
   // Handle view button click
   const handleViewClick = async (item: any) => {
     setViewModalOpen(true);
     setViewData(null);
     setViewRoomTitle(item.title || '-');
     setViewRoomId(item.id);
+    setViewRoomHouseNo(item.title || ''); // Store house_no for payment history
     setViewMemberPage(1);
     setViewMemberPagination(null);
+    setPaymentHistoryPage(1);
+    setPaymentHistoryData(null);
+    setPaymentHistoryPagination(null);
 
     await fetchViewMembers(item.id, 1);
   };
@@ -769,7 +816,11 @@ export default function RoomPage() {
                 </div>
               </DialogHeader>
 
-              <Tabs defaultValue="members" className="w-full">
+              <Tabs defaultValue="members" className="w-full" onValueChange={(value) => {
+                if (value === 'payment' && !paymentHistoryData && viewRoomHouseNo) {
+                  fetchPaymentHistory(viewRoomHouseNo, 1);
+                }
+              }}>
                 <TabsList className="flex w-full h-12 overflow-x-auto">
                   <TabsTrigger value="members" className="h-full flex-1 flex-shrink-0 min-w-[120px]">
                     <i className="fas fa-users mr-2"></i>
@@ -779,10 +830,10 @@ export default function RoomPage() {
                     <i className="fas fa-file-invoice-dollar mr-2"></i>
                     ประวัติการชำระ
                   </TabsTrigger>
-                  <TabsTrigger value="contact" className="h-full flex-1 flex-shrink-0 min-w-[120px]">
+                  {/* <TabsTrigger value="contact" className="h-full flex-1 flex-shrink-0 min-w-[120px]">
                     <i className="fas fa-address-card mr-2"></i>
                     ข้อมูลการติดต่อ
-                  </TabsTrigger>
+                  </TabsTrigger> */}
                 </TabsList>
 
                 {/* Tab 1: สมาชิกในห้อง */}
@@ -879,14 +930,132 @@ export default function RoomPage() {
 
                 {/* Tab 2: ประวัติการชำระ */}
                 <TabsContent value="payment" className="space-y-4 mt-6">
-                  <div className="text-center py-12 text-slate-500">
-                    <Users className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                    <p>ฟีเจอร์นี้กำลังพัฒนา</p>
-                  </div>
+                  {!paymentHistoryData && !loadingPaymentHistory ? (
+                    <div className="text-center py-12 text-slate-500">
+                      <i className="fas fa-file-invoice-dollar text-4xl mb-3 text-slate-300"></i>
+                      <p>ไม่มีข้อมูลประวัติการชำระ</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Payment Summary Cards */}
+                      {!paymentHistoryData ? (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                          {[1, 2, 3].map((i) => (
+                            <div key={i} className="bg-white border border-slate-200 rounded-lg p-4 animate-pulse">
+                              <div className="h-4 bg-slate-200 rounded mb-2 w-2/3"></div>
+                              <div className="h-8 bg-slate-200 rounded w-1/2"></div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                          <div className="bg-white border border-slate-200 rounded-lg p-4">
+                            <div className="text-xs text-slate-500 mb-2">ยอดค่างวดระปัจจุบัน</div>
+                            <div className="text-2xl font-bold text-slate-900">
+                              {paymentHistoryData.summary_data?.pending_amount || 0}
+                            </div>
+                          </div>
+                          <div className="bg-white border border-slate-200 rounded-lg p-4">
+                            <div className="text-xs text-slate-500 mb-2">ชำระครบแล้ว</div>
+                            <div className="text-2xl font-bold text-green-600">
+                              {paymentHistoryData.summary_data?.payment_completion || '-'}
+                            </div>
+                          </div>
+                          <div className="bg-white border border-slate-200 rounded-lg p-4">
+                            <div className="text-xs text-slate-500 mb-2">การชำระครั้งถัดไป</div>
+                            <div className="text-2xl font-bold text-slate-900">
+                              {paymentHistoryData.summary_data?.next_payment_date || '-'}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Payment History Table */}
+                      <div className="border rounded-lg overflow-hidden relative">
+                        {loadingPaymentHistory && (
+                          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center">
+                            <div className="text-center">
+                              <div className="w-8 h-8 border-4 border-blue-600/30 border-t-blue-600 rounded-full animate-spin mx-auto mb-2"></div>
+                              <div className="text-sm text-slate-600">กำลังโหลดข้อมูล...</div>
+                            </div>
+                          </div>
+                        )}
+                        <table className="w-full">
+                          <thead className="bg-slate-50 border-b">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">วันที่</th>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">บิลเลขที่</th>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">รายการ</th>
+                              <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">จำนวนเงิน</th>
+                              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">สถานะ</th>
+                              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">การดำเนินการ</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100" style={{ minHeight: '400px' }}>
+                            {paymentHistoryData && paymentHistoryData.items && paymentHistoryData.items.length > 0 ? (
+                              paymentHistoryData.items.map((item: any) => {
+                                const getPaymentStatusBadge = (status: number) => {
+                                  switch (status) {
+                                    case 1:
+                                      return { label: 'ชำระแล้ว', className: 'bg-green-50 text-green-700' };
+                                    case 0:
+                                      return { label: 'รอชำระ', className: 'bg-yellow-50 text-yellow-700' };
+                                    case 3:
+                                      return { label: 'เกินกำหนด', className: 'bg-red-50 text-red-700' };
+                                    default:
+                                      return { label: '-', className: 'bg-slate-50 text-slate-700' };
+                                  }
+                                };
+
+                                const statusInfo = getPaymentStatusBadge(item.status);
+
+                                return (
+                                  <tr key={item.id} className="hover:bg-slate-50">
+                                    <td className="px-4 py-3 text-sm text-slate-600">{item.expire_date || '-'}</td>
+                                    <td className="px-4 py-3 text-sm text-slate-900">{item.bill_no || '-'}</td>
+                                    <td className="px-4 py-3 text-sm text-slate-900">{item.bill_title || '-'}</td>
+                                    <td className="px-4 py-3 text-sm text-right font-semibold text-slate-900">{item.total_price || '-'}</td>
+                                    <td className="px-4 py-3 text-center">
+                                      <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${statusInfo.className}`}>
+                                        {statusInfo.label}
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                      <div className="flex justify-center">
+                                        <button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors">
+                                          <i className="fas fa-eye mr-1.5"></i>
+                                          ดูใบเสร็จ
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                            ) : !loadingPaymentHistory ? (
+                              <tr>
+                                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                                  ไม่มีประวัติการชำระ
+                                </td>
+                              </tr>
+                            ) : null}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Pagination */}
+                      {paymentHistoryPagination && (
+                        <Pagination
+                          currentPage={paymentHistoryPage}
+                          onPageChange={handlePaymentHistoryPageChange}
+                          pagination={paymentHistoryPagination}
+                        />
+                      )}
+                    </>
+                  )}
                 </TabsContent>
 
                 {/* Tab 3: ข้อมูลการติดต่อ */}
-                <TabsContent value="contact" className="space-y-4 mt-6">
+                {/* <TabsContent value="contact" className="space-y-4 mt-6">
                   {(() => {
                     const owner = viewData?.find((m: any) => m.user_level === 'owner');
                     return owner ? (
@@ -936,7 +1105,7 @@ export default function RoomPage() {
                       </div>
                     );
                   })()}
-                </TabsContent>
+                </TabsContent> */}
               </Tabs>
             </>
           ) : null}

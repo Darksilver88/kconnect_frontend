@@ -188,7 +188,7 @@ Dialog (35vw, responsive: 95vw mobile, 85vw tablet)
 │   ├── Title: "รายละเอียดห้อง {room_title}"
 │   └── Badge: "{count} สมาชิก" (bg-blue-600, text-white)
 │
-└── Tabs (3 tabs, h-12, flex overflow-x-auto สำหรับ mobile)
+└── Tabs (2 tabs, h-12, flex overflow-x-auto สำหรับ mobile, flex-1 for equal width)
     ├── Tab 1: สมาชิกในห้อง (fa-users)
     │   ├── Table with Avatar (2 letters from name)
     │   ├── Columns: สมาชิก, ประเภท, อีเมล, สถานะ, เข้าร่วมเมื่อ, การดำเนินการ
@@ -202,15 +202,23 @@ Dialog (35vw, responsive: 95vw mobile, 85vw tablet)
     │   ├── Action: View button (fa-eye) เปิด Member Detail Modal
     │   └── Pagination (API: member/list with page & limit)
     │
-    ├── Tab 2: ประวัติการชำระ (fa-file-invoice-dollar)
-    │   └── Placeholder: "ฟีเจอร์นี้กำลังพัฒนา"
-    │
-    └── Tab 3: ข้อมูลการติดต่อ (fa-address-card)
-        └── Grid 2 columns (owner info)
-            ├── เจ้าของห้อง (fa-user)
-            ├── เบอร์โทรศัพท์ (fa-phone)
-            ├── อีเมล (fa-envelope)
-            └── วันที่เข้าอยู่ (fa-calendar)
+    └── Tab 2: ประวัติการชำระ (fa-file-invoice-dollar)
+        ├── API: bill/bill_room_each_list?page={page}&limit={limit}&house_no={house_no}&customer_id={customer_id}
+        ├── Auto-fetch เมื่อเปลี่ยนมาที่ tab (onValueChange)
+        ├── Summary Cards (Grid 3 columns)
+        │   ├── ยอดค่างวดระปัจจุบัน (pending_amount)
+        │   ├── ชำระครบแล้ว (payment_completion) - green
+        │   └── การชำระครั้งถัดไป (next_payment_date)
+        ├── Table with Loading Overlay
+        │   ├── Columns: วันที่ (expire_date), บิลเลขที่ (bill_no), รายการ (bill_title),
+        │   │           จำนวนเงิน (total_price), สถานะ (status), การดำเนินการ
+        │   ├── Status Badge:
+        │   │   ├── 1: ชำระแล้ว (green)
+        │   │   ├── 0: รอชำระ (yellow)
+        │   │   └── 3: เกินกำหนด (red)
+        │   ├── Action: ดูใบเสร็จ button (fa-eye, blue)
+        │   └── Loading: Overlay with spinner (ไม่ clear data)
+        └── Pagination
 ```
 
 **Member Detail Modal:**
@@ -240,16 +248,20 @@ Dialog (35vw, responsive)
 
 **API Endpoints:**
 - Room List: `api/room/list?page={page}&limit={limit}&customer_id={customer_id}&keyword={keyword}`
+- Room Summary: `api/room/get_summary_data?customer_id={customer_id}` (fetch once on mount)
 - Member List: `api/member/list?page={page}&limit={limit}&customer_id={customer_id}&room_id={room_id}`
 - Member Detail: `api/member/{id}?customer_id={customer_id}`
+- Payment History: `api/bill/bill_room_each_list?page={page}&limit={limit}&house_no={house_no}&customer_id={customer_id}`
 - Delete: `api/room/delete` (POST with id, uid, customer_id)
 
 ### Billing Management Page (`/billing`)
 
 **Main Features:**
+- **Summary Cards** (5 cards): แสดงสถิติด้านบน (fetch once on mount, separate from list)
 - จัดการหัวข้อบิลพร้อมนำเข้าข้อมูลจาก Excel/CSV
 - Search: หัวข้อบิล, งวด, วันที่
 - View Modal แสดงรายละเอียดบิลแบบ info-row
+- Bill Room Details Modal: แสดงรายการบิลของแต่ละห้อง (คลิกจำนวนห้อง)
 - สร้างบิลพร้อมนำเข้ารายการห้องจาก Excel
 
 **Table Columns:**
@@ -323,8 +335,51 @@ Dialog (600px)
 Layout: flex justify-between, label ซ้าย value ขวา
 ```
 
+**Bill Room Details Modal:**
+```
+Dialog (1200px)
+├── Header: รายละเอียดบิลแต่ละห้อง (fa-file-invoice)
+│
+├── Bill Info Section (bg-blue-50, 3 rows x 3 columns)
+│   ├── Row 1: หัวข้อบิล, ประเภทบิล (bill_type_title), งวดที่เรียกเก็บ (detail)
+│   ├── Row 2: จำนวนห้องทั้งหมด (total_rows), ยอดรวมทั้งหมด (total_price), สถานะการแจ้ง (status badge)
+│   └── Row 3: วันเวลาที่สร้าง, วันเวลาที่แจ้ง
+│
+├── Search & Filter Section
+│   ├── SearchBar (keyword)
+│   ├── Status Filter Dropdown (-1=ทุกสถานะ, 1=ชำระแล้ว, 0=รอชำระ, 3=เกินกำหนด)
+│   └── Export Button (placeholder)
+│
+├── Table with Loading Overlay
+│   ├── Columns: เลขห้อง (bill_no), ชื่อลูกบ้าน (member_name), ยอดรวม (total_price),
+│   │           วันครบกำหนด (expire_date - ไม่แสดงเวลา), สถานะ (status), การดำเนินการ
+│   ├── Status Badge:
+│   │   ├── 1: ชำระแล้ว (green)
+│   │   ├── 0: รอชำระ (yellow)
+│   │   └── 3: เกินกำหนด (red)
+│   ├── Actions:
+│   │   ├── ส่งแจ้งเตือน button (fa-bell, yellow) - แสดงเมื่อ status = 0 or 3
+│   │   └── Always available actions...
+│   └── Loading: Overlay with spinner (min-height: 400px, ไม่ clear data เมื่อเปลี่ยนหน้า)
+│
+├── Summary Statistics (4 columns)
+│   ├── ชำระแล้ว (status_1)
+│   ├── รอชำระ (status_0)
+│   ├── เกินกำหนด (status_3)
+│   └── ยอดเงินที่ชำระแล้ว (paid)
+│
+└── Pagination
+```
+
+**Loading State Pattern:**
+- First load (page=1): Clear data, show loading
+- Page change (page>1): Keep data, show overlay
+- ป้องกันการกระพริบโดยไม่ clear data และใช้ overlay แทน
+
 **API Endpoints:**
 - Bill List: `api/bill/list?page={page}&limit={limit}&customer_id={customer_id}&keyword={keyword}`
+- Bill Summary: `api/bill/get_summary_data?customer_id={customer_id}` (fetch once on mount)
+- Bill Room List: `api/bill/bill_room_list?page={page}&limit={limit}&keyword={keyword}&bill_id={bill_id}&status={status}`
 - Bill Types: `api/bill_type/list?page=1&limit=100`
 - Upload File: `api/upload_file` (POST: upload_key, menu, files)
 - Bill Excel List: `api/bill/bill_excel_list?upload_key={upload_key}`
@@ -583,9 +638,97 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 - `fa-address-card` - Contact info
 - `fa-arrow-up` / `fa-arrow-down` - Trend indicators
 
+### Loading State Best Practices
+
+**Anti-Flicker Pattern (for pagination):**
+```typescript
+// Prevent flickering when changing pages
+const fetchData = async (page: number = 1) => {
+  // Only clear data on first load
+  if (page === 1) {
+    setData(null);
+  }
+  setLoading(true);
+
+  const result = await apiCall(url);
+
+  if (result.success) {
+    setData(result.data);
+    setPagination(result.pagination);
+  } else {
+    if (page === 1) {
+      setData(null);
+    }
+  }
+
+  setLoading(false);
+};
+```
+
+**UI Implementation:**
+```tsx
+// Table with loading overlay (not replacing content)
+<div className="border rounded-lg overflow-hidden relative">
+  {loading && (
+    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-8 h-8 border-4 border-blue-600/30 border-t-blue-600 rounded-full animate-spin mx-auto mb-2"></div>
+        <div className="text-sm text-slate-600">กำลังโหลดข้อมูล...</div>
+      </div>
+    </div>
+  )}
+  <table className="w-full">
+    <tbody className="divide-y divide-slate-100" style={{ minHeight: '400px' }}>
+      {/* Table rows */}
+    </tbody>
+  </table>
+</div>
+
+// Summary cards with skeleton loading (first load only)
+{!data ? (
+  <div className="grid grid-cols-3 gap-4">
+    {[1, 2, 3].map((i) => (
+      <div key={i} className="border rounded-lg p-4 animate-pulse">
+        <div className="h-4 bg-slate-200 rounded mb-2 w-2/3"></div>
+        <div className="h-8 bg-slate-200 rounded w-1/2"></div>
+      </div>
+    ))}
+  </div>
+) : (
+  <div className="grid grid-cols-3 gap-4">
+    {/* Actual cards */}
+  </div>
+)}
+```
+
+**Key Points:**
+- ไม่ clear data เมื่อเปลี่ยนหน้า (page > 1)
+- ใช้ loading overlay แทนการซ่อนเนื้อหา
+- ตั้ง min-height ให้ table body เพื่อป้องกันความสูงเปลี่ยน
+- Summary cards ไม่กระพริบเพราะไม่ clear data
+- ใช้ skeleton loading สำหรับ first load
+
 ---
 
 ## Recent Updates
+
+### 2025-10-15: Room Payment History & UI Improvements
+
+**Room Modal Updates:**
+1. **Tab 3 (ข้อมูลการติดต่อ)**: Comment out - ใช้งานแค่ 2 tabs (สมาชิก, ประวัติการชำระ)
+2. **Tab 2 (ประวัติการชำระ)**:
+   - API Integration: `bill/bill_room_each_list` with pagination
+   - Summary Cards: ยอดค่างวด, ชำระครบแล้ว, การชำระครั้งถัดไป
+   - Payment History Table: วันที่, บิลเลขที่, รายการ, จำนวนเงิน, สถานะ, ดูใบเสร็จ
+   - Loading overlay pattern (ไม่กระพริบ)
+   - Auto-fetch เมื่อเปลี่ยนมาที่ tab
+
+**Billing Modal Updates:**
+1. **Bill Room Details Modal**:
+   - เพิ่ม ประเภทบิล และ งวดที่เรียกเก็บ ใน header section
+   - Layout: 3 rows x 3 columns (หัวข้อบิล/ประเภท/งวด, จำนวนห้อง/ยอดรวม/สถานะ, วันที่)
+2. **Create Bill Modal**:
+   - DropDown ประเภทบิล: เพิ่ม `className="w-full"` ให้ยืดเต็มความกว้าง
 
 ### 2025-10-13: Billing Management System
 

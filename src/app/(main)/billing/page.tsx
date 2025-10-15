@@ -1419,7 +1419,7 @@ export default function BillingPage() {
                     value={formData.bill_type_id}
                     onValueChange={(value) => setFormData({ ...formData, bill_type_id: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="เลือกประเภทบิล" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1804,6 +1804,7 @@ export default function BillingPage() {
             <div className="space-y-6 py-4">
               {/* Header Info Section - Blue Background */}
               <div className="bg-blue-50 p-6 rounded-xl mb-6">
+                {/* Row 1: หัวข้อบิล, ประเภทบิล, งวดที่เรียกเก็บ */}
                 <div className="grid grid-cols-3 gap-5 mb-5 pb-5 border-b border-blue-100">
                   <div>
                     <div className="text-xs text-gray-500 mb-1">หัวข้อบิล</div>
@@ -1811,6 +1812,22 @@ export default function BillingPage() {
                       {billDetailsData.bill_info?.title || '-'}
                     </div>
                   </div>
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">ประเภทบิล</div>
+                    <div className="font-semibold text-gray-900 text-[15px]">
+                      {billDetailsData.bill_info?.bill_type_title || '-'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">งวดที่เรียกเก็บ</div>
+                    <div className="font-semibold text-gray-900 text-[15px]">
+                      {billDetailsData.bill_info?.detail || '-'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Row 2: จำนวนห้อง, ยอดรวม, สถานะ */}
+                <div className="grid grid-cols-3 gap-5 mb-5 pb-5 border-b border-blue-100">
                   <div>
                     <div className="text-xs text-gray-500 mb-1">จำนวนห้องทั้งหมด</div>
                     <div className="font-semibold text-blue-600 text-[15px]">
@@ -1823,7 +1840,19 @@ export default function BillingPage() {
                       {billDetailsData.total_price || '฿0'}
                     </div>
                   </div>
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">สถานะการแจ้ง</div>
+                    <div>
+                      {billDetailsData.bill_info?.status !== undefined && (
+                        <span className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium ${getStatusBadge(billDetailsData.bill_info.status).className}`}>
+                          {getStatusBadge(billDetailsData.bill_info.status).label}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
+
+                {/* Row 3: วันที่สร้าง, วันที่แจ้ง */}
                 <div className="grid grid-cols-3 gap-5">
                   <div>
                     <div className="text-xs text-gray-500 mb-1">วันเวลาที่สร้าง</div>
@@ -1838,14 +1867,7 @@ export default function BillingPage() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500 mb-1">สถานะการแจ้ง</div>
-                    <div>
-                      {billDetailsData.bill_info?.status !== undefined && (
-                        <span className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium ${getStatusBadge(billDetailsData.bill_info.status).className}`}>
-                          {getStatusBadge(billDetailsData.bill_info.status).label}
-                        </span>
-                      )}
-                    </div>
+                    {/* Empty column for alignment */}
                   </div>
                 </div>
               </div>
