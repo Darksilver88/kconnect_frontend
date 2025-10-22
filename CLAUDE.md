@@ -712,6 +712,110 @@ const fetchData = async (page: number = 1) => {
 
 ## Recent Updates
 
+### 2025-10-22: Payment Management System
+
+**Payment Page (จัดการการชำระเงิน):**
+
+1. **Tab Structure (4 tabs)**:
+   - Tab 1: รอตรวจสอบและอนุมัติ (status=0)
+   - Tab 2: อนุมัติและชำระแล้ว (status=1)
+   - Tab 3: ปฏิเสธ (status=3)
+   - Tab 4: รายงานและสถิติ (placeholder)
+
+2. **Summary Cards (5 cards)** - ด้านบนระหว่าง tabs และ search:
+   - API: `payment/get_summary_data?customer_id=xxx`
+   - Cards:
+     - บิลทั้งหมดเดือนนี้ (total_bill_rooms)
+     - รอชำระ (pending_payment)
+     - ชำระแล้ว (approved_payment)
+     - ถูกปฏิเสธ (rejected_payment)
+     - บิลค้างชำระ (unpaid_bill_rooms)
+   - แต่ละ card แสดง: count, change_text, arrow up/down (ตาม change >= 0)
+   - Color: green ถ้า change >= 0, red ถ้า < 0
+
+3. **Filter Section** (tabs 1, 2, 3):
+   - จำนวนเงิน: ทั้งหมด(1), <5000(2), 5000-10000(3), >10000(4)
+   - ช่วงเวลา: ทั้งหมด(1), วันนี้(2), สัปดาห์นี้(3), เดือนนี้(4), กำหนดเอง(5)
+   - ส่งเป็น params: `amount_range`, `date_range`
+
+4. **Review Slip Modal** (900px width):
+   - API: `payment/{id}` เมื่อคลิก View
+   - Layout:
+     - Slip image (ถ้ามี): object-contain, white background, clickable
+     - Slip Details (3 columns grid):
+       - สมาชิก (member_name)
+       - รายละเอียด (member_detail)
+       - จำนวนเงิน (payment_amount)
+       - วันที่โอน (transfer_date)
+       - ธนาคาร (bank_name)
+       - หมายเหตุจากลูกบ้าน (member_remark)
+     - Bill Info Section (bg-blue-50, 3 columns):
+       - เลขที่บิล (bill_no), ชื่อบิล (bill_title), ประเภทบิล (bill_type)
+       - งวด (bill_period), จำนวนเงิน (bill_amount), วันครบกำหนด (due_date - ไม่มีเวลา)
+       - ผู้อนุมัติ (approver_name), สถานะ (badge with icon)
+       - เหตุผลการปฏิเสธ (reject_reason - แสดงถ้า status=3)
+   - Modal Title: เปลี่ยนตาม status
+     - status 0: "ตรวจสอบสลิปการโอน"
+     - อื่นๆ: "ดูรายละเอียด"
+   - Footer Buttons (tab 1 only):
+     - ปฏิเสธ (red) - เปิด reject dialog
+     - อนุมัติ (green) - approve เดี่ยว
+
+5. **Table (tabs 1, 2, 3)**:
+   - Columns: checkbox (tab 1), avatar, สมาชิก, บิล, ยอดเงิน, วันที่, สถานะ, เหตุผล, การดำเนินการ
+   - Checkbox selection (tab 1 only) with select all
+   - Avatar: 2 letters, gradient `linear-gradient(135deg, #2B6EF3, #1F4EC2)`
+   - เหตุผล column: truncate with max-width 200px, tooltip on hover
+   - Status badges with icons (modal only):
+     - รออนุมัติ (yellow, fa-clock)
+     - อนุมัติแล้ว (green, fa-check-circle)
+     - ปฏิเสธ (red, fa-times-circle)
+
+6. **Approve/Reject Actions**:
+   - API: `payment/update` (PUT method)
+   - Payload: id (or comma-separated ids), status, remark (ถ้า reject), uid
+   - Approve: เดี่ยว หรือ เลือกหลายรายการ (tab 1)
+   - Reject: ต้องกรอก remark ใน dialog
+   - หลัง submit: refresh ทั้ง list + summary status + summary data
+
+7. **API Endpoints**:
+   - List: `payment/list?customer_id=xxx&status=0&page=1&limit=20&amount_range=1&date_range=1`
+   - Summary Status (badges): `payment/summary_status?customer_id=xxx`
+   - Summary Data (5 cards): `payment/get_summary_data?customer_id=xxx`
+   - Detail: `payment/{id}?customer_id=xxx`
+   - Update: `payment/update` (PUT: id, status, uid, remark)
+
+8. **Key Features**:
+   - UID ใช้จาก `user?.uid` แทน hard code
+   - Loading state ใน modal ใช้ LoadingSpinner
+   - Tab badges แสดงจำนวนจาก `summary_status`
+   - Summary cards และ status ต้อง refresh หลัง approve/reject
+
+### 2025-10-22: Build Error Fixes
+
+**TypeScript Compilation Errors:**
+
+1. **Missing UID Constant**:
+   - ❌ Hard-coded: `const UID = 5`
+   - ✅ Fixed: ใช้ `user?.uid` จาก `getCurrentUser()` แทน
+   - ไฟล์ที่แก้: payment/page.tsx, billing/page.tsx, test/page.tsx
+
+2. **Missing API Constants**:
+   - payment/page.tsx: เพิ่ม `API_INSERT`, `API_UPDATE`
+   - test/page.tsx: ตรวจสอบครบทุกค่า
+
+3. **Missing refreshList Function**:
+   - payment/page.tsx: เพิ่มฟังก์ชัน `refreshList()` แบบเดียวกับ billing
+   - รองรับ tab filtering และ reset to first page
+
+4. **File Upload Pattern**:
+   - เปลี่ยนจาก `uploadFiles(files, uploadKey, MENU, UID)`
+   - เป็น `uploadFiles(files, uploadKey, MENU, uid)` โดย uid = user?.uid || -1
+
+5. **Best Practice**:
+   - ไม่ hard code UID - ใช้ current user's uid
+   - ทุกครั้งที่เรียก uploadFiles/deleteFile ต้องดึง uid จาก getCurrentUser()
+
 ### 2025-10-15: Room Payment History & UI Improvements
 
 **Room Modal Updates:**
