@@ -434,28 +434,6 @@ export default function PaymentPage() {
     setLoadingReviewSlip(false);
   };
 
-  // Handle edit button click
-  const handleEditClick = async (item: any) => {
-    setEditingItem(item);
-    setFormData({
-      title: item.title || '',
-      detail: item.detail || '',
-      status: String(item.status || '1'),
-    });
-    setCurrentUploadKey(item.upload_key || '');
-
-    // Fetch attachments for edit mode
-    if (item.id) {
-      const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}${API_DETAIL}/${item.id}`);
-      if (result.success && result.data.attachments) {
-        setAttachments(result.data.attachments);
-      } else {
-        setAttachments([]);
-      }
-    }
-
-    setIsModalOpen(true);
-  };
 
   // Handle file upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
