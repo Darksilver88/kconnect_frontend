@@ -73,11 +73,6 @@ export default function PaymentPage() {
 
   const isEditMode = editingItem !== null;
 
-  // View states
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [viewData, setViewData] = useState<any>(null);
-  const [loadingView, setLoadingView] = useState(false);
-
   // Review slip modal states (for tabs 1, 2, 3)
   const [reviewSlipModalOpen, setReviewSlipModalOpen] = useState(false);
   const [reviewSlipData, setReviewSlipData] = useState<any>(null);
@@ -392,23 +387,6 @@ export default function PaymentPage() {
   };
 
 
-  // Handle view button click
-  const handleViewClick = async (id: number) => {
-    setLoadingView(true);
-    setViewModalOpen(true);
-    setViewData(null);
-
-    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}${API_DETAIL}/${id}`);
-
-    if (result.success) {
-      setViewData(result.data);
-    } else {
-      toast.error(result.message || result.error || 'ไม่พบข้อมูล');
-      setViewModalOpen(false);
-    }
-
-    setLoadingView(false);
-  };
 
   // Handle review slip click (for tabs 1, 2, 3)
   const handleReviewSlipClick = async (item: any) => {
@@ -1188,90 +1166,6 @@ export default function PaymentPage() {
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* View Modal */}
-      <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>รายละเอียดข่าว</DialogTitle>
-            <DialogDescription>
-              ข้อมูลทั้งหมดของข่าว
-            </DialogDescription>
-          </DialogHeader>
-
-          {loadingView ? (
-            <LoadingSpinner />
-          ) : viewData ? (
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-slate-500 text-sm">ID</Label>
-                  <p className="text-slate-900 font-medium">#{viewData.id}</p>
-                </div>
-                <div>
-                  <Label className="text-slate-500 text-sm">สถานะ</Label>
-                  <div className="mt-1">
-                    <div className={`inline-flex items-center px-3 py-1 rounded text-sm font-medium ${getStatusBadge(viewData.status).className}`}>
-                      {getStatusBadge(viewData.status).label}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-slate-500 text-sm">หัวข้อ</Label>
-                <p className="text-slate-900 font-medium">{viewData.title || '-'}</p>
-              </div>
-
-              <div>
-                <Label className="text-slate-500 text-sm">รายละเอียด</Label>
-                <p className="text-slate-900">{viewData.detail || '-'}</p>
-              </div>
-
-              <div>
-                <Label className="text-slate-500 text-sm">Upload Key</Label>
-                <p className="text-slate-900 font-mono text-sm break-all">{viewData.upload_key || '-'}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-slate-500 text-sm">วันที่สร้าง</Label>
-                  <p className="text-slate-900 text-sm">{viewData.create_date_formatted || viewData.create_date || '-'}</p>
-                </div>
-                <div>
-                  <Label className="text-slate-500 text-sm">สร้างโดย</Label>
-                  <p className="text-slate-900 text-sm">{viewData.create_by || '-'}</p>
-                </div>
-              </div>
-
-              {viewData.update_date && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-slate-500 text-sm">วันที่แก้ไข</Label>
-                    <p className="text-slate-900 text-sm">{viewData.update_date_formatted || viewData.update_date || '-'}</p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-500 text-sm">แก้ไขโดย</Label>
-                    <p className="text-slate-900 text-sm">{viewData.update_by || '-'}</p>
-                  </div>
-                </div>
-              )}
-
-              <FilePreview files={viewData.attachments || []} />
-            </div>
-          ) : null}
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setViewModalOpen(false)}
-            >
-              ปิด
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
