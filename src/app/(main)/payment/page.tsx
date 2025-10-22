@@ -284,7 +284,7 @@ export default function PaymentPage() {
 
     setSubmittingAction(true);
     const user = getCurrentUser();
-    const uid = user?.id || -1;
+    const uid = user?.uid || -1;
 
     const url = `${process.env.NEXT_PUBLIC_API_PATH}payment/update`;
     const body = {
@@ -317,7 +317,7 @@ export default function PaymentPage() {
   const handleApproveSingle = async (id: number) => {
     setSubmittingAction(true);
     const user = getCurrentUser();
-    const uid = user?.id || -1;
+    const uid = user?.uid || -1;
 
     const url = `${process.env.NEXT_PUBLIC_API_PATH}payment/update`;
     const body = {
@@ -364,7 +364,7 @@ export default function PaymentPage() {
 
     setSubmittingAction(true);
     const user = getCurrentUser();
-    const uid = user?.id || -1;
+    const uid = user?.uid || -1;
 
     const url = `${process.env.NEXT_PUBLIC_API_PATH}payment/update`;
     const body = {
