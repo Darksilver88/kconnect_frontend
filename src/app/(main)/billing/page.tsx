@@ -40,7 +40,6 @@ import { TableActionButtons } from '@/components/table-action-buttons';
 
 // ตัวแปรคงที่
 const MENU = 'bill';
-const UID = 5;
 
 // ตัวแปร API path
 const API_LIST = 'bill/list';
@@ -712,6 +711,9 @@ export default function BillingPage() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    const user = getCurrentUser();
+    const uid = user?.uid || -1;
+
     // Use current upload key or generate new one
     const uploadKey = currentUploadKey || generateUploadKey();
     if (!currentUploadKey) {
@@ -720,7 +722,7 @@ export default function BillingPage() {
 
     setUploading(true);
 
-    const result = await uploadFiles(files, uploadKey, MENU, UID);
+    const result = await uploadFiles(files, uploadKey, MENU, uid);
 
     if (result.success) {
       setAttachments((prev) => [...prev, ...result.data.files]);
@@ -744,9 +746,12 @@ export default function BillingPage() {
   const handleFileDeleteConfirm = async () => {
     if (!deleteFileId) return;
 
+    const user = getCurrentUser();
+    const uid = user?.uid || -1;
+
     setDeletingFile(true);
 
-    const result = await deleteFile(deleteFileId, MENU, UID);
+    const result = await deleteFile(deleteFileId, MENU, uid);
 
     if (result.success) {
       setAttachments((prev) => prev.filter((file) => file.id !== deleteFileId));

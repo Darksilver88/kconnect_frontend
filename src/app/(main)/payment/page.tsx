@@ -49,6 +49,8 @@ const MENU = 'payment';
 
 // ตัวแปร API path
 const API_LIST = 'payment/list';
+const API_INSERT = 'payment/insert';
+const API_UPDATE = 'payment/update';
 
 // ไฟล์ที่รองรับในการอัปโหลด
 const ACCEPTED_FILES = 'image/*,.pdf,.doc,.docx,.xls,.xlsx';
@@ -189,6 +191,46 @@ export default function PaymentPage() {
     }
 
     setLoading(false);
+  };
+
+  // Refresh list after CRUD operations (silent, no loading)
+  const refreshList = async (resetToFirstPage = false) => {
+    const pageToUse = resetToFirstPage ? 1 : currentPage;
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+
+    const statusMap: { [key: string]: string } = {
+      '1': '0',
+      '2': '1',
+      '3': '3',
+    };
+
+    let url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=${pageToUse}&limit=${LIMIT}&customer_id=${encodeURIComponent(customerId)}`;
+
+    if (statusMap[activeTab]) {
+      url += `&status=${statusMap[activeTab]}`;
+    }
+
+    if (searchKeyword) {
+      url += `&keyword=${encodeURIComponent(searchKeyword)}`;
+    }
+
+    if (activeTab === '1' || activeTab === '2' || activeTab === '3') {
+      url += `&amount_range=${amountRange}`;
+      url += `&date_range=${dateRange}`;
+    }
+
+    const result = await apiCall(url);
+
+    if (result.success) {
+      setData(result.data || []);
+      setPagination(result.pagination);
+      if (resetToFirstPage) {
+        setCurrentPage(1);
+      }
+    } else {
+      console.error('Failed to refresh list:', result.error || result.message);
+    }
   };
 
   useEffect(() => {
@@ -440,6 +482,9 @@ export default function PaymentPage() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    const user = getCurrentUser();
+    const uid = user?.uid || -1;
+
     // Use current upload key or generate new one
     const uploadKey = currentUploadKey || generateUploadKey();
     if (!currentUploadKey) {
@@ -448,7 +493,7 @@ export default function PaymentPage() {
 
     setUploading(true);
 
-    const result = await uploadFiles(files, uploadKey, MENU, UID);
+    const result = await uploadFiles(files, uploadKey, MENU, uid);
 
     if (result.success) {
       setAttachments((prev) => [...prev, ...result.data.files]);
@@ -472,9 +517,12 @@ export default function PaymentPage() {
   const handleFileDeleteConfirm = async () => {
     if (!deleteFileId) return;
 
+    const user = getCurrentUser();
+    const uid = user?.uid || -1;
+
     setDeletingFile(true);
 
-    const result = await deleteFile(deleteFileId, MENU, UID);
+    const result = await deleteFile(deleteFileId, MENU, uid);
 
     if (result.success) {
       setAttachments((prev) => prev.filter((file) => file.id !== deleteFileId));
