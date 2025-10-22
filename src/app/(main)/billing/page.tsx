@@ -1969,29 +1969,33 @@ export default function BillingPage() {
                                 </span>
                               </td>
                               <td className="px-4 py-3 text-center">
-                                <div className="flex justify-center gap-2">
-                                  <button
-                                    onClick={() => {
-                                      toast.info('ฟีเจอร์นี้กำลังพัฒนา');
-                                    }}
-                                    className="w-8 h-8 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 transition-all hover:-translate-y-0.5"
-                                    title="ดู"
-                                  >
-                                    <i className="fas fa-eye text-sm"></i>
-                                  </button>
-
-                                  {(item.status === 0 || item.status === 3) && (
+                                {billDetailsData.bill_info?.status === 1 ? (
+                                  <div className="flex justify-center gap-2">
                                     <button
                                       onClick={() => {
                                         toast.info('ฟีเจอร์นี้กำลังพัฒนา');
                                       }}
-                                      className="w-8 h-8 rounded-md bg-green-100 text-green-600 hover:bg-green-200 transition-all hover:-translate-y-0.5"
-                                      title="ส่งแจ้งเตือน"
+                                      className="w-8 h-8 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 transition-all hover:-translate-y-0.5"
+                                      title="ดู"
                                     >
-                                      <i className="fas fa-bell text-sm"></i>
+                                      <i className="fas fa-eye text-sm"></i>
                                     </button>
-                                  )}
-                                </div>
+
+                                    {(item.status === 0 || item.status === 3) && (
+                                      <button
+                                        onClick={() => {
+                                          toast.info('ฟีเจอร์นี้กำลังพัฒนา');
+                                        }}
+                                        className="w-8 h-8 rounded-md bg-green-100 text-green-600 hover:bg-green-200 transition-all hover:-translate-y-0.5"
+                                        title="ส่งแจ้งเตือน"
+                                      >
+                                        <i className="fas fa-bell text-sm"></i>
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400">-</span>
+                                )}
                               </td>
                             </tr>
                           );

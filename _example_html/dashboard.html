@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - ระบบจัดการโครงการที่พักอาศัย</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #2B6EF3;
+            --primary-blue-dark: #1F4EC2;
+            --blue-100: #EBF2FF;
+            --gray-50: #F8FAFC;
+            --gray-100: #F1F5F9;
+            --gray-200: #E2E8F0;
+            --gray-500: #64748B;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1E293B;
+            --gray-900: #0F172A;
+            --white: #FFFFFF;
+            --green-500: #22C55E;
+            --green-100: #DCFCE7;
+            --yellow-500: #EAB308;
+            --yellow-100: #FEF3C7;
+            --red-500: #EF4444;
+            --red-100: #FEE2E2;
+            --purple-500: #8B5CF6;
+            --purple-100: #EDE9FE;
+            --teal-500: #14B8A6;
+            --teal-100: #F0FDFA;
+            --orange-500: #F97316;
+            --orange-100: #FFEDD5;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-800);
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--white);
+            padding: 24px 0;
+            position: fixed;
+            height: 100vh;
+            border-right: 1px solid var(--gray-200);
+        }
+
+        .sidebar-header {
+            padding: 0 24px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            margin-bottom: 24px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .logo i {
+            background: var(--blue-100);
+            color: var(--primary-blue);
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0 16px;
+        }
+
+        .sidebar-menu li {
+            margin-bottom: 4px;
+        }
+
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            color: var(--gray-600);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .sidebar-menu a i {
+            width: 20px;
+            margin-right: 12px;
+        }
+
+        .sidebar-menu a:hover {
+            background: var(--gray-50);
+        }
+
+        .sidebar-menu a.active {
+            background: var(--blue-100);
+            color: var(--primary-blue);
+            border-left: 3px solid var(--primary-blue);
+            font-weight: 600;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+        }
+
+        .header {
+            background: var(--white);
+            padding: 16px 32px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .page-subtitle {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .project-dropdown {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--blue-100);
+            padding: 12px 16px;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+        }
+
+        .project-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary-blue);
+        }
+
+        .project-code {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        .notification-btn {
+            position: relative;
+            background: #f0f4f8;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .badge {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: var(--red-500);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            background: var(--primary-blue);
+            color: white;
+            border-radius: var(--radius-lg);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .content {
+            padding: 32px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--white);
+            padding: 24px;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            border-top: 4px solid;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-card.blue { border-top-color: var(--primary-blue); }
+        .stat-card.green { border-top-color: var(--green-500); }
+        .stat-card.yellow { border-top-color: var(--yellow-500); }
+        .stat-card.red { border-top-color: var(--red-500); }
+        .stat-card.purple { border-top-color: var(--purple-500); }
+        .stat-card.teal { border-top-color: var(--teal-500); }
+        .stat-card.orange { border-top-color: var(--orange-500); }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--gray-600);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .stat-change {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .stat-change.positive { color: var(--green-500); }
+        .stat-change.negative { color: var(--red-500); }
+        .stat-change.neutral { color: var(--gray-500); }
+
+        .stat-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            opacity: 0.7;
+        }
+
+        .stat-card.blue .stat-icon { background: var(--blue-100); color: var(--primary-blue); }
+        .stat-card.green .stat-icon { background: var(--green-100); color: var(--green-500); }
+        .stat-card.yellow .stat-icon { background: var(--yellow-100); color: var(--yellow-500); }
+        .stat-card.red .stat-icon { background: var(--red-100); color: var(--red-500); }
+        .stat-card.purple .stat-icon { background: var(--purple-100); color: var(--purple-500); }
+        .stat-card.teal .stat-icon { background: var(--teal-100); color: var(--teal-500); }
+        .stat-card.orange .stat-icon { background: var(--orange-100); color: var(--orange-500); }
+
+        .alert-section {
+            background: var(--white);
+            border-radius: var(--radius-xl);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 32px;
+        }
+
+        .alert-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .alert-item:hover {
+            transform: translateX(4px);
+        }
+
+        .alert-item.critical { background: var(--red-100); border-left: 4px solid var(--red-500); }
+        .alert-item.warning { background: var(--yellow-100); border-left: 4px solid var(--yellow-500); }
+        .alert-item.success { background: var(--green-100); border-left: 4px solid var(--green-500); }
+        .alert-item.info { background: var(--blue-100); border-left: 4px solid var(--primary-blue); }
+
+        .alert-icon {
+            font-size: 24px;
+            margin-right: 16px;
+        }
+
+        .alert-item.critical .alert-icon { color: var(--red-500); }
+        .alert-item.warning .alert-icon { color: var(--yellow-500); }
+        .alert-item.success .alert-icon { color: var(--green-500); }
+        .alert-item.info .alert-icon { color: var(--primary-blue); }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-text {
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+
+        .alert-subtext {
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .chart-card {
+            background: var(--white);
+            border-radius: var(--radius-xl);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            background: var(--gray-100);
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        .filter-btn.active {
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        .bar-chart {
+            height: 280px;
+            display: flex;
+            align-items: flex-end;
+            gap: 20px;
+            padding: 20px 0;
+        }
+
+        .bar-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .bars {
+            display: flex;
+            gap: 4px;
+            align-items: flex-end;
+            height: 220px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .bar {
+            width: 24px;
+            border-radius: 4px 4px 0 0;
+            transition: all 0.3s;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .bar:hover {
+            opacity: 0.8;
+            transform: translateY(-4px);
+        }
+
+        .bar.billed {
+            background: linear-gradient(to top, var(--primary-blue-dark), var(--primary-blue));
+        }
+
+        .bar.received {
+            background: linear-gradient(to top, var(--green-500), #10B981);
+        }
+
+        .bar-label {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--gray-600);
+        }
+
+        .bar-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-8px);
+            background: var(--gray-900);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 10;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .bar-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: var(--gray-900);
+        }
+
+        .bar:hover .bar-tooltip {
+            opacity: 1;
+        }
+
+        .chart-legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .legend-item-inline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--gray-700);
+        }
+
+        .legend-color-box {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+        }
+
+        /* Donut Chart */
+        .donut-chart-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 0;
+        }
+
+        .donut-chart {
+            position: relative;
+            width: 200px;
+            height: 200px;
+        }
+
+        .donut-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .donut-total {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .donut-label {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .donut-legend {
+            margin-top: 24px;
+            width: 100%;
+        }
+
+        .legend-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .legend-item:last-child {
+            border-bottom: none;
+        }
+
+        .legend-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .legend-label {
+            font-size: 13px;
+            color: var(--gray-700);
+        }
+
+        .legend-value {
+            font-weight: 600;
+            color: var(--gray-900);
+            font-size: 14px;
+        }
+
+        .service-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .service-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: var(--gray-50);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .service-item:hover {
+            background: var(--blue-100);
+            transform: translateX(4px);
+        }
+
+        .service-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .service-info {
+            flex: 1;
+            margin-left: 12px;
+        }
+
+        .service-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .service-desc {
+            font-size: 12px;
+            color: var(--gray-600);
+        }
+
+        .service-count {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-blue);
+        }
+
+        .bill-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 16px;
+            border-radius: 8px;
+            background: var(--gray-50);
+            margin-bottom: 12px;
+        }
+
+        .bill-date {
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .bill-count {
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+
+        .bill-amount {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary-blue);
+        }
+
+        .quick-actions {
+            background: var(--white);
+            border-radius: var(--radius-xl);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 20px;
+            background: var(--gray-50);
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: var(--gray-700);
+        }
+
+        .action-btn:hover {
+            background: var(--blue-100);
+            border-color: var(--primary-blue);
+            transform: translateY(-2px);
+        }
+
+        .action-icon {
+            width: 56px;
+            height: 56px;
+            background: var(--primary-blue);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .action-label {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stat-card {
+            animation: fadeIn 0.6s backwards;
+        }
+
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card:nth-child(4) { animation-delay: 0.4s; }
+        .stat-card:nth-child(5) { animation-delay: 0.5s; }
+
+        @media (max-width: 1024px) {
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .stats-grid, .actions-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-building"></i>
+                    <div>ระบบจัดการโครงการ</div>
+                </div>
+                <div class="subtitle">สำหรับนิติบริหารโครงการ K-Connect</div>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="dashboard (ver dev).html" class="active"><i class="fas fa-tachometer-alt"></i> แดชบอร์ด</a></li>
+                <li><a href="payment-management-redesign (ver dev).html"><i class="fas fa-credit-card"></i> จัดการการชำระเงิน</a></li>
+                <li><a href="billing-management-system (ver dev).html"><i class="fas fa-file-invoice"></i> จัดการบิล</a></li>
+                <li><a href="resident-mgmt-unified (ver dev).html"><i class="fas fa-address-book"></i> จัดการข้อมูลทะเบียน</a></li>
+                <li><a href="#"><i class="fas fa-bell"></i> การแจ้งเตือน</a></li>
+                <li><a href="#"><i class="fas fa-chart-bar"></i> รายงาน</a></li>
+                <li><a href="setting (ver dev).html"><i class="fas fa-cog"></i> ตั้งค่า</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <header class="header">
+                <div>
+                    <div class="page-title">Dashboard</div>
+                    <div class="page-subtitle">ภาพรวมโครงการ - อัพเดทล่าสุด: วันนี้ 14:30 น.</div>
+                </div>
+                <div class="header-right">
+                    <div class="project-dropdown">
+                        <div>
+                            <div class="project-name">โค้ดเด้อทรี</div>
+                            <div class="project-code">CODE-TREE-01</div>
+                        </div>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <button class="notification-btn">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">12</span>
+                    </button>
+                    <div class="user-menu">
+                        <div class="user-info">
+                            <div>Admin</div>
+                            <div style="font-size: 12px; opacity: 0.8;">ผู้ดูแลระบบ</div>
+                        </div>
+                        <div class="user-avatar">AD</div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content">
+                <h3 class="section-title">
+                    <i class="fas fa-home"></i> การเข้าพักและลูกบ้าน
+                </h3>
+                <div class="stats-grid">
+                    <div class="stat-card blue">
+                        <div class="stat-number">324</div>
+                        <div class="stat-label">จำนวนห้องทั้งหมด</div>
+                        <div class="stat-change neutral">
+                            <i class="fas fa-minus"></i> ไม่เปลี่ยนแปลง
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-door-open"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card green">
+                        <div class="stat-number">892</div>
+                        <div class="stat-label">ลูกบ้านที่ใช้งาน</div>
+                        <div class="stat-change positive">
+                            <i class="fas fa-arrow-up"></i> +15 เดือนนี้
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card teal">
+                        <div class="stat-number">15</div>
+                        <div class="stat-label">ลูกบ้านใหม่</div>
+                        <div class="stat-change positive">
+                            <i class="fas fa-arrow-up"></i> เดือนนี้
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card yellow">
+                        <div class="stat-number">3</div>
+                        <div class="stat-label">บัญชีรออนุมัติ</div>
+                        <div class="stat-change neutral">
+                            <i class="fas fa-clock"></i> รอดำเนินการ
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-user-clock"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card red">
+                        <div class="stat-number">25</div>
+                        <div class="stat-label">ห้องค้างชำระ</div>
+                        <div class="stat-change negative">
+                            <i class="fas fa-exclamation-circle"></i> 8 เกินกำหนด
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-home"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-wallet"></i> การเงินและการชำระเงิน
+                </h3>
+                <div class="stats-grid">
+                    <div class="stat-card blue">
+                        <div class="stat-number">฿892K</div>
+                        <div class="stat-label">รายได้เดือนนี้</div>
+                        <div class="stat-change positive">
+                            <i class="fas fa-arrow-up"></i> +฿45K (5.3%)
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card red">
+                        <div class="stat-number">฿127K</div>
+                        <div class="stat-label">ค้างชำระ</div>
+                        <div class="stat-change negative">
+                            <i class="fas fa-exclamation-circle"></i> 25 รายการ
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card green">
+                        <div class="stat-number">765</div>
+                        <div class="stat-label">ชำระแล้ว</div>
+                        <div class="stat-change positive">
+                            <i class="fas fa-arrow-up"></i> +33 รายการ
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card orange">
+                        <div class="stat-number">12</div>
+                        <div class="stat-label">รอตรวจสอบ</div>
+                        <div class="stat-change neutral">
+                            <i class="fas fa-clock"></i> ต้องดำเนินการ
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-search-dollar"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card purple">
+                        <div class="stat-number">6</div>
+                        <div class="stat-label">บิลในระบบ</div>
+                        <div class="stat-change positive">
+                            <i class="fas fa-arrow-up"></i> +2 เดือนนี้
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-bell"></i> รายการที่ต้องดำเนินการ
+                    </h3>
+                    <div class="alert-item critical">
+                        <i class="fas fa-exclamation-circle alert-icon"></i>
+                        <div class="alert-content">
+                            <div class="alert-text">12 รายการรอตรวจสอบและอนุมัติการชำระเงิน</div>
+                            <div class="alert-subtext">ต้องดำเนินการภายใน 24 ชั่วโมง</div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color: var(--gray-500);"></i>
+                    </div>
+                    <div class="alert-item warning">
+                        <i class="fas fa-clock alert-icon"></i>
+                        <div class="alert-content">
+                            <div class="alert-text">25 บิลรอการชำระเงิน (8 รายการเกินกำหนด)</div>
+                            <div class="alert-subtext">บางรายการควรติดตามเร่งด่วน</div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color: var(--gray-500);"></i>
+                    </div>
+                    <div class="alert-item success">
+                        <i class="fas fa-user-check alert-icon"></i>
+                        <div class="alert-content">
+                            <div class="alert-text">3 คำขออนุมัติบัญชีลูกบ้านใหม่</div>
+                            <div class="alert-subtext">รอการตรวจสอบข้อมูล</div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color: var(--gray-500);"></i>
+                    </div>
+                    <div class="alert-item info">
+                        <i class="fas fa-tools alert-icon"></i>
+                        <div class="alert-content">
+                            <div class="alert-text">5 คำขอเรียกใช้บริการที่รอดำเนินการ</div>
+                            <div class="alert-subtext">จัดลำดับความสำคัญตามเวลาแล้ว</div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color: var(--gray-500);"></i>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">
+                                <i class="fas fa-chart-bar"></i> ค่าเรียกเก็บและรายรับ
+                            </h3>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="filter-btn">3 เดือน</button>
+                                <button class="filter-btn active">6 เดือน</button>
+                                <button class="filter-btn">1 ปี</button>
+                            </div>
+                        </div>
+                        <div class="bar-chart">
+                            <div class="bar-group">
+                                <div class="bars">
+                                    <div class="bar billed" style="height: 75%;">
+                                        <div class="bar-tooltip">เรียกเก็บ: ฿825,000</div>
+                                    </div>
+                                    <div class="bar received" style="height: 68%;">
+                                        <div class="bar-tooltip">รายรับ: ฿748,000</div>
+                                    </div>
+                                </div>
+                                <div class="bar-label">ม.ค.</div>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bars">
+                                    <div class="bar billed" style="height: 68%;">
+                                        <div class="bar-tooltip">เรียกเก็บ: ฿748,000</div>
+                                    </div>
+                                    <div class="bar received" style="height: 62%;">
+                                        <div class="bar-tooltip">รายรับ: ฿682,000</div>
+                                    </div>
+                                </div>
+                                <div class="bar-label">ก.พ.</div>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bars">
+                                    <div class="bar billed" style="height: 82%;">
+                                        <div class="bar-tooltip">เรียกเก็บ: ฿902,000</div>
+                                    </div>
+                                    <div class="bar received" style="height: 75%;">
+                                        <div class="bar-tooltip">รายรับ: ฿825,000</div>
+                                    </div>
+                                </div>
+                                <div class="bar-label">มี.ค.</div>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bars">
+                                    <div class="bar billed" style="height: 78%;">
+                                        <div class="bar-tooltip">เรียกเก็บ: ฿858,000</div>
+                                    </div>
+                                    <div class="bar received" style="height: 71%;">
+                                        <div class="bar-tooltip">รายรับ: ฿781,000</div>
+                                    </div>
+                                </div>
+                                <div class="bar-label">เม.ย.</div>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bars">
+                                    <div class="bar billed" style="height: 85%;">
+                                        <div class="bar-tooltip">เรียกเก็บ: ฿935,000</div>
+                                    </div>
+                                    <div class="bar received" style="height: 79%;">
+                                        <div class="bar-tooltip">รายรับ: ฿869,000</div>
+                                    </div>
+                                </div>
+                                <div class="bar-label">พ.ค.</div>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bars">
+                                    <div class="bar billed" style="height: 92%;">
+                                        <div class="bar-tooltip">เรียกเก็บ: ฿1,012,000</div>
+                                    </div>
+                                    <div class="bar received" style="height: 85%;">
+                                        <div class="bar-tooltip">รายรับ: ฿935,000</div>
+                                    </div>
+                                </div>
+                                <div class="bar-label">มิ.ย.</div>
+                            </div>
+                        </div>
+                        <div class="chart-legend">
+                            <div class="legend-item-inline">
+                                <div class="legend-color-box" style="background: linear-gradient(135deg, var(--primary-blue-dark), var(--primary-blue));"></div>
+                                <span>ค่าเรียกเก็บ</span>
+                            </div>
+                            <div class="legend-item-inline">
+                                <div class="legend-color-box" style="background: linear-gradient(135deg, var(--green-500), #10B981);"></div>
+                                <span>รายรับจริง</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">
+                                <i class="fas fa-chart-pie"></i> สถานะบิล
+                            </h3>
+                        </div>
+                        <div class="donut-chart-container">
+                            <div class="donut-chart">
+                                <svg width="200" height="200" viewBox="0 0 200 200">
+                                    <circle cx="100" cy="100" r="80" fill="none" stroke="#DCFCE7" stroke-width="40" 
+                                            stroke-dasharray="430 430" stroke-dashoffset="0" transform="rotate(-90 100 100)"/>
+                                    <circle cx="100" cy="100" r="80" fill="none" stroke="#FEF3C7" stroke-width="40" 
+                                            stroke-dasharray="107 430" stroke-dashoffset="-323" transform="rotate(-90 100 100)"/>
+                                    <circle cx="100" cy="100" r="80" fill="none" stroke="#FEE2E2" stroke-width="40" 
+                                            stroke-dasharray="43 430" stroke-dashoffset="-387" transform="rotate(-90 100 100)"/>
+                                    <circle cx="100" cy="100" r="60" fill="white"/>
+                                </svg>
+                                <div class="donut-center">
+                                    <div class="donut-total">892</div>
+                                    <div class="donut-label">บิลทั้งหมด</div>
+                                </div>
+                            </div>
+                            <div class="donut-legend">
+                                <div class="legend-item">
+                                    <div class="legend-left">
+                                        <div class="legend-color" style="background: #22C55E;"></div>
+                                        <span class="legend-label">ชำระแล้ว</span>
+                                    </div>
+                                    <span class="legend-value">765 (88%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-left">
+                                        <div class="legend-color" style="background: #EAB308;"></div>
+                                        <span class="legend-label">รอชำระ</span>
+                                    </div>
+                                    <span class="legend-value">127 (10%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-left">
+                                        <div class="legend-color" style="background: #EF4444;"></div>
+                                        <span class="legend-label">เกินกำหนด</span>
+                                    </div>
+                                    <span class="legend-value">8 (2%)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 32px;">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">
+                                <i class="fas fa-calendar-alt"></i> บิลที่กำลังจะครบกำหนด (7 วันข้างหน้า)
+                            </h3>
+                        </div>
+                        <div class="bill-item">
+                            <div>
+                                <div class="bill-date">วันพรุ่งนี้ (25/08)</div>
+                                <div class="bill-count">45 รายการ</div>
+                            </div>
+                            <div class="bill-amount">฿67,500</div>
+                        </div>
+                        <div class="bill-item">
+                            <div>
+                                <div class="bill-date">2 วันข้างหน้า (26/08)</div>
+                                <div class="bill-count">32 รายการ</div>
+                            </div>
+                            <div class="bill-amount">฿48,000</div>
+                        </div>
+                        <div class="bill-item">
+                            <div>
+                                <div class="bill-date">3 วันข้างหน้า (27/08)</div>
+                                <div class="bill-count">28 รายการ</div>
+                            </div>
+                            <div class="bill-amount">฿42,000</div>
+                        </div>
+                        <div class="bill-item">
+                            <div>
+                                <div class="bill-date">4-7 วันข้างหน้า</div>
+                                <div class="bill-count">89 รายการ</div>
+                            </div>
+                            <div class="bill-amount">฿133,500</div>
+                        </div>
+                        <button style="width: 100%; padding: 12px; background: var(--primary-blue); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 12px; font-family: 'Sarabun', sans-serif;">
+                            <i class="fas fa-paper-plane"></i> ส่งการแจ้งเตือนให้ลูกบ้าน
+                        </button>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">
+                                <i class="fas fa-chart-line"></i> ประสิทธิภาพการชำระ
+                            </h3>
+                        </div>
+                        <div style="padding: 20px 0;">
+                            <div style="text-align: center; margin-bottom: 30px;">
+                                <div style="font-size: 48px; font-weight: 700; color: var(--green-500); margin-bottom: 8px;">85.8%</div>
+                                <div style="font-size: 14px; color: var(--gray-600);">อัตราการชำระเงินเดือนนี้</div>
+                                <div style="font-size: 12px; color: var(--red-500); margin-top: 4px;">
+                                    <i class="fas fa-arrow-down"></i> -2.1% จากเดือนที่แล้ว
+                                </div>
+                            </div>
+                            <div style="background: var(--gray-50); padding: 16px; border-radius: 8px; margin-bottom: 12px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span style="font-size: 13px; color: var(--gray-600);">เป้าหมาย</span>
+                                    <span style="font-weight: 600;">90%</span>
+                                </div>
+                                <div style="width: 100%; height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden;">
+                                    <div style="width: 85.8%; height: 100%; background: linear-gradient(90deg, var(--green-500), var(--yellow-500)); border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                            <div style="background: var(--blue-100); padding: 12px; border-radius: 8px; border-left: 3px solid var(--primary-blue);">
+                                <div style="font-size: 12px; color: var(--gray-700);">
+                                    <i class="fas fa-info-circle" style="color: var(--primary-blue);"></i>
+                                    ต้องการอีก <strong>13 รายการ</strong> เพื่อบรรลุเป้าหมาย 90%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <h3 class="section-title">
+                        <i class="fas fa-bolt"></i> การดำเนินการด่วน
+                    </h3>
+                    <div class="actions-grid">
+                        <a href="#" class="action-btn">
+                            <div class="action-icon">
+                                <i class="fas fa-file-invoice"></i>
+                            </div>
+                            <div class="action-label">สร้างบิลใหม่</div>
+                        </a>
+                        <a href="#" class="action-btn">
+                            <div class="action-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="action-label">อนุมัติรายการ</div>
+                        </a>
+                        <a href="#" class="action-btn">
+                            <div class="action-icon">
+                                <i class="fas fa-bullhorn"></i>
+                            </div>
+                            <div class="action-label">สร้างประกาศ</div>
+                        </a>
+                        <a href="#" class="action-btn">
+                            <div class="action-icon">
+                                <i class="fas fa-users-cog"></i>
+                            </div>
+                            <div class="action-label">จัดการลูกบ้าน</div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
