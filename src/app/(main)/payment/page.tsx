@@ -73,11 +73,6 @@ export default function PaymentPage() {
 
   const isEditMode = editingItem !== null;
 
-  // Delete states
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
   // View states
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewData, setViewData] = useState<any>(null);
@@ -396,42 +391,6 @@ export default function PaymentPage() {
     setSubmittingAction(false);
   };
 
-  // Handle delete
-  const handleDeleteClick = (id: number) => {
-    setDeleteId(id);
-    setDeleteConfirmOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deleteId) return;
-
-    setDeleting(true);
-
-    const user = getCurrentUser();
-    const uid = user?.uid || -1;
-
-    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}${API_DELETE}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        id: deleteId,
-        uid: uid,
-      }),
-    });
-
-    if (result.success) {
-      await refreshList(); // Refresh ที่หน้าเดิม, ไม่ reset keyword
-      setDeleteConfirmOpen(false);
-      setDeleteId(null);
-      toast.success(result.message || 'ลบข้อมูลสำเร็จ');
-    } else {
-      toast.error(result.message || result.error || 'เกิดข้อผิดพลาดในการลบ');
-    }
-
-    setDeleting(false);
-  };
 
   // Handle view button click
   const handleViewClick = async (id: number) => {
@@ -1154,16 +1113,6 @@ export default function PaymentPage() {
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        open={deleteConfirmOpen}
-        onOpenChange={setDeleteConfirmOpen}
-        onConfirm={handleDeleteConfirm}
-        title="ยืนยันการลบ"
-        description="คุณแน่ใจหรือไม่ว่าต้องการลบข่าวนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้"
-        loading={deleting}
-      />
 
       {/* Insert/Update Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
