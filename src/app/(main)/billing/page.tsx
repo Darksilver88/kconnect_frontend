@@ -1399,7 +1399,7 @@ export default function BillingPage() {
           <DialogHeader>
             <DialogTitle>สร้างหัวข้อบิลใหม่</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={(e) => e.preventDefault()}>
             <div className="space-y-6 py-4">
               {/* Form Fields Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
