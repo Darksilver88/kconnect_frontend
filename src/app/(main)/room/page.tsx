@@ -321,6 +321,7 @@ export default function RoomPage() {
     const customerId = user?.customer_id || '';
 
     const url = `${process.env.NEXT_PUBLIC_API_PATH}bill/bill_room_each_list?page=${page}&limit=${LIMIT}&house_no=${encodeURIComponent(houseNo)}&customer_id=${encodeURIComponent(customerId)}`;
+    console.log("url : " + url);
     const result = await apiCall(url);
 
     if (result.success) {
@@ -1024,7 +1025,7 @@ export default function RoomPage() {
                                       <div className="flex justify-center">
                                         <button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors">
                                           <i className="fas fa-eye mr-1.5"></i>
-                                          ดูใบเสร็จ
+                                          ดูบิล
                                         </button>
                                       </div>
                                     </td>

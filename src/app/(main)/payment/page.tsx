@@ -49,6 +49,7 @@ const MENU = 'payment';
 
 // ตัวแปร API path
 const API_LIST = 'payment/list';
+const API_LIST_PENDING = 'bill/bill_room_pending_list';
 const API_INSERT = 'payment/insert';
 const API_UPDATE = 'payment/update';
 
@@ -96,11 +97,17 @@ export default function PaymentPage() {
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
 
   // Tab state
-  const [activeTab, setActiveTab] = useState('1');
+  const [activeTab, setActiveTab] = useState('0');
 
   // Filter states
   const [amountRange, setAmountRange] = useState('1'); // จำนวนเงิน
   const [dateRange, setDateRange] = useState('1'); // ช่วงเวลา
+
+  // Filter states for tab 0 (รอชำระ)
+  const [billTypes, setBillTypes] = useState<any[]>([]);
+  const [billStatusList, setBillStatusList] = useState<any[]>([]);
+  const [selectedBillTypeId, setSelectedBillTypeId] = useState('-1'); // ทุกหัวข้อบิล
+  const [selectedBillStatus, setSelectedBillStatus] = useState('-1'); // ทุกสถานะ
 
   // Checkbox selection states
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -116,6 +123,30 @@ export default function PaymentPage() {
 
   // Summary data state (for 5 cards)
   const [summaryData, setSummaryData] = useState<any>(null);
+
+  // Summary status 2 state (for 3 cards at bottom - tab 0)
+  const [summaryStatus2, setSummaryStatus2] = useState<any>(null);
+
+  // Manual payment modal states
+  const [manualPaymentModalOpen, setManualPaymentModalOpen] = useState(false);
+  const [manualPaymentData, setManualPaymentData] = useState<any>(null);
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentDate, setPaymentDate] = useState('');
+  const [paymentTime, setPaymentTime] = useState('');
+  const [paymentNotes, setPaymentNotes] = useState('');
+  const [submittingPayment, setSubmittingPayment] = useState(false);
+
+  // Payment method specific fields
+  const [transferBank, setTransferBank] = useState('');
+  const [transferRef, setTransferRef] = useState('');
+  const [checkNumber, setCheckNumber] = useState('');
+  const [checkBank, setCheckBank] = useState('');
+  const [checkDate, setCheckDate] = useState('');
+  const [cardRef, setCardRef] = useState('');
+  const [cardLast4, setCardLast4] = useState('');
+  const [otherMethod, setOtherMethod] = useState('');
 
   // Fetch summary status
   const fetchSummaryStatus = async () => {
@@ -143,9 +174,58 @@ export default function PaymentPage() {
     }
   };
 
+  // Fetch summary status 2 (for 3 cards at bottom)
+  const fetchSummaryStatus2 = async () => {
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}payment/summary_status2?customer_id=${encodeURIComponent(customerId)}`;
+    const result = await apiCall(url);
+
+    if (result.success) {
+      setSummaryStatus2(result.data);
+    }
+  };
+
+  // Fetch bill types (for tab 0 filter)
+  const fetchBillTypes = async () => {
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}bill_type/list?page=1&limit=100&status=1&keyword=`;
+    const result = await apiCall(url);
+
+    if (result.success && result.data) {
+      // เพิ่ม "ทุกหัวข้อบิล" ไว้ลำดับแรก
+      const allOption = { id: -1, title: 'ทุกหัวข้อบิล' };
+      setBillTypes([allOption, ...result.data]);
+    }
+  };
+
+  // Fetch bill status list (for tab 0 filter)
+  const fetchBillStatusList = async () => {
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}bill/bill_status?page=1&limit=100`;
+    const result = await apiCall(url);
+
+    if (result.success && result.data) {
+      setBillStatusList(result.data);
+    }
+  };
+
+  // Fetch payment methods (for manual payment)
+  const fetchPaymentMethods = async () => {
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}bill_transaction/bill_transaction_type`;
+    const result = await apiCall(url);
+
+    if (result.success && result.data) {
+      setPaymentMethods(result.data);
+    }
+  };
+
   useEffect(() => {
     fetchSummaryStatus();
     fetchSummaryData();
+    fetchSummaryStatus2();
+    fetchBillTypes();
+    fetchBillStatusList();
+    fetchPaymentMethods();
   }, []);
 
   // Fetch data from API (with loading state)
@@ -156,27 +236,48 @@ export default function PaymentPage() {
     const user = getCurrentUser();
     const customerId = user?.customer_id || '';
 
-    // Map tab to status: tab 1(0)=status 0, tab 2(1)=status 1, tab 3(2)=status 3
-    const statusMap: { [key: string]: string } = {
-      '1': '0', // รอตรวจสอบและอนุมัติ
-      '2': '1', // อนุมัติและชำระแล้ว
-      '3': '3', // ปฏิเสธ
-    };
+    let url = '';
 
-    let url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=${currentPage}&limit=${LIMIT}&customer_id=${encodeURIComponent(customerId)}`;
+    // Tab 0: รอชำระ - ใช้ API ต่างหาก
+    if (activeTab === '0') {
+      url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST_PENDING}?page=${currentPage}&limit=${LIMIT}&customer_id=${encodeURIComponent(customerId)}`;
 
-    if (statusMap[activeTab]) {
-      url += `&status=${statusMap[activeTab]}`;
-    }
+      if (searchKeyword) {
+        url += `&keyword=${encodeURIComponent(searchKeyword)}`;
+      }
 
-    if (searchKeyword) {
-      url += `&keyword=${encodeURIComponent(searchKeyword)}`;
-    }
+      // Add filter parameters
+      if (selectedBillTypeId !== '-1') {
+        url += `&bill_type_id=${selectedBillTypeId}`;
+      }
 
-    // Add filter parameters for tabs 1, 2, 3
-    if (activeTab === '1' || activeTab === '2' || activeTab === '3') {
-      url += `&amount_range=${amountRange}`;
-      url += `&date_range=${dateRange}`;
+      if (selectedBillStatus !== '-1') {
+        url += `&status=${selectedBillStatus}`;
+      }
+    } else {
+      // Tab 1, 2, 3: ใช้ API เดิม
+      // Map tab to status: tab 1(0)=status 0, tab 2(1)=status 1, tab 3(2)=status 3
+      const statusMap: { [key: string]: string } = {
+        '1': '0', // รอตรวจสอบและอนุมัติ
+        '2': '1', // อนุมัติและชำระแล้ว
+        '3': '3', // ปฏิเสธ
+      };
+
+      url = `${process.env.NEXT_PUBLIC_API_PATH}${API_LIST}?page=${currentPage}&limit=${LIMIT}&customer_id=${encodeURIComponent(customerId)}`;
+
+      if (statusMap[activeTab]) {
+        url += `&status=${statusMap[activeTab]}`;
+      }
+
+      if (searchKeyword) {
+        url += `&keyword=${encodeURIComponent(searchKeyword)}`;
+      }
+
+      // Add filter parameters for tabs 1, 2, 3
+      if (activeTab === '1' || activeTab === '2' || activeTab === '3') {
+        url += `&amount_range=${amountRange}`;
+        url += `&date_range=${dateRange}`;
+      }
     }
 
     console.log(`url : ${url}`);
@@ -234,17 +335,16 @@ export default function PaymentPage() {
   };
 
   useEffect(() => {
-    // Only fetch for tab 1, 2, 3 (skip tab 0 for now)
-    if (activeTab === '1' || activeTab === '2' || activeTab === '3') {
-      fetchList();
-    }
-  }, [currentPage, searchKeyword, activeTab, amountRange, dateRange]);
+    // Fetch for all tabs (0, 1, 2, 3)
+    fetchList();
+  }, [currentPage, searchKeyword, activeTab, amountRange, dateRange, selectedBillTypeId, selectedBillStatus]);
 
   const getStatusBadge = (status: number) => {
     if (status === 0) {
       return {
-        label: 'รออนุมัติ',
-        className: 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100',
+        label: 'รอชำระ',
+        className: 'bg-yellow-50 hover:bg-yellow-100',
+        textColor: '#D97706',
         icon: 'fa-clock'
       };
     }
@@ -252,19 +352,30 @@ export default function PaymentPage() {
       return {
         label: 'อนุมัติแล้ว',
         className: 'bg-green-50 text-green-700 hover:bg-green-100',
+        textColor: '#15803D',
         icon: 'fa-check-circle'
       };
     }
     if (status === 3) {
       return {
-        label: 'ปฏิเสธ',
-        className: 'bg-red-50 text-red-700 hover:bg-red-100',
-        icon: 'fa-times-circle'
+        label: 'เกินกำหนด',
+        className: 'bg-red-50 hover:bg-red-100',
+        textColor: '#B91C1C',
+        icon: 'fa-exclamation-triangle'
+      };
+    }
+    if (status === 4) {
+      return {
+        label: 'ชำระบางส่วน',
+        className: 'bg-blue-50 hover:bg-blue-100',
+        textColor: '#0891B2',
+        icon: 'fa-info-circle'
       };
     }
     return {
-      label: 'ไม่เผยแพร่',
+      label: 'ไม่ระบุ',
       className: 'bg-gray-50 text-gray-700 hover:bg-gray-100',
+      textColor: '#64748B',
       icon: 'fa-circle'
     };
   };
@@ -338,6 +449,7 @@ export default function PaymentPage() {
       fetchList();
       fetchSummaryStatus();
       fetchSummaryData();
+      fetchSummaryStatus2();
     } else {
       toast.error(result.message || 'เกิดข้อผิดพลาด');
     }
@@ -370,6 +482,7 @@ export default function PaymentPage() {
       fetchList();
       fetchSummaryStatus();
       fetchSummaryData();
+      fetchSummaryStatus2();
     } else {
       toast.error(result.message || 'เกิดข้อผิดพลาด');
     }
@@ -421,6 +534,7 @@ export default function PaymentPage() {
       fetchList();
       fetchSummaryStatus();
       fetchSummaryData();
+      fetchSummaryStatus2();
     } else {
       toast.error(result.message || 'เกิดข้อผิดพลาด');
     }
@@ -476,6 +590,129 @@ export default function PaymentPage() {
     setLoadingReviewSlip(false);
   };
 
+  // Handle manual payment click (for tab 0)
+  const handleManualPaymentClick = (item: any) => {
+    // Set current date and time
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].substring(0, 5);
+
+    setManualPaymentData({
+      id: item.id,
+      bill_no: item.bill_no,
+      bill_title: item.title,
+      member_name: item.member_name,
+      house_no: item.house_no,
+      total_price: item.total_price,
+      remaining_amount: item.remaining_amount,
+      status: item.status
+    });
+    setSelectedPaymentMethod('');
+    setPaymentAmount('');
+    setPaymentDate(dateStr);
+    setPaymentTime(timeStr);
+    setPaymentNotes('');
+
+    // Reset payment method specific fields
+    setTransferBank('');
+    setTransferRef('');
+    setCheckNumber('');
+    setCheckBank('');
+    setCheckDate('');
+    setCardRef('');
+    setCardLast4('');
+    setOtherMethod('');
+
+    setManualPaymentModalOpen(true);
+  };
+
+  // Handle set payment amount (full)
+  const setFullPaymentAmount = () => {
+    if (manualPaymentData?.remaining_amount) {
+      // Remove ฿ and commas
+      const amount = manualPaymentData.remaining_amount.replace(/[฿,]/g, '');
+      setPaymentAmount(amount);
+    }
+  };
+
+  // Handle confirm manual payment
+  const handleConfirmManualPayment = async () => {
+    if (!selectedPaymentMethod) {
+      toast.error('กรุณาเลือกวิธีการชำระเงิน');
+      return;
+    }
+
+    if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
+      toast.error('กรุณากรอกจำนวนเงินที่ชำระ');
+      return;
+    }
+
+    if (!paymentDate || !paymentTime) {
+      toast.error('กรุณาเลือกวันที่และเวลาที่ชำระ');
+      return;
+    }
+
+    setSubmittingPayment(true);
+
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+    const uid = user?.uid || -1;
+
+    const payDateTime = `${paymentDate} ${paymentTime}:00`;
+
+    // Build transaction_type_json based on payment method
+    const transactionTypeJson: any = {
+      bill_transaction_type_id: parseInt(selectedPaymentMethod)
+    };
+
+    // Add method-specific fields
+    const methodId = parseInt(selectedPaymentMethod);
+    if (methodId === 2) {
+      // โอนเงินธนาคาร
+      transactionTypeJson.transfer_bank = transferBank;
+      transactionTypeJson.transfer_ref = transferRef;
+    } else if (methodId === 3) {
+      // เช็ค
+      transactionTypeJson.check_number = checkNumber;
+      transactionTypeJson.check_bank = checkBank;
+      transactionTypeJson.check_date = checkDate;
+    } else if (methodId === 4) {
+      // บัตรเครดิต
+      transactionTypeJson.card_ref = cardRef;
+      transactionTypeJson.card_last4 = cardLast4;
+    } else if (methodId === 5) {
+      // อื่นๆ
+      transactionTypeJson.other_method = otherMethod;
+    }
+
+    const body = {
+      bill_room_id: manualPaymentData.id,
+      bill_transaction_type_id: parseInt(selectedPaymentMethod),
+      transaction_amount: parseFloat(paymentAmount),
+      pay_date: payDateTime,
+      remark: paymentNotes || '',
+      transaction_type_json: JSON.stringify(transactionTypeJson),
+      customer_id: customerId,
+      uid: uid
+    };
+
+    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bill_transaction/insert`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (result.success) {
+      toast.success('บันทึกการชำระเงินสำเร็จ');
+      setManualPaymentModalOpen(false);
+      fetchList();
+      fetchSummaryStatus2();
+    } else {
+      toast.error(result.message || 'เกิดข้อผิดพลาด');
+    }
+
+    setSubmittingPayment(false);
+  };
 
   // Handle file upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -617,7 +854,7 @@ export default function PaymentPage() {
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           {/* Card 1: บิลทั้งหมดเดือนนี้ - #2b6ef3 */}
-          <Card className="relative overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+          <Card className="relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: '#2b6ef3' }}></div>
             <div className="p-4 relative">
               <div className="absolute top-3 right-3 w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(43, 110, 243, 0.1)' }}>
@@ -634,7 +871,7 @@ export default function PaymentPage() {
           </Card>
 
           {/* Card 2: รออนุมัติ - #eab308 */}
-          <Card className="relative overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+          <Card className="relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: '#eab308' }}></div>
             <div className="p-4 relative">
               <div className="absolute top-3 right-3 w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(234, 179, 8, 0.1)' }}>
@@ -651,7 +888,7 @@ export default function PaymentPage() {
           </Card>
 
           {/* Card 3: อนุมัติแล้ว - #22c55e */}
-          <Card className="relative overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+          <Card className="relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: '#22c55e' }}></div>
             <div className="p-4 relative">
               <div className="absolute top-3 right-3 w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)' }}>
@@ -668,7 +905,7 @@ export default function PaymentPage() {
           </Card>
 
           {/* Card 4: ปฏิเสธ - #ef4444 */}
-          <Card className="relative overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+          <Card className="relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: '#ef4444' }}></div>
             <div className="p-4 relative">
               <div className="absolute top-3 right-3 w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
@@ -685,7 +922,7 @@ export default function PaymentPage() {
           </Card>
 
           {/* Card 5: รอชำระ - #8B5CF6 */}
-          <Card className="relative overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+          <Card className="relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: '#8B5CF6' }}></div>
             <div className="p-4 relative">
               <div className="absolute top-3 right-3 w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)' }}>
@@ -806,9 +1043,38 @@ export default function PaymentPage() {
 
               {/* Action Buttons */}
               <div className="flex gap-3 items-center">
-                {/* Tab 1: No buttons */}
+                {/* Tab 0: Dropdowns for Bill Type and Status */}
+                {activeTab === '0' && (
+                  <>
+                    <Select value={selectedBillTypeId} onValueChange={setSelectedBillTypeId}>
+                      <SelectTrigger className="w-[180px] !h-[44px] bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {billTypes.map((type) => (
+                          <SelectItem key={type.id} value={String(type.id)}>
+                            {type.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
 
-                {/* Tab 2: Dropdowns + Approve/Reject buttons */}
+                    <Select value={selectedBillStatus} onValueChange={setSelectedBillStatus}>
+                      <SelectTrigger className="w-[180px] !h-[44px] bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {billStatusList.map((status) => (
+                          <SelectItem key={status.id} value={String(status.id)}>
+                            {status.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
+
+                {/* Tab 1: Dropdowns + Approve/Reject buttons */}
                 {activeTab === '1' && (
                   <>
                     <Select value={amountRange} onValueChange={setAmountRange}>
@@ -895,7 +1161,7 @@ export default function PaymentPage() {
             <Card className="p-6">
               {/* Header */}
               <div>
-                <h3 className="text-xl font-bold text-slate-800 mb-0">รายการข่าว</h3>
+                <h3 className="text-xl font-bold text-slate-800 mb-0">รายการข้อมูล</h3>
               </div>
 
               {/* Loading State */}
@@ -911,39 +1177,58 @@ export default function PaymentPage() {
                     <table className="w-full">
                       <thead className="bg-slate-50 border-b-2 border-slate-200">
                         <tr>
-                          {activeTab === '1' && (
-                            <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700 w-[50px]">
-                              <input
-                                type="checkbox"
-                                checked={selectAll}
-                                onChange={handleSelectAll}
-                                className="w-4 h-4 rounded border-gray-300 cursor-pointer"
-                              />
-                            </th>
+                          {/* Tab 0: รอชำระ */}
+                          {activeTab === '0' && (
+                            <>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">บิลเลขที่</th>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">ลูกบ้าน</th>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">หัวข้อบิล</th>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">ยอดรวม</th>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">คงค้าง</th>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">วันครบกำหนด</th>
+                              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700 whitespace-nowrap">สถานะ</th>
+                              <th className="px-3 py-3 text-center text-sm font-semibold text-slate-700 whitespace-nowrap min-w-[100px]">การดำเนินการ</th>
+                            </>
                           )}
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">บิลเลขที่</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">ข้อมูลลูกบ้าน</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">หัวข้อบิล</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">จำนวนเงิน</th>
-                          {activeTab === '1' && <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700 whitespace-nowrap">สถานะ</th>}
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">
-                            {activeTab === '1' ? 'วันที่ส่ง' : activeTab === '2' ? 'วันที่อนุมัติ' : 'วันที่ปฏิเสธ'}
-                          </th>
-                          {(activeTab === '2' || activeTab === '3') && (
-                            <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">
-                              {activeTab === '2' ? 'ผู้อนุมัติ' : 'ผู้ปฏิเสธ'}
-                            </th>
+
+                          {/* Tab 1, 2, 3: รอตรวจสอบ, อนุมัติแล้ว, ปฏิเสธ */}
+                          {activeTab !== '0' && (
+                            <>
+                              {activeTab === '1' && (
+                                <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700 w-[50px]">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectAll}
+                                    onChange={handleSelectAll}
+                                    className="w-4 h-4 rounded border-gray-300 cursor-pointer"
+                                  />
+                                </th>
+                              )}
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">บิลเลขที่</th>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">ข้อมูลลูกบ้าน</th>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">หัวข้อบิล</th>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">จำนวนเงิน</th>
+                              {activeTab === '1' && <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700 whitespace-nowrap">สถานะ</th>}
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">
+                                {activeTab === '1' ? 'วันที่ส่ง' : activeTab === '2' ? 'วันที่อนุมัติ' : 'วันที่ปฏิเสธ'}
+                              </th>
+                              {(activeTab === '2' || activeTab === '3') && (
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">
+                                  {activeTab === '2' ? 'ผู้อนุมัติ' : 'ผู้ปฏิเสธ'}
+                                </th>
+                              )}
+                              {activeTab === '3' && <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">เหตุผล</th>}
+                              <th className="px-3 py-3 text-center text-sm font-semibold text-slate-700 whitespace-nowrap min-w-[100px]">
+                                การดำเนินการ
+                              </th>
+                            </>
                           )}
-                          {activeTab === '3' && <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">เหตุผล</th>}
-                          <th className="px-3 py-3 text-center text-sm font-semibold text-slate-700 whitespace-nowrap min-w-[100px]">
-                            การดำเนินการ
-                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {data.length === 0 ? (
                           <tr>
-                            <td colSpan={activeTab === '1' ? 7 : activeTab === '2' ? 6 : 7} className="px-4 py-8 text-center text-slate-500">
+                            <td colSpan={activeTab === '0' ? 8 : activeTab === '1' ? 7 : activeTab === '2' ? 6 : 7} className="px-4 py-8 text-center text-slate-500">
                               {searchKeyword ? 'ไม่พบข้อมูลที่ค้นหา' : 'ไม่มีข้อมูล'}
                             </td>
                           </tr>
@@ -954,109 +1239,190 @@ export default function PaymentPage() {
 
                             return (
                               <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                                {/* Checkbox - Tab 1 only */}
-                                {activeTab === '1' && (
-                                  <td className="px-4 py-4 text-center">
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedIds.includes(item.id)}
-                                      onChange={() => handleSelectRow(item.id)}
-                                      className="w-4 h-4 rounded border-gray-300 cursor-pointer"
-                                    />
-                                  </td>
-                                )}
+                                {/* Tab 0: รอชำระ */}
+                                {activeTab === '0' && (
+                                  <>
+                                    {/* บิลเลขที่ */}
+                                    <td className="px-4 py-4">
+                                      <div className="text-sm font-semibold text-slate-800">{item.bill_no || '-'}</div>
+                                    </td>
 
-                                {/* บิลเลขที่ */}
-                                <td className="px-4 py-4">
-                                  <div className="text-sm font-semibold text-slate-800">{item.bill_no || '-'}</div>
-                                </td>
-
-                                {/* ข้อมูลลูกบ้าน */}
-                                <td className="px-4 py-4">
-                                  <div className="flex items-center gap-3">
-                                    <div
-                                      className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-                                      style={{ background: 'linear-gradient(135deg, #2B6EF3, #1F4EC2)' }}
-                                    >
-                                      {initials}
-                                    </div>
-                                    <div className="min-w-0">
-                                      <div className="font-medium text-slate-800 truncate">{item.member_name || '-'}</div>
-                                      <div className="text-xs text-slate-500 truncate">{item.member_detail || '-'}</div>
-                                    </div>
-                                  </div>
-                                </td>
-
-                                {/* หัวข้อบิล */}
-                                <td className="px-4 py-4">
-                                  <div className="text-sm text-slate-600">{item.bill_title || '-'}</div>
-                                </td>
-
-                                {/* จำนวนเงิน */}
-                                <td className="px-4 py-4">
-                                  <div className="font-semibold text-slate-900">{item.payment_amount || '-'}</div>
-                                </td>
-
-                                {/* สถานะ - Tab 1 only */}
-                                {activeTab === '1' && (
-                                  <td className="px-4 py-4 !text-center">
-                                    <div className={`inline-flex items-center px-3 py-1 rounded text-sm font-medium ${statusInfo.className}`}>
-                                      {statusInfo.label}
-                                    </div>
-                                  </td>
-                                )}
-
-                                {/* วันที่ส่ง/อนุมัติ/ปฏิเสธ */}
-                                <td className="px-4 py-4">
-                                  {(activeTab === '1' ? item.create_date_formatted : item.update_date_formatted) ? (
-                                    <>
-                                      <div className="text-slate-800 text-sm">
-                                        {(activeTab === '1' ? item.create_date_formatted : item.update_date_formatted)?.split(' ')[0]}
+                                    {/* ลูกบ้าน */}
+                                    <td className="px-4 py-4">
+                                      <div className="flex items-center gap-3">
+                                        <div
+                                          className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                                          style={{ background: 'linear-gradient(135deg, #2B6EF3, #1F4EC2)' }}
+                                        >
+                                          {initials}
+                                        </div>
+                                        <div className="min-w-0">
+                                          <div className="font-medium text-slate-800 truncate">{item.member_name || '-'}</div>
+                                          <div className="text-xs text-slate-500 truncate">{item.house_no || '-'}</div>
+                                        </div>
                                       </div>
-                                      <div className="text-xs text-slate-500">
-                                        {(activeTab === '1' ? item.create_date_formatted : item.update_date_formatted)?.split(' ')[1]}
+                                    </td>
+
+                                    {/* หัวข้อบิล */}
+                                    <td className="px-4 py-4">
+                                      <div className="text-sm text-slate-600">{item.title || '-'}</div>
+                                    </td>
+
+                                    {/* ยอดรวม */}
+                                    <td className="px-4 py-4">
+                                      <div className="font-bold text-slate-900">{item.total_price || '-'}</div>
+                                    </td>
+
+                                    {/* คงค้าง */}
+                                    <td className="px-4 py-4">
+                                      <div className="font-bold" style={{
+                                        color: item.status === 0 ? '#D97706' :
+                                               item.status === 3 ? '#B91C1C' :
+                                               item.status === 4 ? '#0891B2' :
+                                               '#0F172A'
+                                      }}>
+                                        {item.remaining_amount || '-'}
                                       </div>
-                                    </>
-                                  ) : (
-                                    <div className="text-slate-600">-</div>
-                                  )}
-                                </td>
+                                    </td>
 
-                                {/* ผู้อนุมัติ/ผู้ปฏิเสธ - Tab 2 & 3 */}
-                                {(activeTab === '2' || activeTab === '3') && (
-                                  <td className="px-4 py-4">
-                                    <div className="font-semibold text-slate-800 text-sm">Admin</div>
-                                    <div className="text-xs text-slate-500">ผู้ดูแลระบบ</div>
-                                  </td>
+                                    {/* วันครบกำหนด */}
+                                    <td className="px-4 py-4">
+                                      <div className="text-sm text-slate-800">
+                                        {item.expire_date ? item.expire_date.split(' ')[0] : '-'}
+                                      </div>
+                                    </td>
+
+                                    {/* สถานะ */}
+                                    <td className="px-4 py-4 !text-center">
+                                      <div className={`inline-flex items-center px-3 py-1 rounded text-sm font-medium ${statusInfo.className}`} style={{ color: statusInfo.textColor }}>
+                                        {statusInfo.label}
+                                      </div>
+                                    </td>
+
+                                    {/* การดำเนินการ */}
+                                    <td className="px-4 py-4">
+                                      <div className="flex justify-center gap-2">
+                                        <button
+                                          onClick={() => handleManualPaymentClick(item)}
+                                          className={`inline-flex items-center gap-2 px-3 py-1 rounded text-sm font-medium cursor-pointer ${statusInfo.className}`}
+                                          style={{ color: statusInfo.textColor }}
+                                        >
+                                          <i className="fas fa-dollar-sign"></i>
+                                          บันทึกการชำระ
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </>
                                 )}
 
-                                {/* เหตุผล - Tab 3 only */}
-                                {activeTab === '3' && (
-                                  <td className="px-4 py-4">
-                                    <div className="mb-1">
-                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-red-50 text-red-700">
-                                        <i className="fas fa-times-circle"></i>
-                                        ปฏิเสธ
-                                      </span>
-                                    </div>
-                                    <div className="text-xs text-slate-600 max-w-[200px] truncate" title={item.remark || '-'}>
-                                      {item.remark || '-'}
-                                    </div>
-                                  </td>
-                                )}
+                                {/* Tab 1, 2, 3: Other tabs */}
+                                {activeTab !== '0' && (
+                                  <>
+                                    {/* Checkbox - Tab 1 only */}
+                                    {activeTab === '1' && (
+                                      <td className="px-4 py-4 text-center">
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedIds.includes(item.id)}
+                                          onChange={() => handleSelectRow(item.id)}
+                                          className="w-4 h-4 rounded border-gray-300 cursor-pointer"
+                                        />
+                                      </td>
+                                    )}
 
-                                {/* การดำเนินการ */}
-                                <td className="px-4 py-4">
-                                  <div className="flex justify-center">
-                                    <button
-                                      onClick={() => handleReviewSlipClick(item)}
-                                      className="w-8 h-8 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 transition-all hover:-translate-y-0.5"
-                                      title="ดู"
-                                    >
-                                      <i className="fas fa-eye text-sm"></i>
-                                    </button>
-                                  </div>
-                                </td>
+                                    {/* บิลเลขที่ */}
+                                    <td className="px-4 py-4">
+                                      <div className="text-sm font-semibold text-slate-800">{item.bill_no || '-'}</div>
+                                    </td>
+
+                                    {/* ข้อมูลลูกบ้าน */}
+                                    <td className="px-4 py-4">
+                                      <div className="flex items-center gap-3">
+                                        <div
+                                          className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                                          style={{ background: 'linear-gradient(135deg, #2B6EF3, #1F4EC2)' }}
+                                        >
+                                          {initials}
+                                        </div>
+                                        <div className="min-w-0">
+                                          <div className="font-medium text-slate-800 truncate">{item.member_name || '-'}</div>
+                                          <div className="text-xs text-slate-500 truncate">{item.member_detail || '-'}</div>
+                                        </div>
+                                      </div>
+                                    </td>
+
+                                    {/* หัวข้อบิล */}
+                                    <td className="px-4 py-4">
+                                      <div className="text-sm text-slate-600">{item.bill_title || '-'}</div>
+                                    </td>
+
+                                    {/* จำนวนเงิน */}
+                                    <td className="px-4 py-4">
+                                      <div className="font-semibold text-slate-900">{item.payment_amount || '-'}</div>
+                                    </td>
+
+                                    {/* สถานะ - Tab 1 only */}
+                                    {activeTab === '1' && (
+                                      <td className="px-4 py-4 !text-center">
+                                        <div className={`inline-flex items-center px-3 py-1 rounded text-sm font-medium ${statusInfo.className}`} style={{ color: statusInfo.textColor }}>
+                                          {statusInfo.label}
+                                        </div>
+                                      </td>
+                                    )}
+
+                                    {/* วันที่ส่ง/อนุมัติ/ปฏิเสธ */}
+                                    <td className="px-4 py-4">
+                                      {(activeTab === '1' ? item.create_date_formatted : item.update_date_formatted) ? (
+                                        <>
+                                          <div className="text-slate-800 text-sm">
+                                            {(activeTab === '1' ? item.create_date_formatted : item.update_date_formatted)?.split(' ')[0]}
+                                          </div>
+                                          <div className="text-xs text-slate-500">
+                                            {(activeTab === '1' ? item.create_date_formatted : item.update_date_formatted)?.split(' ')[1]}
+                                          </div>
+                                        </>
+                                      ) : (
+                                        <div className="text-slate-600">-</div>
+                                      )}
+                                    </td>
+
+                                    {/* ผู้อนุมัติ/ผู้ปฏิเสธ - Tab 2 & 3 */}
+                                    {(activeTab === '2' || activeTab === '3') && (
+                                      <td className="px-4 py-4">
+                                        <div className="font-semibold text-slate-800 text-sm">Admin</div>
+                                        <div className="text-xs text-slate-500">ผู้ดูแลระบบ</div>
+                                      </td>
+                                    )}
+
+                                    {/* เหตุผล - Tab 3 only */}
+                                    {activeTab === '3' && (
+                                      <td className="px-4 py-4">
+                                        <div className="mb-1">
+                                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-red-50 text-red-700">
+                                            <i className="fas fa-times-circle"></i>
+                                            ปฏิเสธ
+                                          </span>
+                                        </div>
+                                        <div className="text-xs text-slate-600 max-w-[200px] truncate" title={item.remark || '-'}>
+                                          {item.remark || '-'}
+                                        </div>
+                                      </td>
+                                    )}
+
+                                    {/* การดำเนินการ */}
+                                    <td className="px-4 py-4">
+                                      <div className="flex justify-center">
+                                        <button
+                                          onClick={() => handleReviewSlipClick(item)}
+                                          className="w-8 h-8 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 transition-all hover:-translate-y-0.5 cursor-pointer"
+                                          title="ดู"
+                                        >
+                                          <i className="fas fa-eye text-sm"></i>
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </>
+                                )}
                               </tr>
                             );
                           })
@@ -1085,7 +1451,7 @@ export default function PaymentPage() {
                       <i className="fas fa-clock"></i>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-slate-900 mb-1">15</div>
+                      <div className="text-2xl font-bold text-slate-900 mb-1">{summaryStatus2?.card1 || 0}</div>
                       <div className="text-sm text-slate-600">บิลรอชำระ</div>
                     </div>
                   </div>
@@ -1096,7 +1462,7 @@ export default function PaymentPage() {
                       <i className="fas fa-exclamation-triangle"></i>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-slate-900 mb-1">8</div>
+                      <div className="text-2xl font-bold text-slate-900 mb-1">{summaryStatus2?.card2 || 0}</div>
                       <div className="text-sm text-slate-600">เกินกำหนด</div>
                     </div>
                   </div>
@@ -1107,7 +1473,7 @@ export default function PaymentPage() {
                       <i className="fas fa-money-bill-wave"></i>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-slate-900 mb-1">฿89,400</div>
+                      <div className="text-2xl font-bold text-slate-900 mb-1">{summaryStatus2?.card3 || '฿0'}</div>
                       <div className="text-sm text-slate-600">ยอดค้างรวม</div>
                     </div>
                   </div>
@@ -1298,7 +1664,7 @@ export default function PaymentPage() {
                   <div className="flex flex-col gap-1">
                     <span className="text-xs text-slate-500">สถานะ:</span>
                     <span className="text-sm">
-                      <Badge className={getStatusBadge(reviewSlipData.status).className}>
+                      <Badge className={getStatusBadge(reviewSlipData.status).className} style={{ color: getStatusBadge(reviewSlipData.status).textColor }}>
                         <i className={`fas ${getStatusBadge(reviewSlipData.status).icon} mr-1`}></i>
                         {getStatusBadge(reviewSlipData.status).label}
                       </Badge>
@@ -1385,6 +1751,309 @@ export default function PaymentPage() {
               disabled={submittingAction}
             >
               {submittingAction ? 'กำลังบันทึก...' : 'ยืนยันปฏิเสธ'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Payment Modal */}
+      <Dialog open={manualPaymentModalOpen} onOpenChange={setManualPaymentModalOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <i className="fas fa-dollar-sign"></i>
+              บันทึกการชำระเงินแบบ Manual
+            </DialogTitle>
+          </DialogHeader>
+
+          {manualPaymentData && (
+            <div className="space-y-6 py-4">
+              {/* Bill Information */}
+              <div className="bg-blue-50 p-5 rounded-lg border-l-4 border-blue-600">
+                <h4 className="text-slate-900 font-semibold mb-4 flex items-center gap-2">
+                  <i className="fas fa-file-invoice"></i>
+                  ข้อมูลบิล
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-slate-500">เลขที่บิล:</span>
+                    <span className="text-sm font-semibold text-slate-900">{manualPaymentData.bill_no}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-slate-500">หัวข้อบิล:</span>
+                    <span className="text-sm font-semibold text-slate-900">{manualPaymentData.bill_title}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-slate-500">ลูกบ้าน:</span>
+                    <span className="text-sm font-semibold text-slate-900">{manualPaymentData.member_name} ({manualPaymentData.house_no})</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-slate-500">ยอดรวมบิล:</span>
+                    <span className="text-sm font-semibold text-slate-900">{manualPaymentData.total_price}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-slate-500">ชำระแล้ว:</span>
+                    <span className="text-sm font-semibold text-slate-900">฿0</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-slate-500">ยอดค้าง:</span>
+                    <span className="text-sm font-bold text-red-700">{manualPaymentData.remaining_amount}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Details Form */}
+              <div>
+                <h4 className="text-slate-900 font-semibold mb-4 flex items-center gap-2">
+                  <i className="fas fa-credit-card"></i>
+                  รายละเอียดการชำระเงิน
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Payment Method */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">วิธีการชำระเงิน *</label>
+                    <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+                      <SelectTrigger className="w-full h-[42px] px-3 py-2 border border-slate-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <SelectValue placeholder="เลือกวิธีการชำระ" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {paymentMethods.map((method) => (
+                          <SelectItem key={method.id} value={String(method.id)}>
+                            {method.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Payment Amount */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">จำนวนเงินที่ชำระ *</label>
+                    <input
+                      type="number"
+                      value={paymentAmount}
+                      onChange={(e) => setPaymentAmount(e.target.value)}
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={setFullPaymentAmount}
+                      className="text-xs px-3 py-1.5 border border-slate-300 bg-white text-slate-700 rounded-md hover:bg-slate-50 transition-colors"
+                    >
+                      ชำระเต็มจำนวน
+                    </button>
+                  </div>
+
+                  {/* Payment Date */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">วันที่ชำระ</label>
+                    <input
+                      type="date"
+                      value={paymentDate}
+                      onChange={(e) => setPaymentDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* Payment Time */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">เวลาที่ชำระ</label>
+                    <input
+                      type="time"
+                      value={paymentTime}
+                      onChange={(e) => setPaymentTime(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Payment Method Specific Fields */}
+                {selectedPaymentMethod === '1' && (
+                  <div className="mt-4 bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <h5 className="font-semibold text-slate-900 flex items-center gap-2 mb-2">
+                      <i className="fas fa-money-bill-wave"></i>
+                      การชำระด้วยเงินสด
+                    </h5>
+                    <p className="text-sm text-slate-600">กรุณาตรวจนับเงินสดให้ถูกต้องก่อนบันทึก</p>
+                  </div>
+                )}
+
+                {selectedPaymentMethod === '2' && (
+                  <div className="mt-4 bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <h5 className="font-semibold text-slate-900 flex items-center gap-2 mb-3">
+                      <i className="fas fa-university"></i>
+                      การโอนเงินธนาคาร
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">ธนาคารที่โอน</label>
+                        <input
+                          type="text"
+                          value={transferBank}
+                          onChange={(e) => setTransferBank(e.target.value)}
+                          placeholder="เช่น: ธนาคารกสิกรไทย"
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">เลขที่อ้างอิง</label>
+                        <input
+                          type="text"
+                          value={transferRef}
+                          onChange={(e) => setTransferRef(e.target.value)}
+                          placeholder="เลขที่อ้างอิงการโอน"
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedPaymentMethod === '3' && (
+                  <div className="mt-4 bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <h5 className="font-semibold text-slate-900 flex items-center gap-2 mb-3">
+                      <i className="fas fa-file-invoice"></i>
+                      การชำระด้วยเช็ค
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">หมายเลขเช็ค</label>
+                        <input
+                          type="text"
+                          value={checkNumber}
+                          onChange={(e) => setCheckNumber(e.target.value)}
+                          placeholder="เลขที่เช็ค"
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">ธนาคารที่ออกเช็ค</label>
+                        <input
+                          type="text"
+                          value={checkBank}
+                          onChange={(e) => setCheckBank(e.target.value)}
+                          placeholder="ชื่อธนาคาร"
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-sm font-medium text-slate-700">วันที่เช็ค</label>
+                        <input
+                          type="date"
+                          value={checkDate}
+                          onChange={(e) => setCheckDate(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-3 bg-yellow-50 p-3 rounded-md border border-yellow-200">
+                      <small className="text-yellow-800 flex items-center gap-2">
+                        <i className="fas fa-exclamation-triangle"></i>
+                        กรุณาเก็บเช็คต้นฉบับไว้เป็นหลักฐาน
+                      </small>
+                    </div>
+                  </div>
+                )}
+
+                {selectedPaymentMethod === '4' && (
+                  <div className="mt-4 bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <h5 className="font-semibold text-slate-900 flex items-center gap-2 mb-3">
+                      <i className="fas fa-credit-card"></i>
+                      การชำระด้วยบัตรเครดิต
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">หมายเลขอ้างอิง</label>
+                        <input
+                          type="text"
+                          value={cardRef}
+                          onChange={(e) => setCardRef(e.target.value)}
+                          placeholder="เลขที่ Approval Code"
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">4 หลักท้ายของบัตร</label>
+                        <input
+                          type="text"
+                          value={cardLast4}
+                          onChange={(e) => setCardLast4(e.target.value)}
+                          placeholder="XXXX"
+                          maxLength={4}
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedPaymentMethod === '5' && (
+                  <div className="mt-4 bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <h5 className="font-semibold text-slate-900 flex items-center gap-2 mb-3">
+                      <i className="fas fa-ellipsis-h"></i>
+                      วิธีการอื่นๆ
+                    </h5>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">ระบุวิธีการชำระ</label>
+                      <input
+                        type="text"
+                        value={otherMethod}
+                        onChange={(e) => setOtherMethod(e.target.value)}
+                        placeholder="เช่น: คูปอง, บัตรกำนัล"
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment Calculation */}
+                <div className="mt-4 bg-slate-50 p-4 rounded-lg space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-600">จำนวนเงินที่ชำระ:</span>
+                    <span className="font-semibold text-slate-900">
+                      ฿{paymentAmount ? parseFloat(paymentAmount).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-600">ยอดคงเหลือหลังชำระ:</span>
+                    <span className="font-semibold text-slate-900">
+                      ฿{paymentAmount && manualPaymentData.remaining_amount
+                        ? (parseFloat(manualPaymentData.remaining_amount.replace(/[฿,]/g, '')) - parseFloat(paymentAmount)).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                        : manualPaymentData.remaining_amount}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div className="mt-4 space-y-2">
+                  <label className="text-sm font-medium text-slate-700">หมายเหตุเพิ่มเติม</label>
+                  <textarea
+                    value={paymentNotes}
+                    onChange={(e) => setPaymentNotes(e.target.value)}
+                    rows={3}
+                    placeholder="บันทึกรายละเอียดเพิ่มเติม เช่น หมายเลขเช็ค, การอ้างอิง, ฯลฯ"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="outline" onClick={() => setManualPaymentModalOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700 gap-2"
+              onClick={handleConfirmManualPayment}
+              disabled={submittingPayment}
+            >
+              <i className="fas fa-save"></i>
+              บันทึกการชำระเงิน
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -695,6 +695,12 @@ export default function BillingPage() {
         className: 'bg-red-50 text-red-700'
       };
     }
+    if (status === 4) {
+      return {
+        label: 'ชำระบางส่วน',
+        className: 'bg-blue-50 text-[#0891B2]'
+      };
+    }
     return {
       label: 'รอชำระ',
       className: 'bg-yellow-50 text-yellow-700'
@@ -1037,7 +1043,7 @@ export default function BillingPage() {
                             {item.total_room ? (
                               <button
                                 onClick={() => handleRoomCountClick(item.id)}
-                                className="text-blue-600 hover:text-blue-700 hover:underline font-medium"
+                                className="text-blue-600 hover:text-blue-700 hover:underline font-medium cursor-pointer"
                               >
                                 {item.total_room} ห้อง
                               </button>
@@ -1058,7 +1064,7 @@ export default function BillingPage() {
                               {/* ปุ่ม ดู - แสดงทุก status */}
                               <button
                                 onClick={() => handleViewClick(item.id)}
-                                className="w-8 h-8 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 transition-all hover:-translate-y-0.5"
+                                className="w-8 h-8 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 transition-all hover:-translate-y-0.5 cursor-pointer"
                                 title="ดู"
                               >
                                 <i className="fas fa-eye text-sm"></i>
@@ -1068,7 +1074,7 @@ export default function BillingPage() {
                               {item.status === 1 && (
                                 <button
                                   onClick={() => handleCancelSendClick(item)}
-                                  className="w-8 h-8 rounded-md bg-yellow-100 text-yellow-500 hover:bg-yellow-200 transition-all hover:-translate-y-0.5"
+                                  className="w-8 h-8 rounded-md bg-yellow-100 text-yellow-500 hover:bg-yellow-200 transition-all hover:-translate-y-0.5 cursor-pointer"
                                   title="ยกเลิกการแจ้ง"
                                 >
                                   <i className="fas fa-ban text-sm"></i>
@@ -1079,7 +1085,7 @@ export default function BillingPage() {
                               {item.status === 3 && (
                                 <button
                                   onClick={() => handleSendClick(item)}
-                                  className="w-8 h-8 rounded-md bg-green-100 text-green-500 hover:bg-green-200 transition-all hover:-translate-y-0.5"
+                                  className="w-8 h-8 rounded-md bg-green-100 text-green-500 hover:bg-green-200 transition-all hover:-translate-y-0.5 cursor-pointer"
                                   title="ส่งการแจ้งเตือน"
                                 >
                                   <i className="fas fa-paper-plane text-sm"></i>
@@ -1091,21 +1097,21 @@ export default function BillingPage() {
                                 <>
                                   <button
                                     onClick={() => handleEditClick(item.id)}
-                                    className="w-8 h-8 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all hover:-translate-y-0.5"
+                                    className="w-8 h-8 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all hover:-translate-y-0.5 cursor-pointer"
                                     title="แก้ไข"
                                   >
                                     <i className="fas fa-edit text-sm"></i>
                                   </button>
                                   <button
                                     onClick={() => handleSendClick(item)}
-                                    className="w-8 h-8 rounded-md bg-green-100 text-green-500 hover:bg-green-200 transition-all hover:-translate-y-0.5"
+                                    className="w-8 h-8 rounded-md bg-green-100 text-green-500 hover:bg-green-200 transition-all hover:-translate-y-0.5 cursor-pointer"
                                     title="ส่งการแจ้งเตือน"
                                   >
                                     <i className="fas fa-paper-plane text-sm"></i>
                                   </button>
                                   <button
                                     onClick={() => handleDeleteClick(item)}
-                                    className="w-8 h-8 rounded-md bg-red-100 text-red-500 hover:bg-red-200 transition-all hover:-translate-y-0.5"
+                                    className="w-8 h-8 rounded-md bg-red-100 text-red-500 hover:bg-red-200 transition-all hover:-translate-y-0.5 cursor-pointer"
                                     title="ลบ"
                                   >
                                     <i className="fas fa-trash text-sm"></i>
@@ -1912,6 +1918,7 @@ export default function BillingPage() {
                     <SelectItem value="1">ชำระแล้ว</SelectItem>
                     <SelectItem value="0">รอชำระ</SelectItem>
                     <SelectItem value="3">เกินกำหนด</SelectItem>
+                    <SelectItem value="4">ชำระบางส่วน</SelectItem>
                   </SelectContent>
                 </Select>
 

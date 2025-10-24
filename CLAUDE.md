@@ -791,6 +791,109 @@ const fetchData = async (page: number = 1) => {
    - Tab badges แสดงจำนวนจาก `summary_status`
    - Summary cards และ status ต้อง refresh หลัง approve/reject
 
+### 2025-10-24: Payment Page - Manual Payment Recording
+
+**Manual Payment Modal (Tab 0 - รอชำระ):**
+
+1. **Modal Structure** (800px width):
+   - Header: "บันทึกการชำระเงินแบบ Manual" + close button
+   - Body: 2 sections (ข้อมูลบิล + รายละเอียดการชำระ)
+   - Footer: ยกเลิก, บันทึกการชำระเงิน (green)
+
+2. **Bill Information Section** (2 columns grid):
+   - เลขห้อง (house_no)
+   - บิลเลขที่ (bill_no)
+   - ชื่อลูกบ้าน (member_name)
+   - หัวข้อบิล (bill_title)
+   - ยอดรวมบิล (total_price)
+   - ชำระแล้ว (hard-coded ฿0 for now)
+   - ยอดค้าง (remaining_amount, text-red-700)
+
+3. **Payment Details Form** (2 columns grid):
+   - วิธีการชำระเงิน * (dropdown): API `bill_transaction/bill_transaction_type`
+     - SelectTrigger: `w-full h-[42px] px-3 py-2 border border-slate-300 rounded-md bg-white`
+   - จำนวนเงินที่ชำระ * (number input):
+     - ปุ่ม "ชำระเต็มจำนวน" (ด้านล่าง input): `text-xs px-3 py-1.5 border border-slate-300 bg-white text-slate-700 rounded-md hover:bg-slate-50`
+     - Set value = remaining_amount (remove ฿ and commas)
+   - วันที่ชำระ (date input)
+   - เวลาที่ชำระ (time input)
+
+4. **Payment Method Specific Fields** (Conditional UI):
+   - **Method 1 (เงินสด)**:
+     - Info message only: "กรุณาตรวจนับเงินสดให้ถูกต้องก่อนบันทึก"
+   - **Method 2 (โอนเงินธนาคาร)** - 2 columns grid:
+     - ธนาคารที่โอน (transfer_bank)
+     - เลขที่อ้างอิง (transfer_ref)
+   - **Method 3 (เช็ค)** - 2 columns grid:
+     - หมายเลขเช็ค (check_number)
+     - ธนาคารที่ออกเช็ค (check_bank)
+     - วันที่เช็ค (check_date) - full width
+     - Warning: "กรุณาเก็บเช็คต้นฉบับไว้เป็นหลักฐาน" (yellow-50 bg)
+   - **Method 4 (บัตรเครดิต)** - 2 columns grid:
+     - หมายเลขอ้างอิง (card_ref) - Approval Code
+     - 4 หลักท้ายของบัตร (card_last4) - maxLength: 4
+   - **Method 5 (อื่นๆ)**:
+     - ระบุวิธีการชำระ (other_method) - placeholder: "คูปอง, บัตรกำนัล"
+   - **Styling**: bg-blue-50, p-4, rounded-lg, border-l-4 border-blue-500
+   - **Input fields**: bg-white (all conditional inputs)
+
+5. **Payment Calculation Summary** (bg-slate-50):
+   - จำนวนเงินที่ชำระ
+   - ยอดคงเหลือหลังชำระ (calculate: remaining_amount - payment_amount)
+
+6. **Notes Field** (full width):
+   - หมายเหตุเพิ่มเติม (textarea, 3 rows, optional)
+
+7. **API Integration**:
+   - Submit to: `bill_transaction/insert` (POST)
+   - Payload:
+     ```typescript
+     {
+       bill_room_id: item.id,
+       bill_transaction_type_id: parseInt(selectedPaymentMethod),
+       transaction_amount: parseFloat(paymentAmount),
+       pay_date: "${paymentDate} ${paymentTime}:00",
+       remark: paymentNotes || '',
+       transaction_type_json: JSON.stringify({
+         bill_transaction_type_id: parseInt(selectedPaymentMethod),
+         // Method-specific fields:
+         transfer_bank, transfer_ref,      // Method 2
+         check_number, check_bank, check_date,  // Method 3
+         card_ref, card_last4,             // Method 4
+         other_method                      // Method 5
+       }),
+       customer_id: customerId,
+       uid: uid
+     }
+     ```
+   - After success: refresh list + summary_status2
+
+8. **Action Button Trigger** (Tab 0 table):
+   - Column: การดำเนินการ
+   - Button: "บันทึกการชำระ" (badge style with status colors)
+   - Icon: fa-dollar-sign
+   - Class: `cursor-pointer` for hover effect
+
+9. **Tab 0 Filters**:
+   - หัวข้อบิล (dropdown): API `bill_type/list`
+     - Option -1: "ทุกหัวข้อบิล"
+     - Send as: `bill_type_id`
+   - สถานะ (dropdown): API `bill/bill_status`
+     - Send as: `status`
+
+10. **Tab 0 Summary Cards** (3 cards, bottom of page):
+    - API: `payment/summary_status2?customer_id=xxx`
+    - Cards:
+      - บิลรอชำระ (card1) - Yellow, fa-clock
+      - เกินกำหนด (card2) - Red, fa-exclamation-triangle
+      - ยอดค้างรวม (card3) - Blue, fa-dollar-sign
+    - No hover effect (removed cursor-pointer)
+
+11. **UI/UX Improvements**:
+    - All modal action buttons have `cursor-pointer` class:
+      - Payment page: "บันทึกการชำระ", "ดู" (review slip)
+      - Billing page: "จำนวนห้อง", "ดู", "ยกเลิกการแจ้ง", "ส่งการแจ้งเตือน", "แก้ไข", "ลบ"
+
 ### 2025-10-22: Build Error Fixes
 
 **TypeScript Compilation Errors:**
