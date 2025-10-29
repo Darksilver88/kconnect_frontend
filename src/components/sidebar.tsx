@@ -37,11 +37,6 @@ const menuItems = [
     title: 'ตั้งค่า',
     href: '/settings',
     icon: 'fa-cog'
-  },
-  {
-    title: 'ทดสอบหน้าลิส',
-    href: '/test',
-    icon: 'fa-list'
   }
 ];
 

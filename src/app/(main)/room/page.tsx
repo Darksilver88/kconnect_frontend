@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { useSidebar } from '@/app/(main)/layout';
 import { Card } from '@/components/ui/card';
@@ -40,6 +41,7 @@ import { LoadingSpinner } from '@/components/loading-spinner';
 import { ErrorAlert } from '@/components/error-alert';
 import { SearchBar } from '@/components/search-bar';
 import { TableActionButtons } from '@/components/table-action-buttons';
+import { BillDetailModal } from '@/components/bill-detail-modal';
 
 // ตัวแปรคงที่
 const MENU = 'room';
@@ -53,6 +55,7 @@ const API_DETAIL = 'member/list';
 
 export default function RoomPage() {
   const { setSidebarOpen } = useSidebar();
+  const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
   const [data, setData] = useState<any[]>([]);
   const [pagination, setPagination] = useState<any>(null);
@@ -98,9 +101,15 @@ export default function RoomPage() {
   const [loadingPaymentHistory, setLoadingPaymentHistory] = useState(false);
   const [viewRoomHouseNo, setViewRoomHouseNo] = useState('');
 
+  // Bill detail modal states
+  const [billViewModalOpen, setBillViewModalOpen] = useState(false);
+  const [billViewData, setBillViewData] = useState<any>(null);
+  const [billViewLoading, setBillViewLoading] = useState(false);
+
   // Search states
   const [searchQuery, setSearchQuery] = useState('');
   const [searchKeyword, setSearchKeyword] = useState(''); // keyword ที่ส่งไป API
+  const [syncing, setSyncing] = useState(false);
 
   // Summary data states
   const [roomSummaryData, setRoomSummaryData] = useState<any>(null);
@@ -248,6 +257,33 @@ export default function RoomPage() {
     setCurrentPage(1);
   };
 
+  // Handle sync from Firebase
+  const handleSync = async () => {
+    setSyncing(true);
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+    const uid = user?.uid || -1;
+
+    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}room/sync_from_firebase`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customer_id: customerId,
+        uid: uid
+      })
+    });
+
+    if (result.success) {
+      toast.success(result.message || 'ซิงค์ข้อมูลสำเร็จ');
+      await fetchList();
+      await fetchSummary();
+    } else {
+      toast.error(result.message || 'เกิดข้อผิดพลาดในการซิงค์ข้อมูล');
+    }
+
+    setSyncing(false);
+  };
+
   // Handle delete
   const handleDeleteClick = (id: number) => {
     setDeleteId(id);
@@ -344,6 +380,24 @@ export default function RoomPage() {
     if (viewRoomHouseNo) {
       fetchPaymentHistory(viewRoomHouseNo, page);
     }
+  };
+
+  // Fetch bill detail
+  const fetchBillDetail = async (billId: number) => {
+    setBillViewLoading(true);
+    setBillViewModalOpen(true);
+    setBillViewData(null);
+
+    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bill/${billId}`);
+
+    if (result.success) {
+      setBillViewData(result.data);
+    } else {
+      toast.error(result.message || result.error || 'ไม่พบข้อมูล');
+      setBillViewModalOpen(false);
+    }
+
+    setBillViewLoading(false);
   };
 
   // Handle view button click
@@ -471,7 +525,18 @@ export default function RoomPage() {
   };
 
   return (
-    <div>
+    <div className="relative">
+      {/* Syncing Overlay */}
+      {syncing && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 shadow-xl text-center">
+            <div className="w-12 h-12 border-4 border-blue-600/30 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <div className="text-lg font-semibold text-slate-900 mb-2">กำลังซิงค์ข้อมูล</div>
+            <div className="text-sm text-slate-600">กรุณารอสักครู่...</div>
+          </div>
+        </div>
+      )}
+
       <PageHeader
         title="จัดการข้อมูลทะเบียน"
         subtitle="ระบบจัดการข้อมูลห้องและผู้พักอาศัย"
@@ -597,6 +662,16 @@ export default function RoomPage() {
               onClear={handleClearSearch}
               placeholder="ค้นหาจากห้อง, ชื่อ หรือเบอร์โทรศัพท์..."
             />
+            <Button
+              onClick={handleSync}
+              variant="outline"
+              className="h-11 px-4 gap-2 cursor-pointer"
+              title="ซิงค์ข้อมูล"
+              disabled={syncing}
+            >
+              <i className={`fas fa-sync-alt ${syncing ? 'animate-spin' : ''}`}></i>
+              ซิงค์ข้อมูล
+            </Button>
           </div>
 
           {/* Action Buttons */}
@@ -1003,6 +1078,8 @@ export default function RoomPage() {
                                       return { label: 'รอชำระ', className: 'bg-yellow-50 text-yellow-700' };
                                     case 3:
                                       return { label: 'เกินกำหนด', className: 'bg-red-50 text-red-700' };
+                                    case 4:
+                                      return { label: 'ชำระบางส่วน', className: 'bg-blue-50 text-[#0891B2]' };
                                     default:
                                       return { label: '-', className: 'bg-slate-50 text-slate-700' };
                                   }
@@ -1023,7 +1100,10 @@ export default function RoomPage() {
                                     </td>
                                     <td className="px-4 py-3">
                                       <div className="flex justify-center">
-                                        <button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors">
+                                        <button
+                                          onClick={() => fetchBillDetail(item.bill_id)}
+                                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors cursor-pointer"
+                                        >
                                           <i className="fas fa-eye mr-1.5"></i>
                                           ดูบิล
                                         </button>
@@ -1244,6 +1324,14 @@ export default function RoomPage() {
           ) : null}
         </DialogContent>
       </Dialog>
+
+      {/* Bill Detail Modal */}
+      <BillDetailModal
+        open={billViewModalOpen}
+        onOpenChange={setBillViewModalOpen}
+        billData={billViewData}
+        loading={billViewLoading}
+      />
     </div>
   );
 }

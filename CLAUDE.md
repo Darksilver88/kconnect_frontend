@@ -894,6 +894,56 @@ const fetchData = async (page: number = 1) => {
       - Payment page: "บันทึกการชำระ", "ดู" (review slip)
       - Billing page: "จำนวนห้อง", "ดู", "ยกเลิกการแจ้ง", "ส่งการแจ้งเตือน", "แก้ไข", "ลบ"
 
+### 2025-10-28: Status Badge & Room Sync Updates
+
+**Payment Status Badge - Status 4 (ชำระบางส่วน):**
+1. **Payment Page** (Tab 0):
+   - เพิ่ม case 4 ใน `getStatusBadge()`: label "ชำระบางส่วน", color `text-[#0891B2]`
+   - แสดงใน column "สถานะ" และ "คงค้าง"
+
+2. **Billing Page** (Bill Room Details Modal):
+   - เพิ่ม case 4 ใน `getPaymentStatusBadge()`: label "ชำระบางส่วน", className `bg-blue-50 text-[#0891B2]`
+   - เพิ่ม SelectItem "ชำระบางส่วน" value="4" ใน status filter dropdown
+
+3. **Room Page** (Payment History Tab):
+   - เพิ่ม case 4 ใน `getPaymentStatusBadge()`: label "ชำระบางส่วน", className `bg-blue-50 text-[#0891B2]`
+   - แสดงใน column "สถานะ" ของตาราง ประวัติการชำระ
+
+**Manual Payment Modal Bug Fix:**
+- แก้ไข "ยอดคงเหลือหลังชำระ" แสดง ฿฿ ซ้ำ
+- เมื่อยังไม่กรอกยอดเงิน: แสดง remaining_amount หลัง remove ฿ และ format ใหม่
+- แสดงแค่ ฿ เดียว ทั้งกรณีมีและไม่มียอดเงินที่ชำระ
+
+**Room Page - Firebase Sync Feature:**
+1. **Sync Button**:
+   - ตำแหน่ง: ถัดจาก SearchBar (ใน flex gap-3)
+   - Icon: `fa-sync-alt` (animate-spin ขณะ syncing)
+   - Label: "ซิงค์ข้อมูล"
+   - Styling: `variant="outline" h-11 px-4 gap-2 cursor-pointer`
+   - Disabled state เมื่อกำลัง sync
+
+2. **API Integration**:
+   - Endpoint: `room/sync_from_firebase` (POST)
+   - Payload: `{ customer_id, uid }`
+   - Response: success, message, data (rooms/members stats)
+   - Success: แสดง toast + refresh list + refresh summary
+   - Error: แสดง toast error
+
+3. **Loading Overlay**:
+   - Full-screen overlay (fixed inset-0, z-50)
+   - Background: `bg-black/50 backdrop-blur-sm`
+   - Content: white card with spinner + "กำลังซิงค์ข้อมูล" + "กรุณารอสักครู่..."
+   - Spinner: blue gradient border with rotate animation
+   - ป้องกัน user interaction ขณะซิงค์
+
+4. **State Management**:
+   - `syncing` state: ควบคุม loading overlay และ button disabled
+   - Set syncing(true) → API call → toast → refresh → syncing(false)
+
+**UI/UX Best Practice Note**:
+- ปุ่มทั้งหมดที่กดได้ต้องมี `cursor-pointer` class เพื่อแสดง hand cursor
+- ปุ่มที่ใช้เวลานานต้องมี loading state และป้องกัน double-click
+
 ### 2025-10-22: Build Error Fixes
 
 **TypeScript Compilation Errors:**

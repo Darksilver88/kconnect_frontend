@@ -1,0 +1,2134 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตั้งค่าระบบ - ระบบจัดการโครงการที่พักอาศัย</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #2B6EF3;
+            --primary-blue-dark: #1F4EC2;
+            --primary-blue-light: #EBF2FF;
+            --blue-50: #F8FAFF;
+            --blue-100: #EBF2FF;
+            
+            --gray-50: #F8FAFC;
+            --gray-100: #F1F5F9;
+            --gray-200: #E2E8F0;
+            --gray-300: #CBD5E1;
+            --gray-400: #94A3B8;
+            --gray-500: #64748B;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1E293B;
+            --gray-900: #0F172A;
+            
+            --white: #FFFFFF;
+            --green-500: #22C55E;
+            --green-100: #DCFCE7;
+            --yellow-500: #EAB308;
+            --yellow-100: #FEF3C7;
+            --red-500: #EF4444;
+            --red-100: #FEE2E2;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-800);
+            line-height: 1.6;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--white);
+            color: var(--gray-700);
+            padding: 24px 0;
+            position: fixed;
+            height: 100vh;
+            z-index: 1000;
+            box-shadow: var(--shadow-sm);
+            border-right: 1px solid var(--gray-200);
+        }
+
+        .sidebar-header {
+            padding: 0 24px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            margin-bottom: 24px;
+        }
+
+        .sidebar-header .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .sidebar-header .logo i {
+            background: var(--blue-100);
+            color: var(--primary-blue);
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .sidebar-header .subtitle {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0 16px;
+        }
+
+        .sidebar-menu li {
+            margin-bottom: 4px;
+        }
+
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            color: var(--gray-600);
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .sidebar-menu a i {
+            width: 20px;
+            margin-right: 12px;
+            color: var(--gray-500);
+        }
+
+        .sidebar-menu a:hover {
+            background: var(--gray-50);
+            color: var(--gray-800);
+        }
+
+        .sidebar-menu a:hover i {
+            color: var(--primary-blue);
+        }
+
+        .sidebar-menu a.active {
+            background: var(--blue-50);
+            color: var(--primary-blue);
+            border-left: 3px solid var(--primary-blue);
+            font-weight: 600;
+        }
+
+        .sidebar-menu a.active i {
+            color: var(--primary-blue);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            background: var(--gray-50);
+        }
+
+        /* Header */
+        .header {
+            background: var(--white);
+            padding: 16px 32px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-top: 4px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+		
+		.project-selector {
+            position: relative;
+        }
+
+        .project-dropdown {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--blue-50);
+            padding: 12px 16px;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid var(--blue-100);
+        }
+
+        .project-dropdown:hover {
+            background: var(--blue-100);
+        }
+		
+		.dropdown-arrow {
+            color: var(--primary-blue);
+            transition: transform 0.3s ease;
+        }
+
+        .project-dropdown.open .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            margin-top: 4px;
+            display: none;
+            overflow: hidden;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+            animation: dropdownSlide 0.2s ease-out;
+        }
+		
+		.dropdown-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background: var(--gray-50);
+        }
+
+        .dropdown-item.active {
+            background: var(--blue-50);
+        }
+
+        .dropdown-item-name {
+            font-weight: 500;
+            color: var(--gray-800);
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .dropdown-item-code {
+            font-size: 12px;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .project-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .project-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary-blue);
+            line-height: 1.2;
+        }
+
+        .project-code {
+            font-size: 12px;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .dropdown-arrow {
+            color: var(--primary-blue);
+            transition: transform 0.3s ease;
+        }
+
+        .notification-btn {
+            position: relative;
+            background: #f0f4f8;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .notification-btn:hover {
+            background: #e2e8f0;
+            transform: scale(1.05);
+        }
+
+        .notification-btn .badge {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: var(--red-500);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            min-width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            background: var(--primary-blue);
+            color: white;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .user-info {
+            font-size: 14px;
+        }
+
+        .user-name {
+            font-weight: 600;
+        }
+
+        .user-role {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* Content Area */
+        .content {
+            padding: 32px;
+        }
+
+        /* Settings Navigation Tabs */
+        .settings-nav {
+            display: flex;
+            background: white;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 24px;
+            overflow: hidden;
+            border: 1px solid var(--gray-200);
+        }
+
+        .settings-tab {
+            flex: 1;
+            padding: 16px 20px;
+            text-align: center;
+            background: white;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--gray-600);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            font-family: 'Sarabun', sans-serif;
+            border-right: 1px solid var(--gray-200);
+        }
+
+        .settings-tab:last-child {
+            border-right: none;
+        }
+
+        .settings-tab:hover {
+            background: var(--gray-50);
+            color: var(--gray-800);
+        }
+
+        .settings-tab.active {
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        .settings-tab.active i {
+            color: white;
+        }
+
+        /* Settings Content */
+        .settings-content {
+            background: white;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        .tab-pane {
+            display: none;
+            padding: 32px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title i {
+            color: var(--primary-blue);
+        }
+
+        .section-description {
+            color: var(--gray-600);
+            font-size: 14px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        /* Form Styles */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 12px 16px;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            font-size: 14px;
+            font-family: 'Sarabun', sans-serif;
+            transition: all 0.3s ease;
+            background: var(--gray-50);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(43, 110, 243, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group .help-text {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 6px;
+        }
+
+        /* Logo Upload */
+        .logo-upload {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding: 20px;
+            background: var(--gray-50);
+            border-radius: var(--radius-lg);
+            margin-bottom: 24px;
+        }
+
+        .current-logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-dark));
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            box-shadow: var(--shadow-md);
+        }
+
+        .logo-info h4 {
+            color: var(--gray-900);
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+
+        .logo-info p {
+            color: var(--gray-500);
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        /* Bank Account List */
+        .bank-accounts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .bank-account-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: var(--gray-50);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-200);
+            transition: all 0.3s ease;
+        }
+
+        .bank-account-item:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .bank-account-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 1;
+        }
+
+        .bank-logo {
+            width: 50px;
+            height: 50px;
+            background: var(--green-500);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .bank-details h4 {
+            color: var(--gray-900);
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+
+        .bank-details p {
+            color: var(--gray-600);
+            font-size: 13px;
+            margin: 2px 0;
+        }
+
+        .account-type {
+            background: var(--blue-100);
+            color: var(--primary-blue);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        .bank-qr {
+            display: flex;
+            align-items: center;
+        }
+
+        .qr-code-preview {
+            width: 60px;
+            height: 60px;
+            border: 2px dashed var(--gray-300);
+            border-radius: var(--radius-md);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .qr-code-preview:hover {
+            border-color: var(--primary-blue);
+            background: var(--blue-50);
+        }
+
+        .qr-code-preview i {
+            font-size: 20px;
+            color: var(--gray-500);
+            margin-bottom: 2px;
+        }
+
+        .qr-code-preview span {
+            font-size: 8px;
+            color: var(--gray-500);
+        }
+
+        .bank-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 28px;
+            background: var(--gray-300);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: var(--green-500);
+        }
+
+        .toggle-switch::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .toggle-switch.active::before {
+            transform: translateX(22px);
+        }
+
+        /* Payment Method */
+        .payment-method {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            background: var(--gray-50);
+            border-radius: var(--radius-lg);
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+            border: 1px solid var(--gray-200);
+        }
+
+        .payment-method:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .payment-method.enabled {
+            background: var(--green-100);
+            border: 1px solid #BBF7D0;
+        }
+
+        .payment-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .payment-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: white;
+        }
+
+        .payment-icon.bank {
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-dark));
+        }
+
+        .payment-icon.qr {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        }
+
+        .payment-icon.card {
+            background: linear-gradient(135deg, var(--red-500), #c0392b);
+        }
+
+        .payment-details h4 {
+            color: var(--gray-900);
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+
+        .payment-details p {
+            color: var(--gray-600);
+            font-size: 13px;
+            margin: 0;
+        }
+
+        /* Notification Settings */
+        .notification-type {
+            padding: 20px;
+            background: var(--gray-50);
+            border-radius: var(--radius-lg);
+            margin-bottom: 16px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 15px;
+        }
+
+        .notification-title i {
+            color: var(--primary-blue);
+        }
+
+        .notification-description {
+            color: var(--gray-600);
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        .notification-methods {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .method-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--gray-700);
+        }
+
+        .method-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--primary-blue);
+        }
+
+        /* Button Styles */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: 'Sarabun', sans-serif;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-blue-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-success {
+            background: var(--green-500);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #16a34a;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-300);
+        }
+
+        .btn-danger {
+            background: var(--red-500);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: var(--radius-xl);
+            width: 90%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 24px 28px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--blue-50);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-md);
+            border: none;
+            background: var(--gray-200);
+            color: var(--gray-700);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 18px;
+        }
+
+        .modal-close:hover {
+            background: var(--gray-300);
+            color: var(--gray-900);
+        }
+
+        .modal-body {
+            padding: 28px;
+        }
+
+        .modal-footer {
+            padding: 20px 28px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* QR Upload Area */
+        .qr-upload-area {
+            border: 2px dashed var(--gray-300);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            text-align: center;
+            background: var(--gray-50);
+            margin-top: 16px;
+        }
+
+        .upload-prompt i {
+            font-size: 40px;
+            color: var(--gray-400);
+            margin-bottom: 12px;
+        }
+
+        .upload-prompt p {
+            color: var(--gray-600);
+            margin-bottom: 16px;
+        }
+
+        .current-qr {
+            display: none;
+        }
+
+        .current-qr img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: var(--radius-md);
+            margin-bottom: 12px;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            padding: 16px 20px;
+            border-radius: var(--radius-lg);
+            color: white;
+            font-weight: 500;
+            z-index: 9999;
+            max-width: 400px;
+            box-shadow: var(--shadow-lg);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            background: var(--green-500);
+        }
+
+        .toast.error {
+            background: var(--red-500);
+        }
+
+        .toast.warning {
+            background: var(--yellow-500);
+        }
+
+        .toast.info {
+            background: var(--primary-blue);
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .settings-nav {
+                flex-direction: column;
+            }
+
+            .settings-tab {
+                border-right: none;
+                border-bottom: 1px solid var(--gray-200);
+            }
+
+            .settings-tab:last-child {
+                border-bottom: none;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .logo-upload {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .payment-method,
+            .bank-account-item {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+
+            .bank-actions,
+            .btn-group {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .content {
+                padding: 20px;
+            }
+
+            .tab-pane {
+                padding: 20px;
+            }
+
+            .modal-content {
+                width: 95%;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-building"></i>
+                <div>
+                    <div>ระบบจัดการโครงการ</div>
+                </div>
+            </div>
+            <div class="subtitle">สำหรับฝ่ายบริหารโครงการ K-Connect</div>
+        </div>
+        
+        <ul class="sidebar-menu">
+            <li><a href="dashboard (ver dev).html"><i class="fas fa-tachometer-alt"></i> แดชบอร์ด</a></li>
+            <li><a href="payment-management-redesign (ver dev).html"><i class="fas fa-credit-card"></i> จัดการการชำระเงิน</a></li>
+            <li><a href="billing-management-system (ver dev).html"><i class="fas fa-file-alt"></i> จัดการบิล</a></li>
+            <li><a href="resident-mgmt-unified (ver dev).html"><i class="fas fa-address-book"></i> จัดการข้อมูลทะเบียน</a></li>
+            <li><a href="#"><i class="fas fa-bell"></i> การแจ้งเตือน</a></li>
+            <li><a href="#"><i class="fas fa-chart-bar"></i> รายงาน</a></li>
+            <li><a href="setting (ver dev).html" class="active"><i class="fas fa-cog"></i> ตั้งค่า</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div>
+                    <div class="breadcrumb">
+                        <span>หน้าหลัก</span>
+                        <i class="fas fa-chevron-right"></i>
+                        <span>ตั้งค่าระบบ</span>
+                    </div>
+                    <div class="page-title">ตั้งค่าระบบ</div>
+                </div>
+            </div>
+            
+            <div class="header-right">
+				<div class="project-selector">
+                    <div class="project-dropdown" onclick="toggleProjectDropdown()">
+                        <div class="project-info">
+                            <div class="project-name" id="currentProjectName">โค้ดเด้อทรี</div>
+                            <div class="project-code" id="currentProjectCode">CODE-TREE-01</div>
+                        </div>
+                        <i class="fas fa-chevron-down dropdown-arrow"></i>
+                    </div>
+                    <div class="dropdown-menu" id="projectDropdown">
+                        <div class="dropdown-item active" onclick="selectProject('โค้ดเด้อทรี', 'CODE-TREE-01', event)">
+                            <div class="dropdown-item-name">โค้ดเด้อทรี</div>
+                            <div class="dropdown-item-code">CODE-TREE-01</div>
+                        </div>
+                        <div class="dropdown-item" onclick="selectProject('บลูสกาย คอนโดมิเนียม', 'BLUE-SKY-02', event)">
+                            <div class="dropdown-item-name">บลูสกาย คอนโดมิเนียม</div>
+                            <div class="dropdown-item-code">BLUE-SKY-02</div>
+                        </div>
+                        <div class="dropdown-item" onclick="selectProject('กรีน วิลเลจ', 'GREEN-VIL-03', event)">
+                            <div class="dropdown-item-name">กรีน วิลเลจ</div>
+                            <div class="dropdown-item-code">GREEN-VIL-03</div>
+                        </div>
+                        <div class="dropdown-item" onclick="selectProject('โกลเด้น เพลซ', 'GOLD-PLC-04', event)">
+                            <div class="dropdown-item-name">โกลเด้น เพลซ</div>
+                            <div class="dropdown-item-code">GOLD-PLC-04</div>
+                        </div>
+                        <div class="dropdown-item" onclick="selectProject('ซิลเวอร์ เรสซิเด้นซ์', 'SIL-RES-05', event)">
+                            <div class="dropdown-item-name">ซิลเวอร์ เรสซิเด้นซ์</div>
+                            <div class="dropdown-item-code">SIL-RES-05</div>
+                        </div>
+                    </div>
+                </div>
+			
+                <button class="notification-btn">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">3</span>
+                </button>
+                
+                <div class="user-menu">
+                    <div class="user-info">
+                        <div class="user-name">Admin</div>
+                        <div class="user-role">ผู้ดูแลระบบ</div>
+                    </div>
+                    <div class="user-avatar">AD</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Settings Navigation Tabs -->
+            <nav class="settings-nav">
+                <button class="settings-tab active" onclick="switchTab('general', event)">
+                    <i class="fas fa-building"></i>
+                    ข้อมูลโครงการ
+                </button>
+                <button class="settings-tab" onclick="switchTab('payment', event)">
+                    <i class="fas fa-credit-card"></i>
+                    การชำระเงิน
+                </button>
+                <button class="settings-tab" onclick="switchTab('notifications', event)">
+                    <i class="fas fa-bell"></i>
+                    การแจ้งเตือน
+                </button>
+            </nav>
+
+            <!-- Settings Content -->
+            <div class="settings-content">
+                <!-- General Settings Tab -->
+                <div id="general-tab" class="tab-pane active">
+                    <!-- Project Information -->
+                    <div class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">
+                                <i class="fas fa-info-circle"></i>
+                                ข้อมูลโครงการ
+                            </h3>
+                            <button class="btn btn-primary" onclick="editProjectInfo()">
+                                <i class="fas fa-edit"></i> แก้ไข
+                            </button>
+                        </div>
+                        <p class="section-description">
+                            ข้อมูลพื้นฐานของโครงการที่จะแสดงในระบบและเอกสารต่างๆ
+                        </p>
+                        
+                        <div class="logo-upload">
+                            <div class="current-logo">ABC</div>
+                            <div class="logo-info">
+                                <h4>โลโก้โครงการ</h4>
+                                <p>ขนาดที่แนะนำ: 200x200px</p>
+                                <label class="btn btn-secondary">
+                                    <i class="fas fa-upload"></i> เปลี่ยนโลโก้
+                                    <input type="file" accept="image/*" style="display: none;" onchange="handleLogoUpload(event)">
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>ชื่อโครงการ</label>
+                                <input type="text" value="ABC Condominium" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>ชื่อย่อ</label>
+                                <input type="text" value="ABC" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>ที่อยู่โครงการ</label>
+                                <textarea readonly>123 ถนนสุขุมวิท เขตวัฒนา กรุงเทพมหานคร 10110</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>เบอร์โทรศัพท์</label>
+                                <input type="tel" value="02-123-4567" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>อีเมล</label>
+                                <input type="email" value="info@abccondo.com" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>เว็บไซต์</label>
+                                <input type="url" value="https://www.abccondo.com" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bank Information -->
+                    <div class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">
+                                <i class="fas fa-university"></i>
+                                ข้อมูลบัญชีธนาคาร
+                            </h3>
+                            <button class="btn btn-success" onclick="addBankAccount()">
+                                <i class="fas fa-plus"></i> เพิ่มบัญชีธนาคาร
+                            </button>
+                        </div>
+                        <p class="section-description">
+                            ข้อมูลบัญชีธนาคารสำหรับการรับชำระเงินค่าส่วนกลางและค่าใช้จ่ายต่างๆ
+                        </p>
+
+                        <div class="bank-accounts-list">
+                            <!-- Bank Account 1 -->
+                            <div class="bank-account-item">
+                                <div class="bank-account-info">
+                                    <div class="bank-logo">
+                                        <i class="fas fa-university"></i>
+                                    </div>
+                                    <div class="bank-details">
+                                        <h4>ธนาคารกสิกรไทย</h4>
+                                        <p>123-4-56789-0 | นิติบุคคลอาคารชุด ABC</p>
+                                        <span class="account-type">บัญชีออมทรัพย์</span>
+                                    </div>
+                                </div>
+                                <div class="bank-qr">
+                                    <div class="qr-code-preview" onclick="viewQRCode('bank1')">
+                                        <i class="fas fa-qrcode"></i>
+                                        <span>QR Code</span>
+                                    </div>
+                                </div>
+                                <div class="bank-actions">
+                                    <button class="btn btn-sm btn-primary" onclick="editBankAccount('bank1')">
+                                        <i class="fas fa-edit"></i> แก้ไข
+                                    </button>
+                                    <div class="toggle-switch active" onclick="toggleBankAccount(this)" title="เปิด/ปิดใช้งาน"></div>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteBankAccount('bank1')">
+                                        <i class="fas fa-trash"></i> ลบ
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Bank Account 2 -->
+                            <div class="bank-account-item">
+                                <div class="bank-account-info">
+                                    <div class="bank-logo" style="background: #1e4d8b;">
+                                        <i class="fas fa-university"></i>
+                                    </div>
+                                    <div class="bank-details">
+                                        <h4>ธนาคารกรุงเทพ</h4>
+                                        <p>987-6-54321-0 | นิติบุคคลอาคารชุด ABC</p>
+                                        <span class="account-type">บัญชีกระแสรายวัน</span>
+                                    </div>
+                                </div>
+                                <div class="bank-qr">
+                                    <div class="qr-code-preview" onclick="viewQRCode('bank2')">
+                                        <i class="fas fa-qrcode"></i>
+                                        <span>QR Code</span>
+                                    </div>
+                                </div>
+                                <div class="bank-actions">
+                                    <button class="btn btn-sm btn-primary" onclick="editBankAccount('bank2')">
+                                        <i class="fas fa-edit"></i> แก้ไข
+                                    </button>
+                                    <div class="toggle-switch" onclick="toggleBankAccount(this)" title="เปิด/ปิดใช้งาน"></div>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteBankAccount('bank2')">
+                                        <i class="fas fa-trash"></i> ลบ
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Settings Tab -->
+                <div id="payment-tab" class="tab-pane">
+                    <!-- Payment Methods -->
+                    <div class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">
+                                <i class="fas fa-credit-card"></i>
+                                วิธีการชำระเงิน
+                            </h3>
+                        </div>
+                        <p class="section-description">
+                            เปิด/ปิดวิธีการชำระเงินที่ลูกบ้านสามารถใช้ได้
+                        </p>
+
+                        <div class="payment-method enabled">
+                            <div class="payment-info">
+                                <div class="payment-icon bank">
+                                    <i class="fas fa-university"></i>
+                                </div>
+                                <div class="payment-details">
+                                    <h4>โอนเงินผ่านธนาคาร</h4>
+                                    <p>ลูกบ้านโอนเงินและส่งสลิปมาตรวจสอบ</p>
+                                </div>
+                            </div>
+                            <div class="toggle-switch active" onclick="togglePaymentMethod(this)"></div>
+                        </div>
+
+                        <div class="payment-method enabled">
+                            <div class="payment-info">
+                                <div class="payment-icon qr">
+                                    <i class="fas fa-qrcode"></i>
+                                </div>
+                                <div class="payment-details">
+                                    <h4>QR Code PromptPay</h4>
+                                    <p>ชำระผ่าน QR Code แบบทันที</p>
+                                </div>
+                            </div>
+                            <div class="toggle-switch active" onclick="togglePaymentMethod(this)"></div>
+                        </div>
+
+                        <div class="payment-method">
+                            <div class="payment-info">
+                                <div class="payment-icon card">
+                                    <i class="fas fa-credit-card"></i>
+                                </div>
+                                <div class="payment-details">
+                                    <h4>บัตรเครดิต/เดบิต</h4>
+                                    <p>ชำระผ่านบัตรเครดิตหรือบัตรเดบิต (ค่าธรรมเนียม 2.5%)</p>
+                                </div>
+                            </div>
+                            <div class="toggle-switch" onclick="togglePaymentMethod(this)"></div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Settings -->
+                    <div class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">
+                                <i class="fas fa-cogs"></i>
+                                การตั้งค่าการชำระเงิน
+                            </h3>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>ระยะเวลาครบกำหนดชำระ (วัน)</label>
+                                <input type="number" value="30" min="1" max="60">
+                                <span class="help-text">จำนวนวันหลังจากออกบิลแล้วถึงจะครบกำหนด</span>
+                            </div>
+                            <div class="form-group">
+                                <label>ค่าปรับชำระล่าช้า (%)</label>
+                                <input type="number" value="2" min="0" max="10" step="0.5">
+                                <span class="help-text">เปอร์เซ็นต์ค่าปรับต่อเดือนสำหรับการชำระล่าช้า</span>
+                            </div>
+                            <div class="form-group">
+                                <label>จำนวนเงินขั้นต่ำในการชำระ</label>
+                                <input type="number" value="100" min="1">
+                                <span class="help-text">จำนวนเงินขั้นต่ำที่สามารถชำระได้</span>
+                            </div>
+                            <div class="form-group">
+                                <label>เวลาตัดบิลรายเดือน</label>
+                                <input type="number" value="25" min="1" max="31">
+                                <span class="help-text">วันที่ของทุกเดือนที่จะออกบิลรายเดือน</span>
+                            </div>
+                        </div>
+
+                        <div class="btn-group">
+                            <button class="btn btn-success" onclick="savePaymentSettings()">
+                                <i class="fas fa-save"></i> บันทึกการตั้งค่า
+                            </button>
+                            <button class="btn btn-secondary" onclick="resetPaymentSettings()">
+                                <i class="fas fa-undo"></i> คืนค่าเริ่มต้น
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications Settings Tab -->
+                <div id="notifications-tab" class="tab-pane">
+                    <!-- Auto Notifications -->
+                    <div class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">
+                                <i class="fas fa-bell"></i>
+                                การแจ้งเตือนอัตโนมัติ
+                            </h3>
+                        </div>
+                        <p class="section-description">
+                            ตั้งค่าการแจ้งเตือนที่ระบบจะส่งอัตโนมัติไปยังลูกบ้าน
+                        </p>
+
+                        <div class="notification-type">
+                            <div class="notification-header">
+                                <div class="notification-title">
+                                    <i class="fas fa-file-invoice"></i>
+                                    แจ้งเตือนบิลใหม่
+                                </div>
+                                <div class="toggle-switch active" onclick="toggleNotification(this)"></div>
+                            </div>
+                            <p class="notification-description">แจ้งเตือนเมื่อมีบิลใหม่ออกมา</p>
+                            <div class="notification-methods">
+                                <label class="method-checkbox">
+                                    <input type="checkbox" checked> แจ้งเตือนในแอพ
+                                </label>
+                                <label class="method-checkbox">
+                                    <input type="checkbox" checked> SMS
+                                </label>
+                                <label class="method-checkbox">
+                                    <input type="checkbox"> อีเมล
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="notification-type">
+                            <div class="notification-header">
+                                <div class="notification-title">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    แจ้งเตือนใกล้ครบกำหนด
+                                </div>
+                                <div class="toggle-switch active" onclick="toggleNotification(this)"></div>
+                            </div>
+                            <p class="notification-description">แจ้งเตือนก่อนครบกำหนดชำระ 3 วัน</p>
+                            <div class="notification-methods">
+                                <label class="method-checkbox">
+                                    <input type="checkbox" checked> แจ้งเตือนในแอพ
+                                </label>
+                                <label class="method-checkbox">
+                                    <input type="checkbox" checked> SMS
+                                </label>
+                                <label class="method-checkbox">
+                                    <input type="checkbox" checked> อีเมล
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="notification-type">
+                            <div class="notification-header">
+                                <div class="notification-title">
+                                    <i class="fas fa-times-circle"></i>
+                                    แจ้งเตือนเกินกำหนด
+                                </div>
+                                <div class="toggle-switch active" onclick="toggleNotification(this)"></div>
+                            </div>
+                            <p class="notification-description">แจ้งเตือนเมื่อเกินกำหนดชำระแล้ว</p>
+                            <div class="notification-methods">
+                                <label class="method-checkbox">
+                                    <input type="checkbox" checked> แจ้งเตือนในแอพ
+                                </label>
+                                <label class="method-checkbox">
+                                    <input type="checkbox" checked> SMS
+                                </label>
+                                <label class="method-checkbox">
+                                    <input type="checkbox"> โทรศัพท์
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="notification-type">
+                            <div class="notification-header">
+                                <div class="notification-title">
+                                    <i class="fas fa-package"></i>
+                                    แจ้งเตือนพัสดุมาถึง
+                                </div>
+                                <div class="toggle-switch active" onclick="toggleNotification(this)"></div>
+                            </div>
+                            <p class="notification-description">แจ้งเตือนเมื่อมีพัสดุส่งที่โครงการ</p>
+                            <div class="notification-methods">
+                                <label class="method-checkbox">
+                                    <input type="checkbox" checked> แจ้งเตือนในแอพ
+                                </label>
+                                <label class="method-checkbox">
+                                    <input type="checkbox" checked> SMS
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notification Templates -->
+                    <div class="section">
+                        <div class="section-header">
+                            <h3 class="section-title">
+                                <i class="fas fa-file-alt"></i>
+                                แม่แบบข้อความ
+                            </h3>
+                            <button class="btn btn-primary" onclick="editNotificationTemplates()">
+                                <i class="fas fa-edit"></i> แก้ไขแม่แบบ
+                            </button>
+                        </div>
+                        <p class="section-description">
+                            ปรับแต่งเนื้อหาข้อความแจ้งเตือนที่จะส่งให้ลูกบ้าน
+                        </p>
+
+                        <div class="form-group">
+                            <label>แม่แบบแจ้งเตือนบิลใหม่</label>
+                            <textarea readonly>เรียนคุณลูกบ้าน มีบิลใหม่ {BILL_ID} งวด {PERIOD} จำนวน {AMOUNT} บาท กรุณาชำระภายในวันที่ {DUE_DATE} ขอบคุณครับ/ค่ะ</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Edit Project Modal -->
+    <div class="modal" id="editProjectModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">แก้ไขข้อมูลโครงการ</h3>
+                <button class="modal-close" onclick="closeModal('editProjectModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>ชื่อโครงการ</label>
+                        <input type="text" id="editProjectName" value="ABC Condominium">
+                    </div>
+                    <div class="form-group">
+                        <label>ชื่อย่อ</label>
+                        <input type="text" id="editProjectShort" value="ABC">
+                    </div>
+                    <div class="form-group">
+                        <label>ที่อยู่โครงการ</label>
+                        <textarea id="editProjectAddress">123 ถนนสุขุมวิท เขตวัฒนา กรุงเทพมหานคร 10110</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>เบอร์โทรศัพท์</label>
+                        <input type="tel" id="editProjectPhone" value="02-123-4567">
+                    </div>
+                    <div class="form-group">
+                        <label>อีเมล</label>
+                        <input type="email" id="editProjectEmail" value="info@abccondo.com">
+                    </div>
+                    <div class="form-group">
+                        <label>เว็บไซต์</label>
+                        <input type="url" id="editProjectWebsite" value="https://www.abccondo.com">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('editProjectModal')">ยกเลิก</button>
+                <button class="btn btn-success" onclick="saveProjectInfo()">บันทึก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Bank Account Modal -->
+    <div class="modal" id="bankAccountModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="bankModalTitle">เพิ่มบัญชีธนาคาร</h3>
+                <button class="modal-close" onclick="closeModal('bankAccountModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>ชื่อธนาคาร *</label>
+                        <select id="bankName">
+                            <option value="">เลือกธนาคาร</option>
+                            <option value="กสิกรไทย">ธนาคารกสิกรไทย</option>
+                            <option value="กรุงเทพ">ธนาคารกรุงเทพ</option>
+                            <option value="กรุงไทย">ธนาคารกรุงไทย</option>
+                            <option value="ทหารไทยธนชาต">ธนาคารทหารไทยธนชาต</option>
+                            <option value="ไทยพาณิชย์">ธนาคารไทยพาณิชย์</option>
+                            <option value="กรุงศรีอยุธยา">ธนาคารกรุงศรีอยุธยา</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>เลขที่บัญชี *</label>
+                        <input type="text" id="accountNumber" placeholder="เช่น: 123-4-56789-0">
+                    </div>
+                    <div class="form-group">
+                        <label>ชื่อบัญชี *</label>
+                        <input type="text" id="accountName" placeholder="เช่น: นิติบุคคลอาคารชุด ABC">
+                    </div>
+                    <div class="form-group">
+                        <label>ประเภทบัญชี</label>
+                        <select id="accountType">
+                            <option value="savings">ออมทรัพย์</option>
+                            <option value="current">กระแสรายวัน</option>
+                            <option value="fixed">ประจำ</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-top: 20px;">
+                    <label>QR Code สำหรับการชำระเงิน</label>
+                    <div class="qr-upload-area">
+                        <div class="current-qr" id="currentQR">
+                            <img id="qrPreview">
+                            <p style="color: var(--gray-600);">QR Code ปัจจุบัน</p>
+                        </div>
+                        <div class="upload-prompt" id="uploadPrompt">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>อัปโหลด QR Code สำหรับบัญชีนี้</p>
+                            <label class="btn btn-secondary">
+                                <i class="fas fa-upload"></i> เลือกไฟล์ QR Code
+                                <input type="file" id="qrCodeFile" accept="image/*" style="display: none;" onchange="handleQRUpload(event)">
+                            </label>
+                            <p style="margin-top: 12px; font-size: 12px; color: var(--gray-500);">รองรับไฟล์ .jpg, .png, .gif</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('bankAccountModal')">ยกเลิก</button>
+                <button class="btn btn-success" onclick="saveBankAccount()">บันทึก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code View Modal -->
+    <div class="modal" id="qrViewModal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 class="modal-title">QR Code สำหรับการชำระเงิน</h3>
+                <button class="modal-close" onclick="closeModal('qrViewModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <div id="qrCodeDisplay" style="margin: 20px 0;">
+                    <div style="width: 280px; height: 280px; background: white; border: 2px solid var(--gray-200); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                        <div style="text-align: center; color: var(--gray-500);">
+                            <i class="fas fa-qrcode" style="font-size: 80px; margin-bottom: 12px; color: var(--primary-blue);"></i>
+                            <p style="font-weight: 600;">QR Code PromptPay</p>
+                            <p style="font-size: 13px;">123-4-56789-0</p>
+                        </div>
+                    </div>
+                </div>
+                <p style="color: var(--gray-600); font-size: 14px;" id="qrBankInfo">ธนาคารกสิกรไทย | นิติบุคคลอาคารชุด ABC</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="downloadQR()">
+                    <i class="fas fa-download"></i> ดาวน์โหลด QR Code
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal('qrViewModal')">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab Switching
+        function switchTab(tabName, event) {
+            // Remove active class from all tabs
+            document.querySelectorAll('.settings-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tab panes
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('active');
+            });
+            
+            // Add active class to clicked tab
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
+            
+            // Show corresponding tab pane
+            const tabPane = document.getElementById(tabName + '-tab');
+            if (tabPane) {
+                tabPane.classList.add('active');
+            }
+        }
+
+        // Toggle Functions
+        function toggleBankAccount(element) {
+            element.classList.toggle('active');
+            const bankItem = element.closest('.bank-account-item');
+            const bankName = bankItem.querySelector('h4').textContent;
+            const isActive = element.classList.contains('active');
+            
+            if (isActive) {
+                bankItem.style.opacity = '1';
+                showToast(`${bankName} เปิดใช้งานแล้ว`, 'success');
+            } else {
+                bankItem.style.opacity = '0.7';
+                showToast(`${bankName} ปิดใช้งานแล้ว`, 'warning');
+            }
+        }
+
+        function togglePaymentMethod(element) {
+            element.classList.toggle('active');
+            const paymentMethod = element.closest('.payment-method');
+            paymentMethod.classList.toggle('enabled');
+            
+            const methodName = paymentMethod.querySelector('h4').textContent;
+            const isEnabled = element.classList.contains('active');
+            
+            showToast(`${methodName} ${isEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}แล้ว`, isEnabled ? 'success' : 'warning');
+        }
+
+        function toggleNotification(element) {
+            element.classList.toggle('active');
+            const notificationType = element.closest('.notification-type').querySelector('.notification-title').textContent.trim();
+            const isEnabled = element.classList.contains('active');
+            
+            showToast(`${notificationType} ${isEnabled ? 'เปิด' : 'ปิด'}แล้ว`, isEnabled ? 'success' : 'warning');
+        }
+
+        // Modal Functions
+        function editProjectInfo() {
+            document.getElementById('editProjectModal').classList.add('show');
+        }
+
+        function addBankAccount() {
+            document.getElementById('bankModalTitle').textContent = 'เพิ่มบัญชีธนาคาร';
+            document.getElementById('bankAccountModal').dataset.mode = 'add';
+            clearBankForm();
+            document.getElementById('bankAccountModal').classList.add('show');
+        }
+
+        function editBankAccount(bankId) {
+            document.getElementById('bankModalTitle').textContent = 'แก้ไขบัญชีธนาคาร';
+            document.getElementById('bankAccountModal').dataset.mode = 'edit';
+            document.getElementById('bankAccountModal').dataset.bankId = bankId;
+            
+            // Mock data for editing
+            const mockData = {
+                'bank1': {
+                    bankName: 'กสิกรไทย',
+                    accountNumber: '123-4-56789-0',
+                    accountName: 'นิติบุคคลอาคารชุด ABC',
+                    accountType: 'savings'
+                },
+                'bank2': {
+                    bankName: 'กรุงเทพ',
+                    accountNumber: '987-6-54321-0',
+                    accountName: 'นิติบุคคลอาคารชุด ABC',
+                    accountType: 'current'
+                }
+            };
+            
+            const data = mockData[bankId];
+            if (data) {
+                document.getElementById('bankName').value = data.bankName;
+                document.getElementById('accountNumber').value = data.accountNumber;
+                document.getElementById('accountName').value = data.accountName;
+                document.getElementById('accountType').value = data.accountType;
+            }
+            
+            document.getElementById('bankAccountModal').classList.add('show');
+        }
+
+        function deleteBankAccount(bankId) {
+            if (confirm('คุณแน่ใจว่าต้องการลบบัญชีธนาคารนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้')) {
+                showToast('ลบบัญชีธนาคารเรียบร้อยแล้ว', 'success');
+            }
+        }
+
+        function viewQRCode(bankId) {
+            const qrDisplay = document.getElementById('qrCodeDisplay');
+            const bankInfo = document.getElementById('qrBankInfo');
+            
+            bankInfo.textContent = bankId === 'bank1' ? 
+                'ธนาคารกสิกรไทย | นิติบุคคลอาคารชุด ABC' : 
+                'ธนาคารกรุงเทพ | นิติบุคคลอาคารชุด ABC';
+            
+            document.getElementById('qrViewModal').classList.add('show');
+        }
+
+        function downloadQR() {
+            showToast('กำลังดาวน์โหลด QR Code...', 'info');
+            setTimeout(() => {
+                showToast('ดาวน์โหลด QR Code เรียบร้อยแล้ว', 'success');
+            }, 1000);
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        function clearBankForm() {
+            document.getElementById('bankName').value = '';
+            document.getElementById('accountNumber').value = '';
+            document.getElementById('accountName').value = '';
+            document.getElementById('accountType').value = 'savings';
+            document.getElementById('currentQR').style.display = 'none';
+            document.getElementById('uploadPrompt').style.display = 'block';
+        }
+
+        function saveProjectInfo() {
+            const name = document.getElementById('editProjectName').value;
+            const shortName = document.getElementById('editProjectShort').value;
+            const address = document.getElementById('editProjectAddress').value;
+            const phone = document.getElementById('editProjectPhone').value;
+            const email = document.getElementById('editProjectEmail').value;
+            const website = document.getElementById('editProjectWebsite').value;
+
+            if (!name || !shortName || !address || !phone || !email) {
+                showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
+                return;
+            }
+
+            showToast('บันทึกข้อมูลโครงการเรียบร้อยแล้ว', 'success');
+            closeModal('editProjectModal');
+        }
+
+        function saveBankAccount() {
+            const bankName = document.getElementById('bankName').value;
+            const accountNumber = document.getElementById('accountNumber').value;
+            const accountName = document.getElementById('accountName').value;
+            
+            if (!bankName || !accountNumber || !accountName) {
+                showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
+                return;
+            }
+            
+            const mode = document.getElementById('bankAccountModal').dataset.mode;
+            if (mode === 'add') {
+                showToast('เพิ่มบัญชีธนาคารเรียบร้อยแล้ว', 'success');
+            } else {
+                showToast('แก้ไขบัญชีธนาคารเรียบร้อยแล้ว', 'success');
+            }
+            
+            closeModal('bankAccountModal');
+        }
+
+        function savePaymentSettings() {
+            if (confirm('บันทึกการตั้งค่าการชำระเงิน?')) {
+                showToast('บันทึกการตั้งค่าเรียบร้อยแล้ว', 'success');
+            }
+        }
+
+        function resetPaymentSettings() {
+            if (confirm('คืนค่าเริ่มต้นการตั้งค่าการชำระเงิน?')) {
+                showToast('คืนค่าเริ่มต้นเรียบร้อยแล้ว', 'success');
+            }
+        }
+
+        function editNotificationTemplates() {
+            showToast('เปิดหน้าแก้ไขแม่แบบข้อความ', 'info');
+        }
+
+        // File Upload Functions
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                if (file.type.startsWith('image/')) {
+                    showToast('อัปโหลดโลโก้เรียบร้อยแล้ว', 'success');
+                } else {
+                    showToast('กรุณาเลือกไฟล์รูปภาพ', 'error');
+                    event.target.value = '';
+                }
+            }
+        }
+
+        function handleQRUpload(event) {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('qrPreview').src = e.target.result;
+                    document.getElementById('currentQR').style.display = 'block';
+                    document.getElementById('uploadPrompt').style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+                showToast('อัปโหลด QR Code เรียบร้อยแล้ว', 'success');
+            } else {
+                showToast('กรุณาเลือกไฟล์รูปภาพ', 'error');
+                event.target.value = '';
+            }
+        }
+
+        // Toast Notification System
+        function showToast(message, type = 'info') {
+            // Remove existing toasts
+            const existingToasts = document.querySelectorAll('.toast');
+            existingToasts.forEach(toast => toast.remove());
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icon = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+            
+            toast.innerHTML = `
+                <i class="fas ${icon[type]}"></i>
+                <span>${message}</span>
+            `;
+
+            document.body.appendChild(toast);
+
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 100);
+
+            // Auto hide after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    if (document.body.contains(toast)) {
+                        document.body.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    closeModal(modal.id);
+                }
+            });
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const activeModal = document.querySelector('.modal.show');
+                if (activeModal) {
+                    closeModal(activeModal.id);
+                }
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show welcome message
+            setTimeout(() => {
+                showToast('ยินดีต้อนรับสู่หน้าตั้งค่าระบบ', 'info');
+            }, 500);
+
+            // Animate tabs on load
+            const tabs = document.querySelectorAll('.settings-tab');
+            tabs.forEach((tab, index) => {
+                tab.style.opacity = '0';
+                tab.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                    tab.style.transition = 'all 0.4s ease';
+                    tab.style.opacity = '1';
+                    tab.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+		
+		// Project Dropdown Functions
+        function toggleProjectDropdown() {
+            const dropdown = document.getElementById('projectDropdown');
+            const dropdownButton = document.querySelector('.project-dropdown');
+            
+            if (dropdown.classList.contains('show')) {
+                dropdown.classList.remove('show');
+                dropdownButton.classList.remove('open');
+            } else {
+                dropdown.classList.add('show');
+                dropdownButton.classList.add('open');
+            }
+        }
+
+        function selectProject(name, code, event) {
+            // Prevent event bubbling
+            event.stopPropagation();
+            
+            // Update displayed project name and code
+            document.getElementById('currentProjectName').textContent = name;
+            document.getElementById('currentProjectCode').textContent = code;
+            
+            // Update active state in dropdown
+            const dropdownItems = document.querySelectorAll('.dropdown-item');
+            dropdownItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.textContent.includes(code)) {
+                    item.classList.add('active');
+                }
+            });
+            
+            // Close dropdown
+            const dropdown = document.getElementById('projectDropdown');
+            const dropdownButton = document.querySelector('.project-dropdown');
+            dropdown.classList.remove('show');
+            dropdownButton.classList.remove('open');
+            
+            // Add loading animation to stats cards
+            const statCards = document.querySelectorAll('.stat-card');
+            statCards.forEach(card => {
+                card.style.opacity = '0.5';
+                card.style.pointerEvents = 'none';
+            });
+            
+            // Show loading message
+            const loadingMsg = document.createElement('div');
+            loadingMsg.id = 'loadingMsg';
+            loadingMsg.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                padding: 24px 40px;
+                border-radius: 16px;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                font-family: 'Sarabun', sans-serif;
+            `;
+            loadingMsg.innerHTML = `
+                <div style="width: 40px; height: 40px; border: 3px solid #EBF2FF; border-top-color: #2B6EF3; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <div>
+                    <div style="font-size: 16px; font-weight: 600; color: #1a202c; margin-bottom: 4px;">กำลังโหลดข้อมูล</div>
+                    <div style="font-size: 13px; color: #64748B;">กำลังเปลี่ยนไปยังโครงการ ${name}...</div>
+                </div>
+            `;
+            document.body.appendChild(loadingMsg);
+            
+            // Simulate data loading
+            setTimeout(() => {
+                // Remove loading message
+                const msg = document.getElementById('loadingMsg');
+                if (msg) msg.remove();
+                
+                // Restore cards
+                statCards.forEach(card => {
+                    card.style.opacity = '1';
+                    card.style.pointerEvents = 'auto';
+                });
+                
+                // Show success notification
+                showNotification(`✓ เปลี่ยนโครงการเป็น "${name}" เรียบร้อยแล้ว`, 'success');
+            }, 1500);
+        }
+		
+		// Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const projectSelector = document.querySelector('.project-selector');
+            const dropdown = document.getElementById('projectDropdown');
+            const dropdownButton = document.querySelector('.project-dropdown');
+            
+            if (projectSelector && !projectSelector.contains(event.target)) {
+                dropdown.classList.remove('show');
+                dropdownButton.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>

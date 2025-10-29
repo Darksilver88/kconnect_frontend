@@ -23,7 +23,7 @@ export function TableActionButtons({
         <Button
           size="sm"
           variant="outline"
-          className="h-8 bg-blue-50 text-blue-700 hover:bg-blue-100 border-0"
+          className="h-8 bg-blue-50 text-blue-700 hover:bg-blue-100 border-0 cursor-pointer"
           onClick={onView}
         >
           <i className="fas fa-eye"></i>
@@ -33,7 +33,7 @@ export function TableActionButtons({
         <Button
           size="sm"
           variant="outline"
-          className="h-8 bg-blue-50 text-blue-700 hover:bg-blue-100 border-0"
+          className="h-8 bg-blue-50 text-blue-700 hover:bg-blue-100 border-0 cursor-pointer"
           onClick={onEdit}
         >
           <i className="fas fa-edit"></i>
@@ -43,7 +43,7 @@ export function TableActionButtons({
         <Button
           size="sm"
           variant="outline"
-          className="h-8 bg-[#fee2e2] text-[#ef4444] hover:bg-red-100 border-0"
+          className="h-8 bg-[#fee2e2] text-[#ef4444] hover:bg-red-100 border-0 cursor-pointer"
           onClick={onDelete}
         >
           <i className="fas fa-trash"></i>

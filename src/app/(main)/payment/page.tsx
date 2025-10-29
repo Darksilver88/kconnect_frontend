@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { useSidebar } from '@/app/(main)/layout';
 import { Card } from '@/components/ui/card';
@@ -228,6 +229,18 @@ export default function PaymentPage() {
     fetchPaymentMethods();
   }, []);
 
+  // Handle URL query parameters and fetch data
+  const searchParams = useSearchParams();
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab) {
+      setActiveTab(tab);
+    }
+    setIsInitialized(true);
+  }, [searchParams]);
+
   // Fetch data from API (with loading state)
   const fetchList = async () => {
     setLoading(true);
@@ -335,9 +348,11 @@ export default function PaymentPage() {
   };
 
   useEffect(() => {
-    // Fetch for all tabs (0, 1, 2, 3)
-    fetchList();
-  }, [currentPage, searchKeyword, activeTab, amountRange, dateRange, selectedBillTypeId, selectedBillStatus]);
+    // Fetch for all tabs (0, 1, 2, 3) only after initialization
+    if (isInitialized) {
+      fetchList();
+    }
+  }, [currentPage, searchKeyword, activeTab, amountRange, dateRange, selectedBillTypeId, selectedBillStatus, isInitialized]);
 
   const getStatusBadge = (status: number) => {
     if (status === 0) {
@@ -2023,7 +2038,7 @@ export default function PaymentPage() {
                     <span className="font-semibold text-slate-900">
                       ฿{paymentAmount && manualPaymentData.remaining_amount
                         ? (parseFloat(manualPaymentData.remaining_amount.replace(/[฿,]/g, '')) - parseFloat(paymentAmount)).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                        : manualPaymentData.remaining_amount}
+                        : (manualPaymentData.remaining_amount ? parseFloat(manualPaymentData.remaining_amount.replace(/[฿,]/g, '')).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00')}
                     </span>
                   </div>
                 </div>

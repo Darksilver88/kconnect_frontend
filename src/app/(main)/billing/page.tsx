@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { useSidebar } from '@/app/(main)/layout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { BillDetailModal } from '@/components/bill-detail-modal';
 import {
   Dialog,
   DialogContent,
@@ -94,10 +96,12 @@ export default function BillingPage() {
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [editFormData, setEditFormData] = useState({
     title: '',
+    bill_type_id: '',
     detail: '',
     expire_date: '',
-    status: '0',
+    remark: '',
   });
+  const [editDeleteRows, setEditDeleteRows] = useState<number[]>([]);
 
   // Send notification states
   const [sendModalOpen, setSendModalOpen] = useState(false);
@@ -261,6 +265,26 @@ export default function BillingPage() {
       fetchBillTypes();
     }
   }, [isModalOpen]);
+
+  // Load bill types when edit modal opens
+  useEffect(() => {
+    if (editModalOpen) {
+      fetchBillTypes();
+    }
+  }, [editModalOpen]);
+
+  // Handle URL query parameters
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const action = searchParams.get('action');
+    const billId = searchParams.get('bill_id');
+
+    if (action === 'create') {
+      setIsModalOpen(true);
+    } else if (action === 'view' && billId) {
+      handleViewClick(parseInt(billId));
+    }
+  }, [searchParams]);
 
   const getStatusBadge = (status: number) => {
     if (status === 1) {
@@ -517,10 +541,14 @@ export default function BillingPage() {
       // Populate form with data
       setEditFormData({
         title: result.data.title || '',
+        bill_type_id: String(result.data.bill_type_id || ''),
         detail: result.data.detail || '',
         expire_date: formattedExpireDate,
-        status: String(result.data.status || '0'),
+        remark: result.data.remark || '',
       });
+
+      // Reset delete rows
+      setEditDeleteRows([]);
     } else {
       toast.error(result.message || result.error || 'ไม่พบข้อมูล');
       setEditModalOpen(false);
@@ -530,7 +558,7 @@ export default function BillingPage() {
   };
 
   // Handle edit submit
-  const handleEditSubmit = async () => {
+  const handleEditSubmit = async (status: number) => {
     if (!editData) return;
 
     setSubmitting(true);
@@ -541,10 +569,13 @@ export default function BillingPage() {
     const payload = {
       id: editData.id,
       title: editFormData.title,
+      bill_type_id: parseInt(editFormData.bill_type_id),
       detail: editFormData.detail,
       expire_date: editFormData.expire_date,
-      status: parseInt(editFormData.status),
+      remark: editFormData.remark || '',
+      status: status,
       uid: uid,
+      delete_rows: editDeleteRows,
     };
 
     const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}${API_UPDATE}`, {
@@ -559,6 +590,7 @@ export default function BillingPage() {
       setEditModalOpen(false);
       setEditData(null);
       setEditFormData({ title: '', detail: '', expire_date: '', status: '0' });
+      setEditDeleteRows([]);
       await refreshList();
       toast.success(result.message || 'แก้ไขข้อมูลสำเร็จ');
     } else {
@@ -679,6 +711,34 @@ export default function BillingPage() {
     }
 
     setBillDetailsLoading(false);
+  };
+
+  // Handle send notification for each bill room item
+  const handleSendNotificationEach = async (itemId: number) => {
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+    const uid = user?.uid || -1;
+
+    const payload = {
+      customer_id: customerId,
+      uid: uid,
+      table_name: 'bill_room_information',
+      id: itemId,
+    };
+
+    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bill/send_notification_each`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (result.success) {
+      toast.success(result.message || 'ส่งแจ้งเตือนสำเร็จ');
+    } else {
+      toast.error(result.message || result.error || 'เกิดข้อผิดพลาดในการส่งแจ้งเตือน');
+    }
   };
 
   // Get payment status badge
@@ -1244,7 +1304,7 @@ export default function BillingPage() {
 
       {/* Edit Bill Modal */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="!max-w-[1000px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-slate-900">
               <i className="fas fa-edit"></i>
@@ -1255,56 +1315,171 @@ export default function BillingPage() {
           {loadingEdit ? (
             <LoadingSpinner />
           ) : editData ? (
-            <div className="space-y-4 py-4">
+            <div className="space-y-6 py-4">
+              {/* Form Fields Grid - Two Columns Layout */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit_title">หัวข้อบิล</Label>
+                  <Input
+                    id="edit_title"
+                    value={editFormData.title}
+                    onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                    placeholder="เช่น: ค่าส่วนกลาง ประจำเดือน กันยายน 2025"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit_bill_type">ประเภทบิล</Label>
+                  <Select
+                    value={editFormData.bill_type_id}
+                    onValueChange={(value) => setEditFormData({ ...editFormData, bill_type_id: value })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="เลือกประเภทบิล" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {loadingBillTypes ? (
+                        <SelectItem value="loading" disabled>กำลังโหลด...</SelectItem>
+                      ) : (
+                        billTypes.map((type) => (
+                          <SelectItem key={type.id} value={String(type.id)}>
+                            {type.title}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit_detail">งวดที่เรียกเก็บ</Label>
+                  <Input
+                    id="edit_detail"
+                    value={editFormData.detail}
+                    onChange={(e) => setEditFormData({ ...editFormData, detail: e.target.value })}
+                    placeholder="เช่น: กันยายน 2025"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit_expire_date">วันครบกำหนดชำระ</Label>
+                  <Input
+                    id="edit_expire_date"
+                    type="date"
+                    value={editFormData.expire_date}
+                    onChange={(e) => setEditFormData({ ...editFormData, expire_date: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Remark */}
               <div className="space-y-2">
-                <Label htmlFor="edit_title">หัวข้อบิล</Label>
-                <Input
-                  id="edit_title"
-                  value={editFormData.title}
-                  onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
-                  placeholder="เช่น: ค่าส่วนกลาง ประจำเดือน กันยายน 2025"
-                  required
+                <Label htmlFor="edit_remark">หมายเหตุ</Label>
+                <textarea
+                  id="edit_remark"
+                  value={editFormData.remark}
+                  onChange={(e) => setEditFormData({ ...editFormData, remark: e.target.value })}
+                  placeholder="หมายเหตุเพิ่มเติม"
+                  rows={2}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="edit_detail">งวด</Label>
-                <Input
-                  id="edit_detail"
-                  value={editFormData.detail}
-                  onChange={(e) => setEditFormData({ ...editFormData, detail: e.target.value })}
-                  placeholder="เช่น: กันยายน 2025"
-                  required
-                />
-              </div>
+              {/* Bill Room Data Table */}
+              {editData.bill_room_data && editData.bill_room_data.items && editData.bill_room_data.items.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-base font-semibold text-slate-900">
+                      <i className="fas fa-table mr-2"></i>ตรวจสอบข้อมูลที่นำเข้า
+                    </h4>
+                    <div className="flex gap-2 items-center">
+                      <span className="text-sm text-slate-600 font-medium">
+                        {editData.bill_room_data.items.filter((item: any) => !editDeleteRows.includes(item.row_number)).length} รายการ
+                      </span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        className="h-7 text-xs"
+                        onClick={() => {
+                          setEditDeleteRows(editData.bill_room_data.items.map((item: any) => item.row_number));
+                        }}
+                      >
+                        <i className="fas fa-trash mr-1"></i> ล้างข้อมูล
+                      </Button>
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="edit_expire_date">วันครบกำหนด</Label>
-                <Input
-                  id="edit_expire_date"
-                  type="date"
-                  value={editFormData.expire_date}
-                  onChange={(e) => setEditFormData({ ...editFormData, expire_date: e.target.value })}
-                  required
-                />
-              </div>
+                  {/* Table */}
+                  <div className="border rounded-lg overflow-hidden max-h-[350px] overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50 border-b-2 border-slate-200 sticky top-0">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">#</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">เลขห้อง</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">ชื่อลูกบ้าน</th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700">ยอดเงิน</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">หมายเหตุ</th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-slate-700">สถานะ</th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-slate-700">จัดการ</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {editData.bill_room_data.items
+                          .filter((item: any) => !editDeleteRows.includes(item.row_number))
+                          .map((item: any) => {
+                            const statusBadge = item.status === 1
+                              ? { label: 'ถูกต้อง', className: 'bg-green-50 text-green-700' }
+                              : { label: 'ผิดพลาด', className: 'bg-red-50 text-red-700' };
 
-              <div className="space-y-2">
-                <Label htmlFor="edit_status">สถานะ</Label>
-                <Select
-                  value={editFormData.status}
-                  onValueChange={(value) => setEditFormData({ ...editFormData, status: value })}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="เลือกสถานะ" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">ฉบับร่าง</SelectItem>
-                    <SelectItem value="1">แจ้งแล้ว</SelectItem>
-                    <SelectItem value="3">รอการแจ้ง</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                            return (
+                              <tr key={item.row_number} className="hover:bg-slate-50">
+                                <td className="px-4 py-3 text-slate-800 font-medium">{item.row_number}</td>
+                                <td className="px-4 py-3 text-slate-800">{item.house_no}</td>
+                                <td className="px-4 py-3 text-slate-800">{item.member_name}</td>
+                                <td className="px-4 py-3 text-right text-slate-800 font-medium">
+                                  ฿{Number(item.total_price).toLocaleString()}
+                                </td>
+                                <td className="px-4 py-3 text-slate-600">{item.remark || '-'}</td>
+                                <td className="px-4 py-3 text-center">
+                                  <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${statusBadge.className}`}>
+                                    {statusBadge.label}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    onClick={() => {
+                                      setEditDeleteRows([...editDeleteRows, item.row_number]);
+                                    }}
+                                  >
+                                    <i className="fas fa-trash text-xs"></i>
+                                  </Button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Summary Info */}
+                  {editDeleteRows.length > 0 && (
+                    <div className="bg-red-50 p-3 rounded-lg border border-red-100">
+                      <p className="text-xs text-red-600">
+                        <i className="fas fa-info-circle mr-1"></i>
+                        จะลบ {editDeleteRows.length} รายการเมื่อกดบันทึก
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : null}
 
@@ -1319,9 +1494,9 @@ export default function BillingPage() {
             </Button>
             <Button
               type="button"
-              className="bg-blue-600 hover:bg-blue-700"
-              onClick={handleEditSubmit}
-              disabled={submitting || !editFormData.title || !editFormData.detail || !editFormData.expire_date}
+              className="bg-slate-500 hover:bg-slate-600"
+              onClick={() => handleEditSubmit(0)}
+              disabled={submitting || !editFormData.title || !editFormData.bill_type_id || !editFormData.detail || !editFormData.expire_date}
             >
               {submitting ? (
                 <>
@@ -1332,6 +1507,24 @@ export default function BillingPage() {
                 <>
                   <i className="fas fa-save mr-2"></i>
                   บันทึก
+                </>
+              )}
+            </Button>
+            <Button
+              type="button"
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => handleEditSubmit(1)}
+              disabled={submitting || !editFormData.title || !editFormData.bill_type_id || !editFormData.detail || !editFormData.expire_date}
+            >
+              {submitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                  <span>กำลังส่ง...</span>
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-paper-plane mr-2"></i>
+                  บันทึกและส่งแจ้งเตือน
                 </>
               )}
             </Button>
@@ -1700,85 +1893,12 @@ export default function BillingPage() {
       </Dialog>
 
       {/* View Modal */}
-      <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>
-              <i className="fas fa-eye mr-2"></i>รายละเอียดบิล
-            </DialogTitle>
-          </DialogHeader>
-
-          {loadingView ? (
-            <LoadingSpinner />
-          ) : viewData ? (
-            <div className="space-y-3 py-4">
-              {/* Info Row Pattern */}
-              <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-900">รหัสบิล</span>
-                <span className="text-sm text-slate-900 font-medium">{viewData.bill_no || '-'}</span>
-              </div>
-
-              <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-900">หัวข้อบิล</span>
-                <span className="text-sm text-slate-900 font-medium text-right">{viewData.title || '-'}</span>
-              </div>
-
-              <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-900">งวด</span>
-                <span className="text-sm text-slate-900 font-medium">{viewData.detail || '-'}</span>
-              </div>
-
-              <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-900">วันที่สร้าง</span>
-                <span className="text-sm text-slate-900 font-medium">{viewData.create_date_formatted || '-'}</span>
-              </div>
-
-              <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-900">วันที่แจ้ง</span>
-                <span className="text-sm text-slate-900 font-medium">{viewData.send_date_formatted || '-'}</span>
-              </div>
-
-              <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-900">วันครบกำหนด</span>
-                <span className="text-sm text-slate-900 font-medium">
-                  {viewData.expire_date_formatted ? viewData.expire_date_formatted.split(' ')[0] : '-'}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-900">จำนวนห้อง</span>
-                <span className="text-sm text-slate-900 font-medium">
-                  {viewData.total_room ? `${viewData.total_room} ห้อง` : '-'}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-900">ยอดรวม</span>
-                <span className="text-sm text-blue-600 font-semibold">{viewData.total_price || '-'}</span>
-              </div>
-
-              <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-900">สถานะ</span>
-                <span>
-                  <span className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium ${getStatusBadge(viewData.status).className}`}>
-                    {getStatusBadge(viewData.status).label}
-                  </span>
-                </span>
-              </div>
-            </div>
-          ) : null}
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setViewModalOpen(false)}
-            >
-              ปิด
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <BillDetailModal
+        open={viewModalOpen}
+        onOpenChange={setViewModalOpen}
+        billData={viewData}
+        loading={loadingView}
+      />
 
       {/* Delete File Confirmation Dialog */}
       <ConfirmDialog
@@ -1995,9 +2115,7 @@ export default function BillingPage() {
 
                                     {(item.status === 0 || item.status === 3) && (
                                       <button
-                                        onClick={() => {
-                                          toast.info('ฟีเจอร์นี้กำลังพัฒนา');
-                                        }}
+                                        onClick={() => handleSendNotificationEach(item.id)}
                                         className="w-8 h-8 rounded-md bg-green-100 text-green-600 hover:bg-green-200 transition-all hover:-translate-y-0.5"
                                         title="ส่งแจ้งเตือน"
                                       >
