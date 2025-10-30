@@ -42,6 +42,8 @@ import { ErrorAlert } from '@/components/error-alert';
 import { SearchBar } from '@/components/search-bar';
 import { TableActionButtons } from '@/components/table-action-buttons';
 import { BillDetailModal } from '@/components/bill-detail-modal';
+import { TransactionDetailModal } from '@/components/transaction-detail-modal';
+import { ReviewSlipModal } from '@/components/review-slip-modal';
 
 // ตัวแปรคงที่
 const MENU = 'room';
@@ -105,6 +107,15 @@ export default function RoomPage() {
   const [billViewModalOpen, setBillViewModalOpen] = useState(false);
   const [billViewData, setBillViewData] = useState<any>(null);
   const [billViewLoading, setBillViewLoading] = useState(false);
+
+  // Transaction detail modal states
+  const [transactionDetailModalOpen, setTransactionDetailModalOpen] = useState(false);
+  const [transactionDetailBillRoomId, setTransactionDetailBillRoomId] = useState<number | null>(null);
+
+  // Review slip modal states
+  const [reviewSlipModalOpen, setReviewSlipModalOpen] = useState(false);
+  const [reviewSlipData, setReviewSlipData] = useState<any>(null);
+  const [loadingReviewSlip, setLoadingReviewSlip] = useState(false);
 
   // Search states
   const [searchQuery, setSearchQuery] = useState('');
@@ -398,6 +409,52 @@ export default function RoomPage() {
     }
 
     setBillViewLoading(false);
+  };
+
+  // Handle review slip click
+  const handleReviewSlipClick = async (item: any) => {
+    setLoadingReviewSlip(true);
+    setReviewSlipModalOpen(true);
+    setReviewSlipData(null);
+
+    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}payment/${item.id}`);
+
+    if (result.success && result.data) {
+      const data = result.data;
+      setReviewSlipData({
+        // Slip image
+        slip_image: data.attachment?.file_path || 'https://placehold.co/400x600/E0F2F7/2B6EF3?text=Payment+Slip',
+
+        // Slip details
+        member_name: data.member_name || '-',
+        member_detail: data.member_detail || '-',
+        payment_amount: data.payment_amount || '-',
+        transfer_date: data.transfer_date || data.create_date_formatted || '-',
+        bank_name: data.bank_name || data.payment_type_title || '-',
+        bill_no: data.bill_no || '-',
+        member_remark: data.member_remark || '-',
+        reject_reason: data.remark || '-',
+
+        // Bill info
+        bill_title: data.bill_title || '-',
+        bill_type: data.bill_type_title || '-',
+        bill_period: data.bill_detail || '-',
+        bill_amount: data.bill_total_price || '-',
+        due_date: data.expire_date_formatted ? data.expire_date_formatted.split(' ')[0] : '-',
+        status: data.status,
+
+        // Additional info
+        approver_name: data.update_by_name || data.approver_name || 'รอข้อมูล',
+
+        // For approve/reject
+        id: data.id
+      });
+    } else {
+      toast.error(result.message || 'ไม่สามารถโหลดข้อมูลได้');
+      setReviewSlipModalOpen(false);
+    }
+
+    setLoadingReviewSlip(false);
   };
 
   // Handle view button click
@@ -953,9 +1010,11 @@ export default function RoomPage() {
                                       <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
                                         member.user_level === 'owner'
                                           ? 'bg-yellow-100 text-[#D97706]'
+                                          : member.user_level === 'tenant'
+                                          ? 'bg-purple-50 text-purple-700'
                                           : 'bg-blue-50 text-blue-700'
                                       }`}>
-                                        {member.user_level === 'owner' ? 'เจ้าของ' : 'ผู้อยู่อาศัย'}
+                                        {member.user_level === 'owner' ? 'เจ้าของ' : member.user_level === 'tenant' ? 'ผู้เช่า' : 'ผู้อยู่อาศัย'}
                                       </div>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-600">
@@ -1100,13 +1159,20 @@ export default function RoomPage() {
                                     </td>
                                     <td className="px-4 py-3">
                                       <div className="flex justify-center">
-                                        <button
-                                          onClick={() => fetchBillDetail(item.bill_id)}
-                                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors cursor-pointer"
-                                        >
-                                          <i className="fas fa-eye mr-1.5"></i>
-                                          ดูบิล
-                                        </button>
+                                        {item.status === 1 ? (
+                                          <button
+                                            onClick={() => {
+                                              setTransactionDetailBillRoomId(item.id);
+                                              setTransactionDetailModalOpen(true);
+                                            }}
+                                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 hover:shadow-md rounded transition-all cursor-pointer"
+                                          >
+                                            <i className="fas fa-eye mr-1.5"></i>
+                                            ดูบิล
+                                          </button>
+                                        ) : (
+                                          <span className="text-sm text-slate-400">-</span>
+                                        )}
                                       </div>
                                     </td>
                                   </tr>
@@ -1223,9 +1289,11 @@ export default function RoomPage() {
                       <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
                         memberDetail.user_level === 'owner'
                           ? 'bg-yellow-100 text-[#D97706]'
+                          : memberDetail.user_level === 'tenant'
+                          ? 'bg-purple-50 text-purple-700'
                           : 'bg-blue-50 text-blue-700'
                       }`}>
-                        {memberDetail.user_level === 'owner' ? 'เจ้าของ' : 'ผู้อยู่อาศัย'}
+                        {memberDetail.user_level === 'owner' ? 'เจ้าของ' : memberDetail.user_level === 'tenant' ? 'ผู้เช่า' : 'ผู้อยู่อาศัย'}
                       </div>
                       <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${getMemberStatusBadge(memberDetail.status).className}`}>
                         {getMemberStatusBadge(memberDetail.status).label}
@@ -1302,7 +1370,7 @@ export default function RoomPage() {
                         <div className="flex items-center gap-2">
                           <i className="fas fa-user-tag text-blue-600"></i>
                           <span className="text-slate-900">
-                            {memberDetail.user_level === 'owner' ? 'เจ้าของ' : 'ผู้อยู่อาศัย'}
+                            {memberDetail.user_level === 'owner' ? 'เจ้าของ' : memberDetail.user_level === 'tenant' ? 'ผู้เช่า' : 'ผู้อยู่อาศัย'}
                           </span>
                         </div>
                       </div>
@@ -1331,6 +1399,22 @@ export default function RoomPage() {
         onOpenChange={setBillViewModalOpen}
         billData={billViewData}
         loading={billViewLoading}
+      />
+
+      {/* Transaction Detail Modal */}
+      <TransactionDetailModal
+        open={transactionDetailModalOpen}
+        onOpenChange={setTransactionDetailModalOpen}
+        billRoomId={transactionDetailBillRoomId}
+        onSlipClick={(paymentId) => handleReviewSlipClick({ id: paymentId })}
+      />
+
+      {/* Review Slip Modal */}
+      <ReviewSlipModal
+        open={reviewSlipModalOpen}
+        onOpenChange={setReviewSlipModalOpen}
+        data={reviewSlipData}
+        loading={loadingReviewSlip}
       />
     </div>
   );

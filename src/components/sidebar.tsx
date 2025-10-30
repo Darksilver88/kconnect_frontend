@@ -62,14 +62,19 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          'fixed lg:sticky lg:top-0 inset-y-0 left-0 z-50 w-64 h-screen bg-white border-r border-slate-200 text-slate-700 transform transition-transform duration-300 ease-in-out flex flex-col shadow-sm',
+          'fixed lg:sticky lg:top-0 inset-y-0 left-0 z-50 w-72 h-screen bg-white border-r border-slate-200 text-slate-700 transform transition-transform duration-300 ease-in-out flex flex-col shadow-sm',
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
-        <div className="p-6 border-b border-slate-200 flex justify-between items-center shrink-0">
+        <div className="p-6 border-b border-slate-200 flex justify-between items-start shrink-0">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">🏠 RPMS</h2>
-            <p className="text-sm text-slate-500">ระบบจัดการโครงการ</p>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center justify-center bg-blue-100 text-blue-600 p-2 rounded-lg w-10 h-10">
+                <i className="fas fa-building text-xl"></i>
+              </div>
+              <h2 className="text-lg font-bold text-slate-900">ระบบจัดการโครงการ</h2>
+            </div>
+            <p className="text-sm text-slate-500">สำหรับนิติบริหารโครงการ K-Connect</p>
           </div>
           {/* ปุ่มปิดสำหรับมือถือ */}
           <button

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { useSidebar } from '@/app/(main)/layout';
 import { Card } from '@/components/ui/card';
@@ -11,6 +11,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { apiCall } from '@/lib/api';
+import { getCurrentUser } from '@/lib/auth';
+import { ConfirmDialog } from '@/components/confirm-dialog';
+import { generateUploadKey, uploadFiles, deleteFile } from '@/lib/utils';
+import { FileUploadSection } from '@/components/file-upload-section';
+
+const ACCEPTED_FILES = 'image/*,.jpg,.png,.gif';
 
 export default function SettingsPage() {
   const { setSidebarOpen } = useSidebar();
@@ -26,53 +33,19 @@ export default function SettingsPage() {
     website: 'https://www.abccondo.com'
   });
 
-  const [bankAccounts, setBankAccounts] = useState([
-    {
-      id: 1,
-      bankName: 'ธนาคารกสิกรไทย',
-      accountNumber: '123-4-56789-0',
-      accountName: 'นิติบุคคลอาคารชุด ABC',
-      accountType: 'บัญชีออมทรัพย์',
-      active: true,
-      color: '#22C55E'
-    },
-    {
-      id: 2,
-      bankName: 'ธนาคารกรุงเทพ',
-      accountNumber: '987-6-54321-0',
-      accountName: 'นิติบุคคลอาคารชุด ABC',
-      accountType: 'บัญชีกระแสรายวัน',
-      active: false,
-      color: '#1e4d8b'
-    }
-  ]);
+  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+  const [loadingBankAccounts, setLoadingBankAccounts] = useState(false);
+  const [bankMasterList, setBankMasterList] = useState<any[]>([]);
+  const [loadingBankModal, setLoadingBankModal] = useState(false);
+  const [bankFormData, setBankFormData] = useState({
+    bank_id: '',
+    bank_account: '',
+    bank_no: '',
+    type: '',
+  });
 
-  const [paymentMethods, setPaymentMethods] = useState([
-    {
-      id: 'bank_transfer',
-      name: 'โอนเงินผ่านธนาคาร',
-      description: 'ลูกบ้านโอนเงินและส่งสลิปมาตรวจสอบ',
-      icon: 'fa-university',
-      color: 'from-blue-600 to-blue-800',
-      enabled: true
-    }
-    // {
-    //   id: 'qr_promptpay',
-    //   name: 'QR Code PromptPay',
-    //   description: 'ชำระผ่าน QR Code แบบทันที',
-    //   icon: 'fa-qrcode',
-    //   color: 'from-purple-600 to-purple-800',
-    //   enabled: true
-    // },
-    // {
-    //   id: 'credit_card',
-    //   name: 'บัตรเครดิต/เดบิต',
-    //   description: 'ชำระผ่านบัตรเครดิตหรือบัตรเดบิต (ค่าธรรมเนียม 2.5%)',
-    //   icon: 'fa-credit-card',
-    //   color: 'from-red-600 to-red-800',
-    //   enabled: false
-    // }
-  ]);
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
 
   const [paymentSettings, setPaymentSettings] = useState({
     dueDays: 30,
@@ -120,18 +93,392 @@ export default function SettingsPage() {
   const [editProjectModalOpen, setEditProjectModalOpen] = useState(false);
   const [bankModalOpen, setBankModalOpen] = useState(false);
   const [editingBank, setEditingBank] = useState<any>(null);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [selectedQrImage, setSelectedQrImage] = useState<string>('');
+  const [deleteBankModalOpen, setDeleteBankModalOpen] = useState(false);
+  const [deletingBank, setDeletingBank] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const toggleBankAccount = (id: number) => {
-    setBankAccounts(prev => prev.map(bank =>
-      bank.id === id ? { ...bank, active: !bank.active } : bank
-    ));
-    toast.success('อัปเดตสถานะบัญชีธนาคารแล้ว');
+  // File upload states
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [currentUploadKey, setCurrentUploadKey] = useState<string>('');
+  const [deleteFileConfirmOpen, setDeleteFileConfirmOpen] = useState(false);
+  const [deleteFileId, setDeleteFileId] = useState<number | null>(null);
+  const [deletingFile, setDeletingFile] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Fetch bank accounts
+  const fetchBankAccounts = async () => {
+    setLoadingBankAccounts(true);
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}bank/list?page=1&limit=10&keyword=&customer_id=${customerId}`;
+    const result = await apiCall(url);
+
+    if (result.success) {
+      setBankAccounts(result.data || []);
+    } else {
+      toast.error('ไม่สามารถโหลดข้อมูลบัญชีธนาคารได้');
+    }
+
+    setLoadingBankAccounts(false);
   };
 
-  const togglePaymentMethod = (id: string) => {
-    setPaymentMethods(prev => prev.map(method =>
-      method.id === id ? { ...method, enabled: !method.enabled } : method
-    ));
+  useEffect(() => {
+    initAndFetchData();
+  }, []);
+
+  const initAndFetchData = async () => {
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+
+    // Initialize config first
+    await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}app_customer_config/init_config`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ customer_id: customerId }),
+    });
+
+    // Then fetch all data
+    fetchBankAccounts();
+    fetchBankMasterList();
+    fetchPaymentMethods();
+  };
+
+  // Fetch bank master list
+  const fetchBankMasterList = async () => {
+    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bank/master_list`);
+    if (result.success) {
+      setBankMasterList(result.data || []);
+    }
+  };
+
+  // Fetch payment methods
+  const fetchPaymentMethods = async () => {
+    setLoadingPaymentMethods(true);
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}app_customer_config/list?page=1&limit=100&customer_id=${customerId}`;
+    const result = await apiCall(url);
+
+    if (result.success) {
+      setPaymentMethods(result.data || []);
+    } else {
+      toast.error('ไม่สามารถโหลดข้อมูลวิธีการชำระเงินได้');
+    }
+
+    setLoadingPaymentMethods(false);
+  };
+
+  // Handle bank modal open
+  const handleBankModalOpen = async (bank: any = null) => {
+    if (bank) {
+      // Edit mode - fetch bank detail
+      setLoadingBankModal(true);
+      setBankModalOpen(true);
+      setEditingBank(bank);
+
+      const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bank/${bank.id}`);
+
+      if (result.success) {
+        const data = result.data;
+        setBankFormData({
+          bank_id: String(data.bank_id || ''),
+          bank_account: data.bank_account || '',
+          bank_no: data.bank_no || '',
+          type: data.type || '',
+        });
+        setAttachments(data.attachments || []);
+        setCurrentUploadKey(data.upload_key || '');
+      } else {
+        toast.error('ไม่สามารถโหลดข้อมูลบัญชีธนาคารได้');
+        setBankModalOpen(false);
+      }
+
+      setLoadingBankModal(false);
+    } else {
+      // Add mode
+      setEditingBank(null);
+      setBankFormData({
+        bank_id: '',
+        bank_account: '',
+        bank_no: '',
+        type: 'ออมทรัพย์',
+      });
+      setAttachments([]);
+      setCurrentUploadKey(generateUploadKey());
+      setBankModalOpen(true);
+    }
+  };
+
+  const handleQrClick = (qrImageUrl: string) => {
+    setSelectedQrImage(qrImageUrl);
+    setQrModalOpen(true);
+  };
+
+  // Handle file upload
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    // Only allow 1 file
+    if (attachments.length > 0) {
+      toast.error('สามารถอัปโหลด QR Code ได้เพียง 1 ไฟล์เท่านั้น กรุณาลบไฟล์เดิมก่อน');
+      e.target.value = '';
+      return;
+    }
+
+    setUploading(true);
+
+    const formData = new FormData();
+    formData.append('upload_key', currentUploadKey);
+    formData.append('menu', 'bank');
+    formData.append('status', '0');
+    formData.append('files', files[0]);
+
+    try {
+      const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}upload_file`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (result.success && result.data && result.data.files && result.data.files.length > 0) {
+        // Get uploaded file from response
+        const uploadedFile = result.data.files[0];
+
+        const fileData = {
+          id: uploadedFile.id,
+          file_name: uploadedFile.file_name,
+          file_path: uploadedFile.file_path || uploadedFile.file_url,
+          file_ext: uploadedFile.file_ext,
+          file_size: uploadedFile.file_size,
+        };
+
+        setAttachments([fileData]); // Keep only 1 file
+        toast.success(result.message || 'อัปโหลดไฟล์สำเร็จ');
+        e.target.value = '';
+      } else {
+        toast.error(result.message || 'เกิดข้อผิดพลาดในการอัปโหลด');
+      }
+    } catch (error) {
+      toast.error('เกิดข้อผิดพลาดในการอัปโหลด');
+    }
+
+    setUploading(false);
+  };
+
+  // Handle file delete click
+  const handleFileDeleteClick = (fileId: number) => {
+    setDeleteFileId(fileId);
+    setDeleteFileConfirmOpen(true);
+  };
+
+  // Handle file delete confirm
+  const handleFileDeleteConfirm = async () => {
+    if (!deleteFileId) return;
+
+    const user = getCurrentUser();
+    const uid = user?.uid || -1;
+
+    setDeletingFile(true);
+
+    const result = await deleteFile(deleteFileId, 'bank', uid);
+
+    if (result.success) {
+      setAttachments([]);
+      setDeleteFileConfirmOpen(false);
+      setDeleteFileId(null);
+      toast.success(result.message || 'ลบไฟล์สำเร็จ');
+    } else {
+      toast.error(result.message || 'เกิดข้อผิดพลาดในการลบ');
+    }
+
+    setDeletingFile(false);
+  };
+
+  // Handle bank submit
+  const handleBankSubmit = async () => {
+    if (!bankFormData.bank_id || !bankFormData.bank_account || !bankFormData.bank_no) {
+      toast.error('กรุณากรอกข้อมูลให้ครบถ้วน');
+      return;
+    }
+
+    setSubmitting(true);
+
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+    const uid = user?.uid || -1;
+
+    const payload = {
+      ...(editingBank && { id: editingBank.id }),
+      upload_key: currentUploadKey,
+      bank_id: parseInt(bankFormData.bank_id),
+      bank_account: bankFormData.bank_account,
+      bank_no: bankFormData.bank_no,
+      type: bankFormData.type || '',
+      customer_id: customerId,
+      uid: uid,
+      status: editingBank ? editingBank.status : 1,
+    };
+
+    const apiUrl = editingBank
+      ? `${process.env.NEXT_PUBLIC_API_PATH}bank/update`
+      : `${process.env.NEXT_PUBLIC_API_PATH}bank/insert`;
+
+    const method = editingBank ? 'PUT' : 'POST';
+
+    const result = await apiCall(apiUrl, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (result.success) {
+      toast.success(result.message || (editingBank ? 'แก้ไขบัญชีธนาคารสำเร็จ' : 'เพิ่มบัญชีธนาคารสำเร็จ'));
+      setBankModalOpen(false);
+      fetchBankAccounts();
+    } else {
+      toast.error(result.message || result.error || 'เกิดข้อผิดพลาดในการบันทึก');
+    }
+
+    setSubmitting(false);
+  };
+
+  const handleDeleteBankClick = (bank: any) => {
+    setDeletingBank(bank);
+    setDeleteBankModalOpen(true);
+  };
+
+  const handleDeleteBankConfirm = async () => {
+    if (!deletingBank) return;
+
+    setDeleting(true);
+    const user = getCurrentUser();
+    const uid = user?.uid || -1;
+
+    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bank/delete`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: deletingBank.id,
+        uid: uid,
+      }),
+    });
+
+    if (result.success) {
+      toast.success('ลบบัญชีธนาคารเรียบร้อยแล้ว');
+      setDeleteBankModalOpen(false);
+      setDeletingBank(null);
+      fetchBankAccounts(); // Refresh list
+    } else {
+      toast.error(result.message || result.error || 'เกิดข้อผิดพลาดในการลบ');
+    }
+
+    setDeleting(false);
+  };
+
+  const toggleBankAccount = async (bank: any) => {
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+    const uid = user?.uid || -1;
+
+    // Toggle status
+    const newStatus = bank.status === 1 ? 0 : 1;
+
+    const payload = {
+      id: bank.id,
+      bank_id: bank.bank_id,
+      bank_account: bank.bank_account,
+      bank_no: bank.bank_no,
+      type: bank.type,
+      customer_id: customerId,
+      uid: uid,
+      status: newStatus,
+    };
+
+    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bank/update`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (result.success) {
+      toast.success(result.message || 'อัปเดตสถานะบัญชีธนาคารแล้ว');
+      // Update state locally
+      setBankAccounts(prev => prev.map(b =>
+        b.id === bank.id ? { ...b, status: newStatus } : b
+      ));
+    } else {
+      toast.error(result.message || result.error || 'เกิดข้อผิดพลาดในการอัปเดตสถานะ');
+    }
+  };
+
+  const togglePaymentMethod = async (method: any) => {
+    const user = getCurrentUser();
+    const uid = user?.uid || -1;
+
+    // Toggle config_value (true/false as string) based on config_value_parsed
+    const newConfigValue = method.config_value_parsed ? 'false' : 'true';
+
+    const payload = {
+      id: method.id,
+      uid: uid,
+      config_value: newConfigValue,
+    };
+
+    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}app_customer_config/update`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (result.success) {
+      toast.success(result.message || 'อัปเดตสถานะการชำระเงินแล้ว');
+      // Update state locally
+      setPaymentMethods(prev => prev.map(m =>
+        m.id === method.id ? { ...m, config_value: newConfigValue, config_value_parsed: !method.config_value_parsed } : m
+      ));
+    } else {
+      toast.error(result.message || result.error || 'เกิดข้อผิดพลาดในการอัปเดตสถานะ');
+    }
+  };
+
+  const updateStringOrNumberConfig = async (method: any) => {
+    const user = getCurrentUser();
+    const uid = user?.uid || -1;
+
+    const payload = {
+      id: method.id,
+      uid: uid,
+      config_value: String(method.config_value_parsed),
+    };
+
+    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}app_customer_config/update`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (result.success) {
+      toast.success(result.message || 'อัปเดตค่าเรียบร้อยแล้ว');
+    } else {
+      toast.error(result.message || result.error || 'เกิดข้อผิดพลาดในการอัปเดต');
+    }
   };
 
   const toggleNotificationType = (id: string) => {
@@ -240,7 +587,7 @@ export default function SettingsPage() {
                     <i className="fas fa-university text-blue-600"></i>
                     ข้อมูลบัญชีธนาคาร
                   </h3>
-                  <Button onClick={() => { setEditingBank(null); setBankModalOpen(true); }} className="bg-green-600 hover:bg-green-700">
+                  <Button onClick={() => handleBankModalOpen()} className="bg-green-600 hover:bg-green-700">
                     <i className="fas fa-plus mr-2"></i>
                     เพิ่มบัญชีธนาคาร
                   </Button>
@@ -250,68 +597,97 @@ export default function SettingsPage() {
                 </p>
 
                 <div className="space-y-4">
-                  {bankAccounts.map((bank) => (
-                    <div
-                      key={bank.id}
-                      className={`flex items-center justify-between p-5 rounded-lg border transition-all ${
-                        bank.active ? 'bg-slate-50 border-slate-200' : 'bg-slate-50 border-slate-200 opacity-60'
-                      } hover:shadow-md`}
-                    >
-                      <div className="flex items-center gap-4 flex-1">
-                        <div
-                          className="w-12 h-12 rounded-lg flex items-center justify-center text-white"
-                          style={{ background: bank.color }}
-                        >
-                          <i className="fas fa-university text-xl"></i>
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold">{bank.bankName}</h4>
-                          <p className="text-sm text-slate-600">
-                            {bank.accountNumber} | {bank.accountName}
-                          </p>
-                          <span className="inline-block mt-1 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
-                            {bank.accountType}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <button
-                          className="w-16 h-16 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition-all flex flex-col items-center justify-center cursor-pointer"
-                          title="ดู QR Code"
-                        >
-                          <i className="fas fa-qrcode text-xl text-slate-500"></i>
-                          <span className="text-xs text-slate-500 mt-1">QR Code</span>
-                        </button>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => { setEditingBank(bank); setBankModalOpen(true); }}
-                        >
-                          <i className="fas fa-edit"></i>
-                        </Button>
-
-                        <button
-                          onClick={() => toggleBankAccount(bank.id)}
-                          className={`relative w-14 h-7 rounded-full transition-colors cursor-pointer ${
-                            bank.active ? 'bg-green-500' : 'bg-slate-300'
-                          }`}
-                          title="เปิด/ปิดใช้งาน"
-                        >
-                          <span
-                            className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${
-                              bank.active ? 'translate-x-7' : 'translate-x-0'
-                            }`}
-                          ></span>
-                        </button>
-
-                        <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50">
-                          <i className="fas fa-trash"></i>
-                        </Button>
-                      </div>
+                  {loadingBankAccounts ? (
+                    <div className="text-center py-8">
+                      <i className="fas fa-spinner fa-spin text-2xl text-slate-400"></i>
+                      <p className="text-sm text-slate-500 mt-2">กำลังโหลด...</p>
                     </div>
-                  ))}
+                  ) : bankAccounts.length === 0 ? (
+                    <div className="text-center py-8 text-slate-500">
+                      <i className="fas fa-university text-4xl mb-3"></i>
+                      <p>ยังไม่มีข้อมูลบัญชีธนาคาร</p>
+                    </div>
+                  ) : (
+                    bankAccounts.map((bank) => (
+                      <div
+                        key={bank.id}
+                        className={`flex items-center justify-between p-5 rounded-lg border transition-all ${
+                          bank.status === 1 ? 'bg-slate-50 border-slate-200' : 'bg-slate-50 border-slate-200 opacity-60'
+                        } hover:shadow-md`}
+                      >
+                        <div className="flex items-center gap-4 flex-1">
+                          {bank.bank_icon ? (
+                            <img
+                              src={bank.bank_icon}
+                              alt={bank.bank_name}
+                              className="w-12 h-12 rounded-lg object-contain"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-blue-500 text-white">
+                              <i className="fas fa-university text-xl"></i>
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <h4 className="font-semibold">{bank.bank_name}</h4>
+                            <p className="text-sm text-slate-600">
+                              {bank.bank_no} | {bank.bank_account}
+                            </p>
+                            <span className="inline-block mt-1 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
+                              {bank.type}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => {
+                              if (bank.attachments && bank.attachments.length > 0) {
+                                handleQrClick(bank.attachments[0].file_path);
+                              } else {
+                                toast.info('ยังไม่มี QR Code สำหรับบัญชีนี้');
+                              }
+                            }}
+                            className="w-16 h-16 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition-all flex flex-col items-center justify-center cursor-pointer"
+                            title="ดู QR Code"
+                          >
+                            <i className="fas fa-qrcode text-xl text-slate-500"></i>
+                            <span className="text-xs text-slate-500 mt-1">QR Code</span>
+                          </button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleBankModalOpen(bank)}
+                          >
+                            <i className="fas fa-edit"></i>
+                          </Button>
+
+                          <button
+                            onClick={() => toggleBankAccount(bank)}
+                            className={`relative w-14 h-7 rounded-full transition-colors cursor-pointer ${
+                              bank.status === 1 ? 'bg-green-500' : 'bg-slate-300'
+                            }`}
+                            title="เปิด/ปิดใช้งาน"
+                          >
+                            <span
+                              className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${
+                                bank.status === 1 ? 'translate-x-7' : 'translate-x-0'
+                              }`}
+                            ></span>
+                          </button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:bg-red-50"
+                            onClick={() => handleDeleteBankClick(bank)}
+                          >
+                            <i className="fas fa-trash"></i>
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </Card>
@@ -332,39 +708,104 @@ export default function SettingsPage() {
                   เปิด/ปิดวิธีการชำระเงินที่ลูกบ้านสามารถใช้ได้
                 </p>
 
-                <div className="space-y-4">
-                  {paymentMethods.map((method) => (
-                    <div
-                      key={method.id}
-                      className={`flex items-center justify-between p-5 rounded-lg border transition-all ${
-                        method.enabled ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'
-                      } hover:shadow-md`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${method.color} flex items-center justify-center text-white`}>
-                          <i className={`fas ${method.icon} text-xl`}></i>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold">{method.name}</h4>
-                          <p className="text-sm text-slate-600">{method.description}</p>
-                        </div>
-                      </div>
+                {loadingPaymentMethods ? (
+                  <div className="text-center py-8">
+                    <i className="fas fa-spinner fa-spin text-2xl text-slate-400"></i>
+                    <p className="text-sm text-slate-500 mt-2">กำลังโหลด...</p>
+                  </div>
+                ) : paymentMethods.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500">
+                    <i className="fas fa-credit-card text-4xl mb-3"></i>
+                    <p>ยังไม่มีข้อมูลวิธีการชำระเงิน</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {paymentMethods.map((method) => {
+                      const isBoolean = method.data_type === 'boolean';
+                      const isNumber = method.data_type === 'number';
+                      const isString = method.data_type === 'string';
 
-                      <button
-                        onClick={() => togglePaymentMethod(method.id)}
-                        className={`relative w-14 h-7 rounded-full transition-colors cursor-pointer ${
-                          method.enabled ? 'bg-green-500' : 'bg-slate-300'
-                        }`}
-                      >
-                        <span
-                          className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${
-                            method.enabled ? 'translate-x-7' : 'translate-x-0'
-                          }`}
-                        ></span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                      // Background color based on type
+                      let bgColor = 'bg-slate-50 border-slate-200';
+                      if (isBoolean && method.config_value_parsed) {
+                        bgColor = 'bg-green-50 border-green-200';
+                      } else if (isNumber || isString) {
+                        bgColor = 'bg-green-50 border-green-200';
+                      }
+
+                      return (
+                        <div
+                          key={method.id}
+                          className={`flex items-center justify-between p-5 rounded-lg border transition-all ${bgColor} hover:shadow-md`}
+                        >
+                          <div className="flex items-center gap-4 flex-1">
+                            <div
+                              className="w-12 h-12 rounded-lg flex items-center justify-center text-white"
+                              style={{ backgroundColor: method.background_color }}
+                              dangerouslySetInnerHTML={{ __html: method.icon }}
+                            />
+                            <div className="flex-1">
+                              <h4 className="font-semibold">{method.title}</h4>
+                              <p className="text-sm text-slate-600">{method.description}</p>
+                            </div>
+                          </div>
+
+                          {isBoolean && (
+                            <button
+                              onClick={() => togglePaymentMethod(method)}
+                              className={`relative w-14 h-7 rounded-full transition-colors cursor-pointer ${
+                                method.config_value_parsed ? 'bg-green-500' : 'bg-slate-300'
+                              }`}
+                            >
+                              <span
+                                className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${
+                                  method.config_value_parsed ? 'translate-x-7' : 'translate-x-0'
+                                }`}
+                              ></span>
+                            </button>
+                          )}
+
+                          {isNumber && (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                step="0.1"
+                                value={method.config_value_parsed}
+                                onChange={(e) => {
+                                  const newValue = e.target.value;
+                                  setPaymentMethods(prev => prev.map(m =>
+                                    m.id === method.id ? { ...m, config_value_parsed: parseFloat(newValue) } : m
+                                  ));
+                                }}
+                                onBlur={() => updateStringOrNumberConfig(method)}
+                                className="w-24 h-11 text-center"
+                              />
+                              <span className="text-sm text-slate-600">%</span>
+                            </div>
+                          )}
+
+                          {isString && (
+                            <div className="flex-1 ml-4">
+                              <Input
+                                type="text"
+                                value={method.config_value_parsed}
+                                onChange={(e) => {
+                                  const newValue = e.target.value;
+                                  setPaymentMethods(prev => prev.map(m =>
+                                    m.id === method.id ? { ...m, config_value_parsed: newValue } : m
+                                  ));
+                                }}
+                                onBlur={() => updateStringOrNumberConfig(method)}
+                                className="h-11"
+                                placeholder="กรอกข้อความ..."
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </Card>
 
@@ -609,77 +1050,153 @@ export default function SettingsPage() {
 
       {/* Bank Account Modal */}
       <Dialog open={bankModalOpen} onOpenChange={setBankModalOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingBank ? 'แก้ไขบัญชีธนาคาร' : 'เพิ่มบัญชีธนาคาร'}</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-            <div>
-              <Label>ชื่อธนาคาร *</Label>
-              <Select>
-                <SelectTrigger className="mt-2 h-11">
-                  <SelectValue placeholder="เลือกธนาคาร" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="กสิกรไทย">ธนาคารกสิกรไทย</SelectItem>
-                  <SelectItem value="กรุงเทพ">ธนาคารกรุงเทพ</SelectItem>
-                  <SelectItem value="กรุงไทย">ธนาคารกรุงไทย</SelectItem>
-                  <SelectItem value="ทหารไทยธนชาต">ธนาคารทหารไทยธนชาต</SelectItem>
-                  <SelectItem value="ไทยพาณิชย์">ธนาคารไทยพาณิชย์</SelectItem>
-                  <SelectItem value="กรุงศรีอยุธยา">ธนาคารกรุงศรีอยุธยา</SelectItem>
-                </SelectContent>
-              </Select>
+          {loadingBankModal ? (
+            <div className="py-8 text-center">
+              <i className="fas fa-spinner fa-spin text-2xl text-slate-400"></i>
+              <p className="text-sm text-slate-500 mt-2">กำลังโหลด...</p>
             </div>
-            <div>
-              <Label>เลขที่บัญชี *</Label>
-              <Input placeholder="เช่น: 123-4-56789-0" className="mt-2 h-11" />
-            </div>
-            <div>
-              <Label>ชื่อบัญชี *</Label>
-              <Input placeholder="เช่น: นิติบุคคลอาคารชุด ABC" className="mt-2 h-11" />
-            </div>
-            <div>
-              <Label>ประเภทบัญชี</Label>
-              <Select defaultValue="savings">
-                <SelectTrigger className="mt-2 h-11">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="savings">ออมทรัพย์</SelectItem>
-                  <SelectItem value="current">กระแสรายวัน</SelectItem>
-                  <SelectItem value="fixed">ประจำ</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="md:col-span-2">
-              <Label>QR Code สำหรับการชำระเงิน</Label>
-              <div className="mt-2 border-2 border-dashed rounded-lg p-8 text-center">
-                <i className="fas fa-cloud-upload-alt text-4xl text-slate-400 mb-3"></i>
-                <p className="text-sm text-slate-600 mb-3">อัปโหลด QR Code สำหรับบัญชีนี้</p>
-                <Button variant="outline" size="sm">
-                  <i className="fas fa-upload mr-2"></i>
-                  เลือกไฟล์ QR Code
-                </Button>
-                <p className="text-xs text-slate-500 mt-3">รองรับไฟล์ .jpg, .png, .gif</p>
+          ) : (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>ชื่อธนาคาร *</Label>
+                  <Select
+                    value={bankFormData.bank_id}
+                    onValueChange={(value) => setBankFormData({ ...bankFormData, bank_id: value })}
+                  >
+                    <SelectTrigger className="w-full mt-2 !h-11">
+                      <SelectValue placeholder="เลือกธนาคาร" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bankMasterList.map((bank) => (
+                        <SelectItem key={bank.id} value={String(bank.id)}>
+                          {bank.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>เลขที่บัญชี *</Label>
+                  <Input
+                    value={bankFormData.bank_no}
+                    onChange={(e) => setBankFormData({ ...bankFormData, bank_no: e.target.value })}
+                    placeholder="เช่น: 123-4-56789-0"
+                    className="mt-2 h-11"
+                  />
+                </div>
+                <div>
+                  <Label>ชื่อบัญชี *</Label>
+                  <Input
+                    value={bankFormData.bank_account}
+                    onChange={(e) => setBankFormData({ ...bankFormData, bank_account: e.target.value })}
+                    placeholder="เช่น: นิติบุคคลอาคารชุด ABC"
+                    className="mt-2 h-11"
+                  />
+                </div>
+                <div>
+                  <Label>ประเภทบัญชี</Label>
+                  <Select
+                    value={bankFormData.type}
+                    onValueChange={(value) => setBankFormData({ ...bankFormData, type: value })}
+                  >
+                    <SelectTrigger className="w-full mt-2 !h-11">
+                      <SelectValue placeholder="เลือกประเภทบัญชี" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ออมทรัพย์">ออมทรัพย์</SelectItem>
+                      <SelectItem value="กระแสรายวัน">กระแสรายวัน</SelectItem>
+                      <SelectItem value="ประจำ">ประจำ</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
+              {/* File Upload Section */}
+              <FileUploadSection
+                title="QR Code สำหรับการชำระเงิน"
+                attachments={attachments}
+                uploading={uploading}
+                onFileUpload={handleFileUpload}
+                onFileDelete={handleFileDeleteClick}
+                accept={ACCEPTED_FILES}
+              />
             </div>
-          </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBankModalOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setBankModalOpen(false)}
+              disabled={submitting}
+            >
               ยกเลิก
             </Button>
             <Button
               className="bg-green-600 hover:bg-green-700"
-              onClick={() => {
-                toast.success(editingBank ? 'แก้ไขบัญชีธนาคารเรียบร้อยแล้ว' : 'เพิ่มบัญชีธนาคารเรียบร้อยแล้ว');
-                setBankModalOpen(false);
-              }}
+              onClick={handleBankSubmit}
+              disabled={submitting || loadingBankModal}
             >
-              บันทึก
+              {submitting ? 'กำลังบันทึก...' : 'บันทึก'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* QR Code Modal */}
+      <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>QR Code สำหรับการชำระเงิน</DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-center p-6">
+            {selectedQrImage ? (
+              <img
+                src={selectedQrImage}
+                alt="QR Code"
+                className="max-w-full h-auto rounded-lg border"
+              />
+            ) : (
+              <div className="text-center text-slate-500">
+                <i className="fas fa-qrcode text-6xl mb-3"></i>
+                <p>ไม่มี QR Code</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQrModalOpen(false)}>
+              ปิด
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Bank Confirmation Modal */}
+      <ConfirmDialog
+        open={deleteBankModalOpen}
+        onOpenChange={setDeleteBankModalOpen}
+        onConfirm={handleDeleteBankConfirm}
+        title="ยืนยันการลบบัญชีธนาคาร"
+        description={`คุณแน่ใจหรือไม่ที่จะลบบัญชีธนาคาร ${deletingBank?.bank_name} (${deletingBank?.bank_no})? การดำเนินการนี้ไม่สามารถย้อนกลับได้`}
+        loading={deleting}
+        confirmText="ยืนยันการลบ"
+        variant="destructive"
+      />
+
+      {/* Delete File Confirmation Modal */}
+      <ConfirmDialog
+        open={deleteFileConfirmOpen}
+        onOpenChange={setDeleteFileConfirmOpen}
+        onConfirm={handleFileDeleteConfirm}
+        title="ยืนยันการลบไฟล์"
+        description="คุณแน่ใจหรือไม่ว่าต้องการลบไฟล์นี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้"
+        loading={deletingFile}
+        confirmText="ยืนยันการลบ"
+        variant="destructive"
+      />
     </div>
   );
 }

@@ -16,7 +16,7 @@ interface FileUploadSectionProps {
   onFileDelete: (fileId: number) => void;
   accept?: string;
   multiple?: boolean;
-  label?: string;
+  title?: string;
 }
 
 // ฟังก์ชันแปลงขนาดไฟล์
@@ -70,13 +70,13 @@ export function FileUploadSection({
   onFileDelete,
   accept = 'image/*',
   multiple = true,
-  label = 'ไฟล์แนบ',
+  title = 'ไฟล์แนบ',
 }: FileUploadSectionProps) {
   const acceptedTypes = getAcceptedFileTypes(accept);
 
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      {title && <Label>{title}</Label>}
       <div className="border-2 border-dashed border-slate-200 rounded-lg p-4">
         <input
           type="file"

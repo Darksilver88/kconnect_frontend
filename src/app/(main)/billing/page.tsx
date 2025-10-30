@@ -39,6 +39,8 @@ import { FileUploadSection } from '@/components/file-upload-section';
 import { FilePreview } from '@/components/file-preview';
 import { SearchBar } from '@/components/search-bar';
 import { TableActionButtons } from '@/components/table-action-buttons';
+import { TransactionDetailModal } from '@/components/transaction-detail-modal';
+import { ReviewSlipModal } from '@/components/review-slip-modal';
 
 // ตัวแปรคงที่
 const MENU = 'bill';
@@ -65,6 +67,9 @@ export default function BillingPage() {
   // Summary data states
   const [billSummaryData, setBillSummaryData] = useState<any>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
+
+  // Bill status list
+  const [billStatusList, setBillStatusList] = useState<any[]>([]);
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -127,6 +132,15 @@ export default function BillingPage() {
   const [billDetailsSearchKeyword, setBillDetailsSearchKeyword] = useState('');
   const [billDetailsBillId, setBillDetailsBillId] = useState<number | null>(null);
   const [billDetailsStatusFilter, setBillDetailsStatusFilter] = useState('-1');
+
+  // Transaction detail modal states
+  const [transactionDetailModalOpen, setTransactionDetailModalOpen] = useState(false);
+  const [transactionDetailBillRoomId, setTransactionDetailBillRoomId] = useState<number | null>(null);
+
+  // Review slip modal states
+  const [reviewSlipModalOpen, setReviewSlipModalOpen] = useState(false);
+  const [reviewSlipData, setReviewSlipData] = useState<any>(null);
+  const [loadingReviewSlip, setLoadingReviewSlip] = useState(false);
 
   // File upload states
   const [attachments, setAttachments] = useState<any[]>([]);
@@ -203,6 +217,16 @@ export default function BillingPage() {
     setLoading(false);
   };
 
+  // Fetch bill status list
+  const fetchBillStatusList = async () => {
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}bill/bill_status?page=1&limit=100`;
+    const result = await apiCall(url);
+
+    if (result.success && result.data) {
+      setBillStatusList(result.data);
+    }
+  };
+
   // Refresh list after CRUD operations (silent, no loading)
   const refreshList = async (resetToFirstPage = false) => {
     const pageToUse = resetToFirstPage ? 1 : currentPage;
@@ -229,6 +253,7 @@ export default function BillingPage() {
 
   useEffect(() => {
     fetchSummary(); // Fetch summary once on mount
+    fetchBillStatusList(); // Fetch bill status list once on mount
   }, []);
 
   useEffect(() => {
@@ -743,33 +768,96 @@ export default function BillingPage() {
 
   // Get payment status badge
   const getPaymentStatusBadge = (status: number) => {
+    // Find status from billStatusList
+    const statusItem = billStatusList.find(s => s.id === status);
+    const statusLabel = statusItem?.title || 'ไม่ระบุ';
+
+    // Define colors based on status id
+    if (status === 0) {
+      return {
+        label: statusLabel,
+        className: 'bg-yellow-50 text-yellow-700'
+      };
+    }
     if (status === 1) {
       return {
-        label: 'ชำระแล้ว',
+        label: statusLabel,
         className: 'bg-green-50 text-green-700'
       };
     }
     if (status === 3) {
       return {
-        label: 'เกินกำหนด',
+        label: statusLabel,
         className: 'bg-red-50 text-red-700'
       };
     }
     if (status === 4) {
       return {
-        label: 'ชำระบางส่วน',
+        label: statusLabel,
         className: 'bg-blue-50 text-[#0891B2]'
       };
     }
+    if (status === 5) {
+      return {
+        label: statusLabel,
+        className: 'bg-yellow-50 text-yellow-700'
+      };
+    }
     return {
-      label: 'รอชำระ',
-      className: 'bg-yellow-50 text-yellow-700'
+      label: statusLabel,
+      className: 'bg-gray-50 text-gray-700'
     };
   };
 
   // Format number with comma
   const formatPrice = (price: number) => {
     return `฿${price.toLocaleString()}`;
+  };
+
+  // Handle review slip click
+  const handleReviewSlipClick = async (item: any) => {
+    setLoadingReviewSlip(true);
+    setReviewSlipModalOpen(true);
+    setReviewSlipData(null);
+
+    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}payment/${item.id}`);
+
+    if (result.success && result.data) {
+      const data = result.data;
+      setReviewSlipData({
+        // Slip image
+        slip_image: data.attachment?.file_path || 'https://placehold.co/400x600/E0F2F7/2B6EF3?text=Payment+Slip',
+
+        // Slip details
+        member_name: data.member_name || '-',
+        member_detail: data.member_detail || '-',
+        payment_amount: data.payment_amount || '-',
+        transfer_date: data.transfer_date || data.create_date_formatted || '-',
+        bank_name: data.bank_name || data.payment_type_title || '-',
+        bill_no: data.bill_no || '-',
+        member_remark: data.member_remark || '-',
+        reject_reason: data.remark || '-',
+
+        // Bill info
+        bill_title: data.bill_title || '-',
+        bill_type: data.bill_type_title || '-',
+        bill_period: data.bill_detail || '-',
+        bill_amount: data.bill_total_price || '-',
+        due_date: data.expire_date_formatted ? data.expire_date_formatted.split(' ')[0] : '-',
+        status: data.status,
+
+        // Additional info
+        approver_name: data.update_by_name || data.approver_name || 'รอข้อมูล',
+
+        // For approve/reject
+        id: data.id
+      });
+    } else {
+      toast.error(result.message || 'ไม่สามารถโหลดข้อมูลได้');
+      setReviewSlipModalOpen(false);
+    }
+
+    setLoadingReviewSlip(false);
   };
 
   // Handle file upload
@@ -1103,7 +1191,7 @@ export default function BillingPage() {
                             {item.total_room ? (
                               <button
                                 onClick={() => handleRoomCountClick(item.id)}
-                                className="text-blue-600 hover:text-blue-700 hover:underline font-medium cursor-pointer"
+                                className="text-blue-600 hover:text-blue-700 hover:underline font-medium cursor-pointer transition-all"
                               >
                                 {item.total_room} ห้อง
                               </button>
@@ -1124,28 +1212,18 @@ export default function BillingPage() {
                               {/* ปุ่ม ดู - แสดงทุก status */}
                               <button
                                 onClick={() => handleViewClick(item.id)}
-                                className="w-8 h-8 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 transition-all hover:-translate-y-0.5 cursor-pointer"
+                                className="w-8 h-8 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
                                 title="ดู"
                               >
                                 <i className="fas fa-eye text-sm"></i>
                               </button>
 
-                              {/* ปุ่มเมื่อ status = 1 (แจ้งแล้ว) */}
-                              {item.status === 1 && (
-                                <button
-                                  onClick={() => handleCancelSendClick(item)}
-                                  className="w-8 h-8 rounded-md bg-yellow-100 text-yellow-500 hover:bg-yellow-200 transition-all hover:-translate-y-0.5 cursor-pointer"
-                                  title="ยกเลิกการแจ้ง"
-                                >
-                                  <i className="fas fa-ban text-sm"></i>
-                                </button>
-                              )}
 
                               {/* ปุ่มเมื่อ status = 3 (รอการแจ้ง) */}
                               {item.status === 3 && (
                                 <button
                                   onClick={() => handleSendClick(item)}
-                                  className="w-8 h-8 rounded-md bg-green-100 text-green-500 hover:bg-green-200 transition-all hover:-translate-y-0.5 cursor-pointer"
+                                  className="w-8 h-8 rounded-md bg-green-100 text-green-500 hover:bg-green-200 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
                                   title="ส่งการแจ้งเตือน"
                                 >
                                   <i className="fas fa-paper-plane text-sm"></i>
@@ -1157,21 +1235,21 @@ export default function BillingPage() {
                                 <>
                                   <button
                                     onClick={() => handleEditClick(item.id)}
-                                    className="w-8 h-8 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all hover:-translate-y-0.5 cursor-pointer"
+                                    className="w-8 h-8 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
                                     title="แก้ไข"
                                   >
                                     <i className="fas fa-edit text-sm"></i>
                                   </button>
                                   <button
                                     onClick={() => handleSendClick(item)}
-                                    className="w-8 h-8 rounded-md bg-green-100 text-green-500 hover:bg-green-200 transition-all hover:-translate-y-0.5 cursor-pointer"
+                                    className="w-8 h-8 rounded-md bg-green-100 text-green-500 hover:bg-green-200 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
                                     title="ส่งการแจ้งเตือน"
                                   >
                                     <i className="fas fa-paper-plane text-sm"></i>
                                   </button>
                                   <button
                                     onClick={() => handleDeleteClick(item)}
-                                    className="w-8 h-8 rounded-md bg-red-100 text-red-500 hover:bg-red-200 transition-all hover:-translate-y-0.5 cursor-pointer"
+                                    className="w-8 h-8 rounded-md bg-red-100 text-red-500 hover:bg-red-200 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
                                     title="ลบ"
                                   >
                                     <i className="fas fa-trash text-sm"></i>
@@ -1395,22 +1473,9 @@ export default function BillingPage() {
                     <h4 className="text-base font-semibold text-slate-900">
                       <i className="fas fa-table mr-2"></i>ตรวจสอบข้อมูลที่นำเข้า
                     </h4>
-                    <div className="flex gap-2 items-center">
-                      <span className="text-sm text-slate-600 font-medium">
-                        {editData.bill_room_data.items.filter((item: any) => !editDeleteRows.includes(item.row_number)).length} รายการ
-                      </span>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="destructive"
-                        className="h-7 text-xs"
-                        onClick={() => {
-                          setEditDeleteRows(editData.bill_room_data.items.map((item: any) => item.row_number));
-                        }}
-                      >
-                        <i className="fas fa-trash mr-1"></i> ล้างข้อมูล
-                      </Button>
-                    </div>
+                    <span className="text-sm text-slate-600 font-medium">
+                      {editData.bill_room_data.items.filter((item: any) => !editDeleteRows.includes(item.row_number)).length} รายการ
+                    </span>
                   </div>
 
                   {/* Table */}
@@ -1456,6 +1521,16 @@ export default function BillingPage() {
                                     variant="ghost"
                                     className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                                     onClick={() => {
+                                      // Check if this is the last remaining item
+                                      const remainingItems = editData.bill_room_data.items.filter(
+                                        (i: any) => !editDeleteRows.includes(i.row_number)
+                                      );
+
+                                      if (remainingItems.length <= 1) {
+                                        toast.error('ไม่สามารถลบรายการสุดท้ายได้ ต้องมีอย่างน้อย 1 รายการ');
+                                        return;
+                                      }
+
                                       setEditDeleteRows([...editDeleteRows, item.row_number]);
                                     }}
                                   >
@@ -2105,9 +2180,10 @@ export default function BillingPage() {
                                   <div className="flex justify-center gap-2">
                                     <button
                                       onClick={() => {
-                                        toast.info('ฟีเจอร์นี้กำลังพัฒนา');
+                                        setTransactionDetailBillRoomId(item.id);
+                                        setTransactionDetailModalOpen(true);
                                       }}
-                                      className="w-8 h-8 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 transition-all hover:-translate-y-0.5"
+                                      className="w-8 h-8 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
                                       title="ดู"
                                     >
                                       <i className="fas fa-eye text-sm"></i>
@@ -2116,7 +2192,7 @@ export default function BillingPage() {
                                     {(item.status === 0 || item.status === 3) && (
                                       <button
                                         onClick={() => handleSendNotificationEach(item.id)}
-                                        className="w-8 h-8 rounded-md bg-green-100 text-green-600 hover:bg-green-200 transition-all hover:-translate-y-0.5"
+                                        className="w-8 h-8 rounded-md bg-green-100 text-green-600 hover:bg-green-200 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
                                         title="ส่งแจ้งเตือน"
                                       >
                                         <i className="fas fa-bell text-sm"></i>
@@ -2186,6 +2262,22 @@ export default function BillingPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Transaction Detail Modal */}
+      <TransactionDetailModal
+        open={transactionDetailModalOpen}
+        onOpenChange={setTransactionDetailModalOpen}
+        billRoomId={transactionDetailBillRoomId}
+        onSlipClick={(paymentId) => handleReviewSlipClick({ id: paymentId })}
+      />
+
+      {/* Review Slip Modal */}
+      <ReviewSlipModal
+        open={reviewSlipModalOpen}
+        onOpenChange={setReviewSlipModalOpen}
+        data={reviewSlipData}
+        loading={loadingReviewSlip}
+      />
     </div>
   );
 }

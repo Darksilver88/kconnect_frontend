@@ -48,7 +48,7 @@ const mockData = {
   // Donut Chart Data
   billStatus: [
     { label: 'ชำระแล้ว', value: 765, percent: 88, color: '#22C55E' },
-    { label: 'รอชำระ', value: 127, percent: 10, color: '#EAB308' },
+    { label: 'รอชำระและรอตรวจสอบ', value: 127, percent: 10, color: '#EAB308' },
     { label: 'เกินกำหนด', value: 8, percent: 2, color: '#EF4444' }
   ],
 
@@ -66,6 +66,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [summaryData, setSummaryData] = useState<any>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState<string>('');
 
   // Billing revenue chart states
   const [monthDuration, setMonthDuration] = useState(3);
@@ -83,6 +84,19 @@ export default function DashboardPage() {
   // Action items states
   const [actionItemsData, setActionItemsData] = useState<any>(null);
   const [actionItemsLoading, setActionItemsLoading] = useState(true);
+
+  // Update current time
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      setCurrentTime(`${hours}:${minutes} น.`);
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch dashboard summary
   useEffect(() => {
@@ -308,7 +322,7 @@ export default function DashboardPage() {
     <div>
       <PageHeader
         title="Dashboard"
-        subtitle="ภาพรวมโครงการ - อัพเดทล่าสุด: วันนี้ 14:30 น."
+        subtitle={`ภาพรวมโครงการ - อัพเดทล่าสุด: วันนี้ ${currentTime}`}
         onMenuClick={() => setSidebarOpen(true)}
       />
 
@@ -482,9 +496,9 @@ export default function DashboardPage() {
 
                         return (
                           <div key={index} className="flex-1 flex flex-col items-center">
-                            <div className="flex gap-1 items-end h-[220px] w-full justify-center">
+                            <div className="flex gap-1 items-end h-[220px] w-full justify-center relative">
                               <div
-                                className="w-6 rounded-t cursor-pointer hover:opacity-80 transition-all relative group"
+                                className="w-6 rounded-t cursor-pointer hover:opacity-80 transition-all relative group hover:z-50"
                                 style={{
                                   height: `${billedHeight}%`,
                                   minHeight: data.billed > 0 ? '8px' : '0',
@@ -496,7 +510,7 @@ export default function DashboardPage() {
                                 </div>
                               </div>
                               <div
-                                className="w-6 rounded-t cursor-pointer hover:opacity-80 transition-all relative group"
+                                className="w-6 rounded-t cursor-pointer hover:opacity-80 transition-all relative group hover:z-50"
                                 style={{
                                   height: `${revenueHeight}%`,
                                   minHeight: data.revenue > 0 ? '8px' : '0',
@@ -602,7 +616,7 @@ export default function DashboardPage() {
                     <div className="flex justify-between items-center py-2 border-b">
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded bg-[#EAB308]"></div>
-                        <span className="text-sm text-slate-700">รอชำระ</span>
+                        <span className="text-sm text-slate-700">รอชำระและรอตรวจสอบ</span>
                       </div>
                       <span className="font-semibold text-slate-900 text-sm">{billStatusData.bill_status.pending.count} ({billStatusData.bill_status.pending.percent}%)</span>
                     </div>

@@ -894,6 +894,80 @@ const fetchData = async (page: number = 1) => {
       - Payment page: "บันทึกการชำระ", "ดู" (review slip)
       - Billing page: "จำนวนห้อง", "ดู", "ยกเลิกการแจ้ง", "ส่งการแจ้งเตือน", "แก้ไข", "ลบ"
 
+### 2025-10-30: Shared Components & Payment System Enhancements
+
+**Shared Components - Transaction & Review Slip Modals:**
+1. **TransactionDetailModal** (`/src/components/transaction-detail-modal.tsx`):
+   - Props: `open`, `onOpenChange`, `billRoomId`, `onSlipClick` (optional callback)
+   - API: `bill_room/{id}` - ดึงข้อมูล bill_room + latest transaction
+   - แสดง:
+     - Bill Info: เลขที่บิล, หัวข้อ, ลูกบ้าน, ยอดรวม, ชำระแล้ว, ยอดค้าง
+     - Transaction Details: วิธีการชำระ, จำนวนเงิน, วันที่ชำระ, วันที่บันทึก, หมายเหตุ
+     - Payment Method Specific Fields (read-only): เงินสด, โอนเงิน, เช็ค, บัตรเครดิต, อื่นๆ
+   - Special: ถ้า `bill_transaction_type_id === 6` แสดงปุ่ม "ดู" (fa-eye) เปิด slip detail
+   - ใช้ใน: Payment page (tab 0), Billing page (Bill Room Details Modal), Room page (Payment History tab)
+
+2. **ReviewSlipModal** (`/src/components/review-slip-modal.tsx`):
+   - Props: `open`, `onOpenChange`, `data`, `loading`, `showActions` (optional), `onApprove`, `onReject`, `submitting`, `getStatusBadge`
+   - แสดง:
+     - Slip Image: clickable, object-contain
+     - Slip Details (3 columns): ผู้โอน, จำนวนเงิน, วันที่โอน, ธนาคาร, บิลที่อ้างอิง, หมายเหตุ
+     - Bill Info: หัวข้อ, ประเภท, งวด, จำนวนที่ต้องชำระ, วันครบกำหนด, สถานะ, เหตุผลปฏิเสธ
+   - Conditional Footer:
+     - `showActions=true`: แสดงปุ่ม ปฏิเสธ (red) + อนุมัติ (green)
+     - `showActions=false`: แสดงแค่ปุ่ม ปิด
+   - ใช้ใน: Payment page (tab 1, showActions=true), Billing page (view-only, showActions=false), Room page (view-only)
+
+**Payment Page Updates:**
+1. **Tab 0 - Dynamic Status Labels**:
+   - API: `bill/bill_status?page=1&limit=100`
+   - ใช้ dynamic labels จาก API แทน hardcode
+   - Support status: 0 (รอชำระ), 1 (ชำระแล้ว), 3 (เกินกำหนด), 4 (ชำระบางส่วน), 5 (รอตรวจสอบ)
+   - Status 5: ไม่แสดงปุ่ม "บันทึกการชำระ" (แสดง "-" แทน)
+
+2. **Tab 1 - Hardcoded Status**:
+   - แสดง "รอตรวจสอบ" แบบ hardcode (เพราะ API แยกต่างหาก)
+   - ไม่ใช้ `getStatusBadge()` function
+
+3. **Manual Payment Modal**:
+   - ลบ field "ประเภทการชำระ" ออกจาก Transaction Detail Modal
+   - Field "จำนวนเงิน" เป็น readonly และชำระเต็มจำนวนเท่านั้น
+
+**Billing Page Updates:**
+1. **Status Integration**:
+   - API: `bill/bill_status?page=1&limit=100`
+   - ใช้ dynamic labels ใน Bill Room Details Modal
+   - Support status: 0, 1, 3, 4, 5
+
+2. **Action Buttons**:
+   - ซ่อนปุ่ม "ยกเลิกการแจ้ง" เมื่อ status = 1 (แจ้งแล้ว)
+   - เหลือแค่ปุ่ม "ดู" สำหรับ status = 1
+
+**Room Page Updates:**
+1. **Payment History Tab**:
+   - แสดงปุ่ม "ดูบิล" เฉพาะ `status === 1` (ชำระแล้ว)
+   - ถ้า status ไม่ใช่ 1: แสดง "-"
+   - เปลี่ยนจาก `fetchBillDetail()` เป็นใช้ `TransactionDetailModal`
+   - ส่ง `item.id` (bill_room_id) แทน bill_id
+   - Support slip viewing ผ่าน `onSlipClick` callback
+
+**Dashboard Updates:**
+- Block "สถานะบิล": เปลี่ยน "รอชำระ" → "รอชำระและรอตรวจสอบ"
+- Mock data และ display text อัปเดตแล้ว
+
+**UI/UX Improvements - Hover Effects:**
+- ทุกปุ่มที่มี action ต้องมี hover effect: `hover:shadow-md`, `transition-all`, `cursor-pointer`
+- ปุ่มที่ได้รับการปรับปรุง:
+  - Payment page: ดูรายละเอียด, บันทึกการชำระ, ดู slip
+  - Billing page: ดู, ยกเลิกการแจ้ง, ส่งการแจ้งเตือน, แก้ไข, ลบ, X ห้อง
+  - TransactionDetailModal: ปุ่มดู slip
+
+**Code Deduplication:**
+- สร้าง shared components ลดโค้ดซ้ำซ้อน:
+  - TransactionDetailModal: ~240 บรรทัด
+  - ReviewSlipModal: ~200 บรรทัด
+- ใช้งานข้ามหน้า: Payment, Billing, Room
+
 ### 2025-10-28: Status Badge & Room Sync Updates
 
 **Payment Status Badge - Status 4 (ชำระบางส่วน):**
@@ -943,6 +1017,7 @@ const fetchData = async (page: number = 1) => {
 **UI/UX Best Practice Note**:
 - ปุ่มทั้งหมดที่กดได้ต้องมี `cursor-pointer` class เพื่อแสดง hand cursor
 - ปุ่มที่ใช้เวลานานต้องมี loading state และป้องกัน double-click
+- ทุกปุ่มที่มี action ควรมี hover effect: `hover:shadow-md`, `transition-all`
 
 ### 2025-10-22: Build Error Fixes
 
