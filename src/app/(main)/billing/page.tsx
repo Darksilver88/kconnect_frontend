@@ -2178,16 +2178,18 @@ export default function BillingPage() {
                               <td className="px-4 py-3 text-center">
                                 {billDetailsData.bill_info?.status === 1 ? (
                                   <div className="flex justify-center gap-2">
-                                    <button
-                                      onClick={() => {
-                                        setTransactionDetailBillRoomId(item.id);
-                                        setTransactionDetailModalOpen(true);
-                                      }}
-                                      className="w-8 h-8 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
-                                      title="ดู"
-                                    >
-                                      <i className="fas fa-eye text-sm"></i>
-                                    </button>
+                                    {item.status === 1 && (
+                                      <button
+                                        onClick={() => {
+                                          setTransactionDetailBillRoomId(item.id);
+                                          setTransactionDetailModalOpen(true);
+                                        }}
+                                        className="w-8 h-8 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
+                                        title="ดู"
+                                      >
+                                        <i className="fas fa-eye text-sm"></i>
+                                      </button>
+                                    )}
 
                                     {(item.status === 0 || item.status === 3) && (
                                       <button
@@ -2197,6 +2199,10 @@ export default function BillingPage() {
                                       >
                                         <i className="fas fa-bell text-sm"></i>
                                       </button>
+                                    )}
+
+                                    {item.status !== 0 && item.status !== 1 && item.status !== 3 && (
+                                      <span className="text-slate-400">-</span>
                                     )}
                                   </div>
                                 ) : (
