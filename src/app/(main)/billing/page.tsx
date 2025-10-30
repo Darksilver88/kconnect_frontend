@@ -614,7 +614,7 @@ export default function BillingPage() {
     if (result.success) {
       setEditModalOpen(false);
       setEditData(null);
-      setEditFormData({ title: '', detail: '', expire_date: '', status: '0' });
+      setEditFormData({ title: '', bill_type_id: '', detail: '', expire_date: '', remark: '' });
       setEditDeleteRows([]);
       await refreshList();
       toast.success(result.message || 'แก้ไขข้อมูลสำเร็จ');

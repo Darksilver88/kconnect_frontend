@@ -1327,9 +1327,11 @@ export default function PaymentPage() {
 
                                     {/* สถานะ */}
                                     <td className="px-4 py-4 !text-center">
-                                      <div className={`inline-flex items-center px-3 py-1 rounded text-sm font-medium ${statusInfo.className}`} style={{ color: statusInfo.textColor }}>
-                                        {statusInfo.label}
-                                      </div>
+                                      {statusInfo && (
+                                        <div className={`inline-flex items-center px-3 py-1 rounded text-sm font-medium ${statusInfo.className}`} style={{ color: statusInfo.textColor }}>
+                                          {statusInfo.label}
+                                        </div>
+                                      )}
                                     </td>
 
                                     {/* การดำเนินการ */}
@@ -1346,14 +1348,16 @@ export default function PaymentPage() {
                                         ) : item.status === 5 ? (
                                           <span className="text-sm text-slate-400">-</span>
                                         ) : (
-                                          <button
-                                            onClick={() => handleManualPaymentClick(item)}
-                                            className={`inline-flex items-center gap-2 px-3 py-1 rounded text-sm font-medium cursor-pointer hover:shadow-md transition-all ${statusInfo.className}`}
-                                            style={{ color: statusInfo.textColor }}
-                                          >
-                                            <i className="fas fa-dollar-sign"></i>
-                                            บันทึกการชำระ
-                                          </button>
+                                          statusInfo && (
+                                            <button
+                                              onClick={() => handleManualPaymentClick(item)}
+                                              className={`inline-flex items-center gap-2 px-3 py-1 rounded text-sm font-medium cursor-pointer hover:shadow-md transition-all ${statusInfo.className}`}
+                                              style={{ color: statusInfo.textColor }}
+                                            >
+                                              <i className="fas fa-dollar-sign"></i>
+                                              บันทึกการชำระ
+                                            </button>
+                                          )
                                         )}
                                       </div>
                                     </td>

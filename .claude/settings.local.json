@@ -4,7 +4,8 @@
       "Bash(tree:*)",
       "Bash(npx shadcn@latest add:*)",
       "Bash(npm install:*)",
-      "Bash(tail:*)"
+      "Bash(tail:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
