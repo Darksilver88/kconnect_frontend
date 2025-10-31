@@ -761,6 +761,10 @@ export default function BillingPage() {
 
     if (result.success) {
       toast.success(result.message || 'ส่งแจ้งเตือนสำเร็จ');
+      // Refresh bill details data
+      if (billDetailsBillId) {
+        await handleRoomCountClick(billDetailsBillId, billDetailsCurrentPage);
+      }
     } else {
       toast.error(result.message || result.error || 'เกิดข้อผิดพลาดในการส่งแจ้งเตือน');
     }
@@ -2192,13 +2196,23 @@ export default function BillingPage() {
                                     )}
 
                                     {(item.status === 0 || item.status === 3) && (
-                                      <button
-                                        onClick={() => handleSendNotificationEach(item.id)}
-                                        className="w-8 h-8 rounded-md bg-green-100 text-green-600 hover:bg-green-200 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
-                                        title="ส่งแจ้งเตือน"
-                                      >
-                                        <i className="fas fa-bell text-sm"></i>
-                                      </button>
+                                      item.can_send_notification === 1 ? (
+                                        <button
+                                          onClick={() => handleSendNotificationEach(item.id)}
+                                          className="w-8 h-8 rounded-md bg-green-100 text-green-600 hover:bg-green-200 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
+                                          title="ส่งแจ้งเตือน"
+                                        >
+                                          <i className="fas fa-bell text-sm"></i>
+                                        </button>
+                                      ) : (
+                                        <button
+                                          disabled
+                                          className="w-8 h-8 rounded-md bg-gray-100 text-gray-400 cursor-not-allowed relative group"
+                                          title={`ส่งล่าสุด: ${item.last_notification_date_formatted} | รออีก ${item.remaining_minutes} นาที`}
+                                        >
+                                          <i className="fas fa-clock text-sm"></i>
+                                        </button>
+                                      )
                                     )}
 
                                     {item.status !== 0 && item.status !== 1 && item.status !== 3 && (

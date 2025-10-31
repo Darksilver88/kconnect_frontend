@@ -14,7 +14,6 @@ interface ReviewSlipModalProps {
   onApprove?: () => void;
   onReject?: () => void;
   submitting?: boolean;
-  getStatusBadge?: (status: number) => any;
 }
 
 export function ReviewSlipModal({
@@ -25,8 +24,7 @@ export function ReviewSlipModal({
   showActions = false,
   onApprove,
   onReject,
-  submitting = false,
-  getStatusBadge
+  submitting = false
 }: ReviewSlipModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -45,7 +43,7 @@ export function ReviewSlipModal({
             {/* Slip Image - Only show if exists */}
             {data.slip_image && data.slip_image !== 'https://placehold.co/400x600/E0F2F7/2B6EF3?text=Payment+Slip' && (
               <div className="flex justify-center">
-                <div className="w-full max-w-[400px] h-[600px] bg-white rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow">
+                <div className="w-full max-w-[400px] h-[600px] bg-slate-800 rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow">
                   <img
                     src={data.slip_image}
                     alt="Payment Slip"
@@ -118,17 +116,29 @@ export function ReviewSlipModal({
                   <span className="text-xs text-slate-500">วันครบกำหนด:</span>
                   <span className="text-sm font-semibold text-slate-900">{data.due_date}</span>
                 </div>
-                {getStatusBadge && (
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs text-slate-500">สถานะ:</span>
-                    <span className="text-sm">
-                      <Badge className={getStatusBadge(data.status).className} style={{ color: getStatusBadge(data.status).textColor }}>
-                        <i className={`fas ${getStatusBadge(data.status).icon} mr-1`}></i>
-                        {getStatusBadge(data.status).label}
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-slate-500">สถานะ:</span>
+                  <span className="text-sm">
+                    {data.status === 0 && (
+                      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                        <i className="fas fa-clock mr-1"></i>
+                        รอตรวจสอบ
                       </Badge>
-                    </span>
-                  </div>
-                )}
+                    )}
+                    {data.status === 1 && (
+                      <Badge className="bg-green-100 text-green-800 border-green-300">
+                        <i className="fas fa-check-circle mr-1"></i>
+                        ชำระแล้ว
+                      </Badge>
+                    )}
+                    {data.status === 3 && (
+                      <Badge className="bg-red-100 text-red-800 border-red-300">
+                        <i className="fas fa-times-circle mr-1"></i>
+                        ปฏิเสธ
+                      </Badge>
+                    )}
+                  </span>
+                </div>
               </div>
 
               {/* Reject Reason - Full width */}
