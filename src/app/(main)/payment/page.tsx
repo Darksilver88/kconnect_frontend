@@ -1634,7 +1634,6 @@ export default function PaymentPage() {
           setRejectDialogOpen(true);
         }}
         submitting={submittingAction}
-        getStatusBadge={getStatusBadge}
       />
 
       {/* Reject Confirmation Dialog */}
