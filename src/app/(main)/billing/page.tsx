@@ -2175,9 +2175,13 @@ export default function BillingPage() {
                                   billDetailsData.bill_info.expire_date_formatted.split(' ')[0] : '-'}
                               </td>
                               <td className="px-4 py-3 text-center">
-                                <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${paymentStatus.className}`}>
-                                  {paymentStatus.label}
-                                </span>
+                                {billDetailsData.bill_info?.status === 0 ? (
+                                  <span className="text-slate-400">-</span>
+                                ) : (
+                                  <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${paymentStatus.className}`}>
+                                    {paymentStatus.label}
+                                  </span>
+                                )}
                               </td>
                               <td className="px-4 py-3 text-center">
                                 {billDetailsData.bill_info?.status === 1 ? (
