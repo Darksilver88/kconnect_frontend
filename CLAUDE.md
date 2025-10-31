@@ -968,6 +968,31 @@ const fetchData = async (page: number = 1) => {
   - ReviewSlipModal: ~200 บรรทัด
 - ใช้งานข้ามหน้า: Payment, Billing, Room
 
+### 2025-10-31: Review Slip Status & Billing Modal Updates
+
+**ReviewSlipModal Status Update:**
+1. **Hardcoded Status Labels** (ไม่ใช้ API `bill/bill_status`):
+   - Status 0: "รอตรวจสอบ" (yellow, fa-clock)
+   - Status 1: "ชำระแล้ว" (green, fa-check-circle)
+   - Status 3: "ปฏิเสธ" (red, fa-times-circle)
+   - ลบ `getStatusBadge` prop ออกจาก component interface
+   - ใช้ conditional rendering แทน dynamic badge function
+
+2. **Slip Background Color**:
+   - เปลี่ยนพื้นหลัง slip image จาก `bg-white` เป็น `bg-slate-800`
+   - เพื่อให้เห็นส่วนโค้งขาวด้านบนของสลิปชัดเจนขึ้น
+
+**Billing Modal - Bill Room Details:**
+1. **Status Column Update**:
+   - เช็ค `bill_info.status === 0` (บิลยังไม่ส่ง/ฉบับร่าง)
+   - ถ้าเป็น 0: แสดง "-" ในคอลัม "สถานะชำระ"
+   - ถ้าไม่ใช่ 0: แสดง badge status ตามปกติ (รอชำระ, ชำระแล้ว, เกินกำหนด)
+   - เหตุผล: เมื่อบิลยังเป็นฉบับร่าง ยังไม่มีสถานะการชำระ
+
+**Payment Page:**
+- ใช้ `data.status` จาก API `payment/{id}` ใน ReviewSlipModal
+- ไม่ใช้ `bill_room_status` field
+
 ### 2025-10-28: Status Badge & Room Sync Updates
 
 **Payment Status Badge - Status 4 (ชำระบางส่วน):**
