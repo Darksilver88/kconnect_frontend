@@ -770,6 +770,17 @@ export default function BillingPage() {
     }
   };
 
+  // Handle export bill room list to Excel
+  const handleExportBillRoomList = () => {
+    if (!billDetailsBillId) return;
+
+    // Build URL with query params
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}bill/bill_room_list?bill_id=${billDetailsBillId}&keyword=${encodeURIComponent(billDetailsSearchKeyword)}&status=${billDetailsStatusFilter}&type=excel`;
+
+    // Open in new tab to trigger download
+    window.open(url, '_blank');
+  };
+
   // Get payment status badge
   const getPaymentStatusBadge = (status: number) => {
     // Find status from billStatusList
@@ -2117,15 +2128,12 @@ export default function BillingPage() {
                     <SelectItem value="1">ชำระแล้ว</SelectItem>
                     <SelectItem value="0">รอชำระ</SelectItem>
                     <SelectItem value="3">เกินกำหนด</SelectItem>
-                    <SelectItem value="4">ชำระบางส่วน</SelectItem>
                   </SelectContent>
                 </Select>
 
                 {/* Export Button */}
                 <Button
-                  onClick={() => {
-                    toast.info('ฟีเจอร์นี้กำลังพัฒนา');
-                  }}
+                  onClick={handleExportBillRoomList}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   <i className="fas fa-download mr-2"></i>

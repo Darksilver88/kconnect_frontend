@@ -575,7 +575,25 @@ export default function PaymentPage() {
     setSubmittingAction(false);
   };
 
+  // Handle export to Excel
+  const handleExportExcel = () => {
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
 
+    // Map activeTab to status
+    const statusMap: { [key: string]: string } = {
+      '2': '1', // Tab 2: อนุมัติและชำระแล้ว -> status 1
+      '3': '3', // Tab 3: ปฏิเสธ -> status 3
+    };
+
+    const status = statusMap[activeTab] || '1';
+
+    // Build URL with query params
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}payment/list?keyword=${encodeURIComponent(searchKeyword)}&customer_id=${encodeURIComponent(customerId)}&status=${status}&type=excel`;
+
+    // Open in new tab to trigger download
+    window.open(url, '_blank');
+  };
 
   // Handle review slip click (for tabs 1, 2, 3)
   const handleReviewSlipClick = async (item: any) => {
@@ -1181,7 +1199,7 @@ export default function PaymentPage() {
                       </SelectContent>
                     </Select>
 
-                    <Button variant="outline" className="!h-[44px] gap-2 bg-white" onClick={() => toast.info('ฟีเจอร์กำลังพัฒนา')}>
+                    <Button variant="outline" className="!h-[44px] gap-2 bg-white" onClick={handleExportExcel}>
                       <i className="fas fa-download"></i>
                       <span className="hidden sm:inline">ส่งออกข้อมูล</span>
                     </Button>
