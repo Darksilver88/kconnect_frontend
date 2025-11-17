@@ -666,7 +666,8 @@ export default function PaymentPage() {
       house_no: item.house_no,
       total_price: item.total_price,
       remaining_amount: item.remaining_amount,
-      status: item.status
+      status: item.status,
+      member_id: item.member_id
     });
     setSelectedPaymentMethod('');
     setPaymentAmount('');
@@ -738,6 +739,7 @@ export default function PaymentPage() {
 
     const body = {
       bill_room_id: manualPaymentData.id,
+      member_id: manualPaymentData.member_id,
       bill_transaction_type_id: parseInt(selectedPaymentMethod),
       transaction_amount: totalAmount,
       pay_date: payDateTime,
@@ -757,6 +759,8 @@ export default function PaymentPage() {
       toast.success('บันทึกการชำระเงินสำเร็จ');
       setManualPaymentModalOpen(false);
       fetchList();
+      fetchSummaryStatus();
+      fetchSummaryData();
       fetchSummaryStatus2();
     } else {
       toast.error(result.message || 'เกิดข้อผิดพลาด');
@@ -1048,7 +1052,7 @@ export default function PaymentPage() {
                 <>
                   <h3 className="text-gray-900 text-lg font-semibold mb-2">
                     <i className="fas fa-clock mr-2"></i>
-                    รายการบิลรอรอตรวจสอบและอนุมัติ
+                    รายการบิลรอตรวจสอบและอนุมัติ
                   </h3>
                   <p className="text-gray-600 text-sm m-0">
                     รายการบิลที่ได้รับลูกบ้านได้ทำการส่งหลักฐานการชำระมาให้ทำการตรวจสอบและอนุมัติต่อไป
@@ -1259,6 +1263,7 @@ export default function PaymentPage() {
                               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">ข้อมูลลูกบ้าน</th>
                               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">หัวข้อบิล</th>
                               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">จำนวนเงิน</th>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">ประเภทการชำระ</th>
                               {activeTab === '1' && <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700 whitespace-nowrap">สถานะ</th>}
                               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">
                                 {activeTab === '1' ? 'วันที่ส่ง' : activeTab === '2' ? 'วันที่อนุมัติ' : 'วันที่ปฏิเสธ'}
@@ -1279,7 +1284,7 @@ export default function PaymentPage() {
                       <tbody className="divide-y divide-slate-100">
                         {data.length === 0 ? (
                           <tr>
-                            <td colSpan={activeTab === '0' ? 8 : activeTab === '1' ? 7 : activeTab === '2' ? 6 : 7} className="px-4 py-8 text-center text-slate-500">
+                            <td colSpan={activeTab === '0' ? 8 : activeTab === '3' ? 9 : 8} className="px-4 py-8 text-center text-slate-500">
                               {searchKeyword ? 'ไม่พบข้อมูลที่ค้นหา' : 'ไม่มีข้อมูล'}
                             </td>
                           </tr>
@@ -1428,6 +1433,11 @@ export default function PaymentPage() {
                                       <div className="font-semibold text-slate-900">{item.payment_amount || '-'}</div>
                                     </td>
 
+                                    {/* ประเภทการชำระ */}
+                                    <td className="px-4 py-4">
+                                      <div className="text-sm text-slate-600">{item.payment_type_detail || '-'}</div>
+                                    </td>
+
                                     {/* สถานะ - Tab 1 only */}
                                     {activeTab === '1' && (
                                       <td className="px-4 py-4 !text-center">
@@ -1480,7 +1490,13 @@ export default function PaymentPage() {
                                     <td className="px-4 py-4">
                                       <div className="flex justify-center">
                                         <button
-                                          onClick={() => handleReviewSlipClick(item)}
+                                          onClick={() => {
+                                            if (activeTab === '2') {
+                                              handleViewTransactionClick({ id: item.payable_id });
+                                            } else {
+                                              handleReviewSlipClick(item);
+                                            }
+                                          }}
                                           className="w-8 h-8 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
                                           title="ดู"
                                         >
@@ -1763,15 +1779,12 @@ export default function PaymentPage() {
                     </Select>
                   </div>
 
-                  {/* Payment Amount */}
+                  {/* Payment Amount - Display Only */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">จำนวนเงินที่ชำระ *</label>
-                    <input
-                      type="text"
-                      value={manualPaymentData.total_price}
-                      readOnly
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md bg-slate-50 text-slate-700 cursor-not-allowed"
-                    />
+                    <label className="text-sm font-medium text-slate-700">จำนวนเงินที่ชำระ</label>
+                    <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-md font-semibold text-slate-900">
+                      {manualPaymentData.total_price}
+                    </div>
                   </div>
 
                   {/* Payment Date */}
@@ -1936,23 +1949,6 @@ export default function PaymentPage() {
                   </div>
                 )}
 
-                {/* Payment Calculation */}
-                <div className="mt-4 bg-slate-50 p-4 rounded-lg space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-600">จำนวนเงินที่ชำระ:</span>
-                    <span className="font-semibold text-slate-900">
-                      ฿{paymentAmount ? parseFloat(paymentAmount).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-600">ยอดคงเหลือหลังชำระ:</span>
-                    <span className="font-semibold text-slate-900">
-                      ฿{paymentAmount && manualPaymentData.remaining_amount
-                        ? (parseFloat(manualPaymentData.remaining_amount.replace(/[฿,]/g, '')) - parseFloat(paymentAmount)).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                        : (manualPaymentData.remaining_amount ? parseFloat(manualPaymentData.remaining_amount.replace(/[฿,]/g, '')).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00')}
-                    </span>
-                  </div>
-                </div>
 
                 {/* Notes */}
                 <div className="mt-4 space-y-2">
