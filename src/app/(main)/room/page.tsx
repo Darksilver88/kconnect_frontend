@@ -926,7 +926,7 @@ export default function RoomPage() {
 
       {/* View Modal */}
       <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
-        <DialogContent className="!max-w-[95vw] sm:!max-w-[85vw] lg:!max-w-[35vw] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="!max-w-[95vw] sm:!max-w-[85vw] lg:!max-w-[60vw] max-h-[90vh] overflow-y-auto">
           {loadingView ? (
             <>
               <DialogHeader>

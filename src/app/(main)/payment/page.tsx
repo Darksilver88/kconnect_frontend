@@ -195,7 +195,9 @@ export default function PaymentPage() {
 
   // Fetch bill types (for tab 0 filter)
   const fetchBillTypes = async () => {
-    const url = `${process.env.NEXT_PUBLIC_API_PATH}bill_type/list?page=1&limit=100&status=1&keyword=`;
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}bill_type/list?page=1&limit=100&status=1&keyword=&customer_id=${encodeURIComponent(customerId)}`;
     const result = await apiCall(url);
 
     if (result.success && result.data) {
@@ -207,7 +209,9 @@ export default function PaymentPage() {
 
   // Fetch bill status list (for tab 0 filter)
   const fetchBillStatusList = async () => {
-    const url = `${process.env.NEXT_PUBLIC_API_PATH}bill/bill_status?page=1&limit=100`;
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}bill/bill_status?page=1&limit=100&customer_id=${encodeURIComponent(customerId)}`;
     const result = await apiCall(url);
 
     if (result.success && result.data) {
@@ -217,7 +221,9 @@ export default function PaymentPage() {
 
   // Fetch payment methods (for manual payment)
   const fetchPaymentMethods = async () => {
-    const url = `${process.env.NEXT_PUBLIC_API_PATH}bill_transaction/bill_transaction_type`;
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}bill_transaction/bill_transaction_type?customer_id=${encodeURIComponent(customerId)}`;
     const result = await apiCall(url);
 
     if (result.success && result.data) {

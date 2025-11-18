@@ -219,7 +219,15 @@ export default function BillingPage() {
 
   // Fetch bill status list
   const fetchBillStatusList = async () => {
-    const url = `${process.env.NEXT_PUBLIC_API_PATH}bill/bill_status?page=1&limit=100`;
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+
+    if (!customerId) {
+      console.warn('No customer_id found, skipping bill status fetch');
+      return;
+    }
+
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}bill/bill_status?page=1&limit=100&customer_id=${encodeURIComponent(customerId)}`;
     const result = await apiCall(url);
 
     if (result.success && result.data) {
@@ -263,7 +271,9 @@ export default function BillingPage() {
   // Fetch bill types
   const fetchBillTypes = async () => {
     setLoadingBillTypes(true);
-    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bill_type/list?page=1&limit=100`);
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bill_type/list?page=1&limit=100&customer_id=${encodeURIComponent(customerId)}`);
     if (result.success) {
       setBillTypes(result.data || []);
     } else {
