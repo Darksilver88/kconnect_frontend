@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { login } from '@/lib/auth';
+import { apiCall } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,48 +24,89 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Customer ID dialog states
-  const [showCustomerIdDialog, setShowCustomerIdDialog] = useState(false);
-  const [customerId, setCustomerId] = useState('');
-  const [customerIdError, setCustomerIdError] = useState('');
+  // Customer selection dialog states
+  const [showCustomerDialog, setShowCustomerDialog] = useState(false);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [token, setToken] = useState('');
+  const [loginResponseData, setLoginResponseData] = useState<any>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    // Simulate loading
-    setTimeout(() => {
-      // ตรวจสอบ username และ password
-      if (username === 'admin' && password === 'admin123') {
-        // ถูกต้อง แสดง dialog ให้กรอก customer_id
-        setLoading(false);
-        setShowCustomerIdDialog(true);
+    try {
+      // Call login API
+      const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      if (result.success && result.data?.token) {
+        // Store token and login response data temporarily
+        setToken(result.data.token);
+        setLoginResponseData(result.data);
+
+        // Fetch customer list
+        setLoadingCustomers(true);
+        const customerResult = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}auth/customer_list`, {
+          headers: {
+            'Authorization': `Bearer ${result.data.token}`
+          }
+        });
+
+        setLoadingCustomers(false);
+
+        if (customerResult.success && customerResult.data?.customers) {
+          setCustomers(customerResult.data.customers);
+          setShowCustomerDialog(true);
+        } else {
+          setError(customerResult.message || 'ไม่สามารถโหลดรายการโครงการได้');
+        }
       } else {
-        setError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
-        setLoading(false);
+        setError(result.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
       }
-    }, 1000);
+    } catch (err) {
+      setError('เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
+    }
+
+    setLoading(false);
   };
 
-  const handleCustomerIdSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setCustomerIdError('');
+  const handleCustomerSelect = (customer: any) => {
+    // Get userid from login response data
+    const userid = loginResponseData?.user?.userid ? parseInt(loginResponseData.user.userid) : 99;
 
-    if (!customerId.trim()) {
-      setCustomerIdError('กรุณากรอก Customer ID');
-      return;
-    }
+    // Store user data with customer info
+    const userData = {
+      username,
+      token,
+      customer_id: customer.customer_id,
+      customer_name: customer.customer_name,
+      site_name: customer.site_name,
+      site_code: customer.site_code,
+      uid: userid
+    };
 
-    // Login พร้อม customer_id
-    const user = login(username, password, customerId);
+    // Save to localStorage
+    localStorage.setItem('kconnect_user', JSON.stringify(userData));
 
-    if (user) {
-      setShowCustomerIdDialog(false);
-      router.push('/dashboard');
+    // Save to cookie
+    if (rememberMe) {
+      // Remember for 30 days
+      const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString();
+      document.cookie = `kconnect_user=${JSON.stringify(userData)}; path=/; expires=${expires}`;
     } else {
-      setCustomerIdError('เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
+      // Session cookie (expires when browser closes)
+      document.cookie = `kconnect_user=${JSON.stringify(userData)}; path=/;`;
     }
+
+    // Redirect to dashboard
+    setShowCustomerDialog(false);
+    router.push('/dashboard');
   };
 
   return (
@@ -98,101 +139,127 @@ export default function LoginPage() {
             <div className="relative z-10">
               {/* Logo */}
               <div className="w-[120px] h-[120px] mx-auto mb-8 rounded-[30px] flex items-center justify-center"
-                   style={{ background: 'rgba(255, 255, 255, 0.2)', backdropFilter: 'blur(10px)' }}>
-                <i className="fas fa-building text-6xl text-white"></i>
+                   style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%)' }}>
+                <i className="fas fa-building text-6xl text-white drop-shadow-lg"></i>
               </div>
 
-              {/* Title */}
-              <h1 className="text-3xl lg:text-4xl font-bold mb-4 leading-tight">
-                ระบบจัดการ<br />โครงการ K-Connect
-              </h1>
-
-              {/* Subtitle */}
-              <p className="text-base opacity-90 mb-10 leading-relaxed">
-                แพลตฟอร์มครบวงจรสำหรับการบริหารจัดการ<br />
-                โครงการที่พักอาศัย คอนโดมิเนียม และหมู่บ้านจัดสรร
+              {/* Brand Text */}
+              <h1 className="text-4xl lg:text-5xl font-bold mb-4 drop-shadow-lg">K-Connect</h1>
+              <p className="text-lg lg:text-xl text-white/90 mb-8 leading-relaxed">
+                ระบบจัดการโครงการที่พักอาศัย
               </p>
 
               {/* Features */}
-              <div className="text-left inline-block">
-                {[
-                  'จัดการข้อมูลผู้อยู่อาศัยแบบครบวงจร',
-                  'ระบบแจ้งเตือนและการสื่อสารอัตโนมัติ',
-                  'รายงานและสถิติแบบเรียลไทม์',
-                  'ปลอดภัย รวดเร็ว ใช้งานง่าย'
-                ].map((feature, index) => (
-                  <div key={index} className="flex items-center gap-3 mb-4 text-sm opacity-95">
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center bg-white/20">
-                      <i className="fas fa-check text-xs"></i>
-                    </div>
-                    <span>{feature}</span>
+              <div className="space-y-4 text-left max-w-[280px] mx-auto">
+                <div className="flex items-start gap-3 group">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110"
+                       style={{ background: 'rgba(255,255,255,0.2)' }}>
+                    <i className="fas fa-shield-alt text-lg"></i>
                   </div>
-                ))}
+                  <div>
+                    <div className="font-semibold mb-1">ปลอดภัยและเชื่อถือได้</div>
+                    <div className="text-sm text-white/80">ระบบรักษาความปลอดภัยระดับสูง</div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 group">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110"
+                       style={{ background: 'rgba(255,255,255,0.2)' }}>
+                    <i className="fas fa-bolt text-lg"></i>
+                  </div>
+                  <div>
+                    <div className="font-semibold mb-1">รวดเร็วและทันสมัย</div>
+                    <div className="text-sm text-white/80">ประมวลผลข้อมูลอย่างรวดเร็ว</div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 group">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110"
+                       style={{ background: 'rgba(255,255,255,0.2)' }}>
+                    <i className="fas fa-users text-lg"></i>
+                  </div>
+                  <div>
+                    <div className="font-semibold mb-1">ใช้งานง่าย</div>
+                    <div className="text-sm text-white/80">ออกแบบให้ใช้งานสะดวก</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Right Side - Login Form */}
-          <div className="p-10 lg:p-12 xl:p-16 flex flex-col justify-center">
-
-            {/* Header */}
-            <div className="mb-10">
-              <h2 className="text-3xl font-bold text-slate-900 mb-2">ยินดีต้อนรับ</h2>
-              <p className="text-slate-500">กรุณาเข้าสู่ระบบเพื่อใช้งาน</p>
+          <div className="flex flex-col justify-center p-8 md:p-12 lg:p-16">
+            {/* Mobile Logo */}
+            <div className="md:hidden text-center mb-8">
+              <div className="w-[80px] h-[80px] mx-auto mb-4 rounded-[20px] flex items-center justify-center"
+                   style={{ background: 'linear-gradient(135deg, #2B6EF3 0%, #1F4EC2 100%)' }}>
+                <i className="fas fa-building text-4xl text-white"></i>
+              </div>
+              <h2 className="text-2xl font-bold text-slate-800">K-Connect</h2>
             </div>
 
-            {/* Error Alert */}
-            {error && (
-              <div className="flex items-center gap-3 p-4 mb-5 bg-red-50 text-red-900 border border-red-200 rounded-xl text-sm animate-slide-down">
-                <i className="fas fa-exclamation-circle text-lg"></i>
-                <span>{error}</span>
-              </div>
-            )}
+            {/* Form Header */}
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-slate-800 mb-2">ยินดีต้อนรับ</h2>
+              <p className="text-slate-500">เข้าสู่ระบบเพื่อดำเนินการต่อ</p>
+            </div>
 
             {/* Login Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-50 text-red-700 p-4 rounded-xl border border-red-200 flex items-start gap-3 animate-slide-down">
+                  <i className="fas fa-exclamation-circle mt-0.5"></i>
+                  <span className="text-sm">{error}</span>
+                </div>
+              )}
 
               {/* Username */}
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-sm font-semibold text-slate-700">
-                  อีเมลหรือชื่อผู้ใช้
+                <Label htmlFor="username" className="text-slate-700 font-medium">
+                  ชื่อผู้ใช้
                 </Label>
                 <div className="relative">
-                  <i className="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none"></i>
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
+                    <i className="fas fa-user"></i>
+                  </div>
                   <Input
                     id="username"
                     type="text"
-                    placeholder="กรอกอีเมลหรือชื่อผู้ใช้"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="pl-12 h-14 bg-slate-50 border-2 border-slate-200 rounded-xl text-base focus:bg-white focus:border-blue-500 transition-all"
+                    className="h-14 pl-12 pr-4 text-base rounded-xl border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="กรอกชื่อผู้ใช้"
                     required
+                    autoFocus
                   />
                 </div>
               </div>
 
               {/* Password */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-semibold text-slate-700">
+                <Label htmlFor="password" className="text-slate-700 font-medium">
                   รหัสผ่าน
                 </Label>
                 <div className="relative">
-                  <i className="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none"></i>
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
+                    <i className="fas fa-lock"></i>
+                  </div>
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="กรอกรหัสผ่าน"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-12 pr-12 h-14 bg-slate-50 border-2 border-slate-200 rounded-xl text-base focus:bg-white focus:border-blue-500 transition-all"
+                    className="h-14 pl-12 pr-12 text-base rounded-xl border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="กรอกรหัสผ่าน"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-500 transition-colors"
+                    className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-slate-600 transition-colors"
                   >
-                    <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'} text-lg`}></i>
+                    <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                   </button>
                 </div>
               </div>
@@ -208,7 +275,7 @@ export default function LoginPage() {
                   />
                   <span className="text-sm text-slate-600">จดจำฉันไว้</span>
                 </label>
-                <a href="#" className="text-sm text-blue-600 font-medium hover:text-blue-800 hover:underline transition-colors">
+                <a href="https://portal.koder3.com/" target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 font-medium hover:text-blue-800 hover:underline transition-colors">
                   ลืมรหัสผ่าน?
                 </a>
               </div>
@@ -241,47 +308,60 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Customer ID Dialog */}
-      <Dialog open={showCustomerIdDialog} onOpenChange={setShowCustomerIdDialog}>
-        <DialogContent className="sm:max-w-[425px]">
+      {/* Customer Selection Dialog */}
+      <Dialog open={showCustomerDialog} onOpenChange={setShowCustomerDialog}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>กรอก Customer ID</DialogTitle>
+            <DialogTitle>เลือกโครงการ</DialogTitle>
             <DialogDescription>
-              กรุณากรอก Customer ID เพื่อเข้าสู่ระบบ
+              กรุณาเลือกโครงการที่ต้องการเข้าสู่ระบบ
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCustomerIdSubmit}>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="customer_id">Customer ID</Label>
-                <Input
-                  id="customer_id"
-                  value={customerId}
-                  onChange={(e) => setCustomerId(e.target.value)}
-                  placeholder="กรอก Customer ID"
-                  required
-                  autoFocus
-                />
-              </div>
-              {customerIdError && (
-                <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
-                  {customerIdError}
-                </div>
-              )}
+
+          {loadingCustomers ? (
+            <div className="py-12 text-center">
+              <div className="w-8 h-8 border-4 border-blue-600/30 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
+              <p className="text-sm text-slate-500">กำลังโหลดรายการโครงการ...</p>
             </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowCustomerIdDialog(false)}
-              >
-                ยกเลิก
-              </Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                ยืนยัน
-              </Button>
-            </DialogFooter>
-          </form>
+          ) : (
+            <div className="py-4 max-h-[400px] overflow-y-auto">
+              <div className="space-y-2">
+                {customers.map((customer, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleCustomerSelect(customer)}
+                    className="w-full text-left p-4 rounded-lg border border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-200 transition-colors">
+                        <i className="fas fa-building text-blue-600"></i>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-slate-800 truncate">{customer.site_name}</div>
+                        <div className="text-sm text-slate-500 mt-1">
+                          {customer.customer_name}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1">
+                          รหัสโครงการ: {customer.customer_id}
+                        </div>
+                      </div>
+                      <i className="fas fa-chevron-right text-slate-400 group-hover:text-blue-600 transition-colors"></i>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowCustomerDialog(false)}
+            >
+              ยกเลิก
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -304,25 +384,23 @@ export default function LoginPage() {
         }
 
         .animate-float {
-          animation: float 20s infinite ease-in-out;
+          animation: float 20s ease-in-out infinite;
         }
 
         .animate-float-delayed {
-          animation: float 20s infinite ease-in-out;
-          animation-delay: 3s;
+          animation: float 25s ease-in-out 5s infinite;
         }
 
         .animate-float-slow {
-          animation: float 20s infinite ease-in-out;
-          animation-delay: 6s;
+          animation: float 30s ease-in-out 2s infinite;
         }
 
         .animate-slide-up {
-          animation: slide-up 0.6s ease;
+          animation: slide-up 0.6s ease-out;
         }
 
         .animate-slide-down {
-          animation: slide-down 0.3s ease;
+          animation: slide-down 0.3s ease-out;
         }
       `}</style>
     </>

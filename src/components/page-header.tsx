@@ -1,9 +1,9 @@
 'use client';
 
 import { UserMenu } from '@/components/user-menu';
+import { CustomerSelector } from '@/components/customer-selector';
 import { Menu } from 'lucide-react';
 import { ReactNode } from 'react';
-import { getCurrentUser } from '@/lib/auth';
 
 interface PageHeaderProps {
   title: string;
@@ -13,9 +13,6 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({ title, subtitle, icon, onMenuClick }: PageHeaderProps) {
-  const user = getCurrentUser();
-  const customerId = user?.customer_id || '-';
-
   return (
     <div className="bg-white border-b border-slate-200 px-4 lg:px-8 py-4">
       <div className="flex items-center justify-between">
@@ -38,9 +35,7 @@ export function PageHeader({ title, subtitle, icon, onMenuClick }: PageHeaderPro
         </div>
         {/* แสดง UserMenu เฉพาะหน้าจอใหญ่ (บนมือถือแสดงใน Sidebar แทน) */}
         <div className="hidden lg:flex items-stretch gap-3">
-          <div className="inline-flex items-center px-4 rounded-lg text-sm font-medium bg-blue-50 text-blue-700">
-            {customerId}
-          </div>
+          <CustomerSelector />
           <UserMenu />
         </div>
       </div>
