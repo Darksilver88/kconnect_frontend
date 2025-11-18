@@ -3,8 +3,12 @@ export const STORAGE_KEY = 'kconnect_user';
 
 export interface User {
   username: string;
-  name: string;
+  name?: string;
   customer_id?: string;
+  customer_name?: string;
+  site_name?: string;
+  site_code?: string;
+  token?: string;
   uid?: number;
 }
 
