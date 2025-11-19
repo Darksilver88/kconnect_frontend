@@ -397,10 +397,13 @@ export default function BillingPage() {
 
   // Handle download template
   const handleDownloadTemplate = (type: 'csv' | 'xlsx') => {
+    const urls = {
+      csv: 'https://firebasestorage.googleapis.com/v0/b/v-product-dev.appspot.com/o/kconnect%2Ftemplate_payment%2Ftemplate_bill_csv.csv?alt=media&token=778683b1-31bb-4414-8ff3-1c4ca6b53e62',
+      xlsx: 'https://firebasestorage.googleapis.com/v0/b/v-product-dev.appspot.com/o/kconnect%2Ftemplate_payment%2Ftemplate_bill_excel.xlsx?alt=media&token=3011204c-a667-4878-a8fb-60fec635cd90'
+    };
+
     const fileName = type === 'csv' ? 'template_bill_csv.csv' : 'template_bill_excel.xlsx';
-    // Remove 'api/' from path for template downloads
-    const baseUrl = process.env.NEXT_PUBLIC_API_PATH?.replace(/api\/$/, '') || '';
-    const url = `${baseUrl}uploads/${fileName}`;
+    const url = urls[type];
 
     // Create temporary link and trigger download
     const link = document.createElement('a');
