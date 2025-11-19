@@ -23,6 +23,7 @@ export function CustomerSelector({ onCustomerChange }: CustomerSelectorProps) {
   const [showDialog, setShowDialog] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState('');
 
   const fetchCustomers = async () => {
     setLoading(true);
@@ -111,6 +112,17 @@ export function CustomerSelector({ onCustomerChange }: CustomerSelectorProps) {
             </DialogDescription>
           </DialogHeader>
 
+          <div className="relative">
+            <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input
+              type="text"
+              placeholder="ค้นหาโครงการ..."
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
           {loading ? (
             <div className="py-12 text-center">
               <div className="w-8 h-8 border-4 border-blue-600/30 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
@@ -119,7 +131,17 @@ export function CustomerSelector({ onCustomerChange }: CustomerSelectorProps) {
           ) : (
             <div className="py-4 max-h-[400px] overflow-y-auto">
               <div className="space-y-2">
-                {customers.map((customer, index) => {
+                {customers
+                  .filter((customer) => {
+                    if (!searchKeyword) return true;
+                    const keyword = searchKeyword.toLowerCase();
+                    return (
+                      customer.site_name?.toLowerCase().includes(keyword) ||
+                      customer.customer_name?.toLowerCase().includes(keyword) ||
+                      customer.customer_id?.toString().toLowerCase().includes(keyword)
+                    );
+                  })
+                  .map((customer, index) => {
                   const currentUser = getCurrentUser();
                   const isCurrentCustomer = currentUser?.customer_id === customer.customer_id &&
                                            currentUser?.site_code === customer.site_code;
