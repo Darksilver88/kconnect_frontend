@@ -14,18 +14,27 @@ export async function apiCall<T = any>(
   pagination?: any;
 }> {
   try {
-    // Get token from localStorage
+    // Get token and customer_id from localStorage
     let token = '';
+    let customerId = '';
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('kconnect_user');
       if (stored) {
         try {
           const userData = JSON.parse(stored);
           token = userData.token || '';
+          customerId = userData.customer_id || '';
         } catch {
           // Ignore parse errors
         }
       }
+    }
+
+    // Auto-append customer_id to URL if not present
+    let finalUrl = url;
+    if (customerId && !url.includes('customer_id=')) {
+      const separator = url.includes('?') ? '&' : '?';
+      finalUrl = `${url}${separator}customer_id=${encodeURIComponent(customerId)}`;
     }
 
     // Add Authorization header if token exists
@@ -34,13 +43,25 @@ export async function apiCall<T = any>(
       headers.set('Authorization', `Bearer ${token}`);
     }
 
-    // Merge headers with options
-    const finalOptions = {
+    // Auto-append customer_id to body for POST/PUT/DELETE if not present
+    let finalOptions = {
       ...options,
       headers
     };
 
-    const response = await fetch(url, finalOptions);
+    if (customerId && options?.body && (options.method === 'POST' || options.method === 'PUT' || options.method === 'DELETE')) {
+      try {
+        const bodyData = JSON.parse(options.body as string);
+        if (!bodyData.customer_id) {
+          bodyData.customer_id = customerId;
+          finalOptions.body = JSON.stringify(bodyData);
+        }
+      } catch {
+        // If body is not JSON, skip
+      }
+    }
+
+    const response = await fetch(finalUrl, finalOptions);
     const result = await response.json();
 
     // Check for 401 Unauthorized

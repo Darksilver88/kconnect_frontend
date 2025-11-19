@@ -582,9 +582,10 @@ export default function PaymentPage() {
   };
 
   // Handle export to Excel
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     const user = getCurrentUser();
     const customerId = user?.customer_id || '';
+    const token = user?.token || '';
 
     // Map activeTab to status
     const statusMap: { [key: string]: string } = {
@@ -597,8 +598,32 @@ export default function PaymentPage() {
     // Build URL with query params
     const url = `${process.env.NEXT_PUBLIC_API_PATH}payment/list?keyword=${encodeURIComponent(searchKeyword)}&customer_id=${encodeURIComponent(customerId)}&status=${status}&type=excel`;
 
-    // Open in new tab to trigger download
-    window.open(url, '_blank');
+    try {
+      // Fetch with Authorization header
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        toast.error('ไม่สามารถดาวน์โหลดไฟล์ได้');
+        return;
+      }
+
+      // Convert to blob and download
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `payment_list_${new Date().getTime()}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      toast.error('เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์');
+    }
   };
 
   // Handle review slip click (for tabs 1, 2, 3)

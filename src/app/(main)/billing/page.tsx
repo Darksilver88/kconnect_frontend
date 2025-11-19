@@ -284,7 +284,9 @@ export default function BillingPage() {
 
   // Fetch bill excel list after upload
   const fetchBillExcelList = async (uploadKey: string) => {
-    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bill/bill_excel_list?upload_key=${uploadKey}`);
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bill/bill_excel_list?upload_key=${uploadKey}&customer_id=${encodeURIComponent(customerId)}`);
     if (result.success) {
       setImportedData(result.data.items || []);
       setSummaryData(result.data);
@@ -657,6 +659,7 @@ export default function BillingPage() {
 
     const user = getCurrentUser();
     const uid = user?.uid || -1;
+    const customerId = user?.customer_id || '';
 
     const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bill/send`, {
       method: 'POST',
@@ -666,6 +669,7 @@ export default function BillingPage() {
       body: JSON.stringify({
         id: sendItem.id,
         uid: uid,
+        customer_id: customerId,
       }),
     });
 
@@ -696,6 +700,7 @@ export default function BillingPage() {
 
     const user = getCurrentUser();
     const uid = user?.uid || -1;
+    const customerId = user?.customer_id || '';
 
     const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bill/cancel_send`, {
       method: 'POST',
@@ -705,6 +710,7 @@ export default function BillingPage() {
       body: JSON.stringify({
         id: cancelSendItem.id,
         uid: uid,
+        customer_id: customerId,
       }),
     });
 
@@ -781,14 +787,42 @@ export default function BillingPage() {
   };
 
   // Handle export bill room list to Excel
-  const handleExportBillRoomList = () => {
+  const handleExportBillRoomList = async () => {
     if (!billDetailsBillId) return;
 
-    // Build URL with query params
-    const url = `${process.env.NEXT_PUBLIC_API_PATH}bill/bill_room_list?bill_id=${billDetailsBillId}&keyword=${encodeURIComponent(billDetailsSearchKeyword)}&status=${billDetailsStatusFilter}&type=excel`;
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+    const token = user?.token || '';
 
-    // Open in new tab to trigger download
-    window.open(url, '_blank');
+    // Build URL with query params
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}bill/bill_room_list?bill_id=${billDetailsBillId}&keyword=${encodeURIComponent(billDetailsSearchKeyword)}&status=${billDetailsStatusFilter}&type=excel&customer_id=${encodeURIComponent(customerId)}`;
+
+    try {
+      // Fetch with Authorization header
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        toast.error('ไม่สามารถดาวน์โหลดไฟล์ได้');
+        return;
+      }
+
+      // Convert to blob and download
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `bill_room_list_${billDetailsBillId}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      toast.error('เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์');
+    }
   };
 
   // Get payment status badge

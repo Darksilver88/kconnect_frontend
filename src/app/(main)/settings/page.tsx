@@ -151,7 +151,9 @@ export default function SettingsPage() {
 
   // Fetch bank master list
   const fetchBankMasterList = async () => {
-    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bank/master_list`);
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+    const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bank/master_list?customer_id=${encodeURIComponent(customerId)}`);
     if (result.success) {
       setBankMasterList(result.data || []);
     }
@@ -183,7 +185,9 @@ export default function SettingsPage() {
       setBankModalOpen(true);
       setEditingBank(bank);
 
-      const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bank/${bank.id}`);
+      const user = getCurrentUser();
+      const customerId = user?.customer_id || '';
+      const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bank/${bank.id}?customer_id=${encodeURIComponent(customerId)}`);
 
       if (result.success) {
         const data = result.data;
@@ -362,6 +366,7 @@ export default function SettingsPage() {
     setDeleting(true);
     const user = getCurrentUser();
     const uid = user?.uid || -1;
+    const customerId = user?.customer_id || '';
 
     const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bank/delete`, {
       method: 'DELETE',
@@ -371,6 +376,7 @@ export default function SettingsPage() {
       body: JSON.stringify({
         id: deletingBank.id,
         uid: uid,
+        customer_id: customerId,
       }),
     });
 
@@ -427,6 +433,7 @@ export default function SettingsPage() {
   const togglePaymentMethod = async (method: any) => {
     const user = getCurrentUser();
     const uid = user?.uid || -1;
+    const customerId = user?.customer_id || '';
 
     // Toggle config_value (true/false as string) based on config_value_parsed
     const newConfigValue = method.config_value_parsed ? 'false' : 'true';
@@ -434,6 +441,7 @@ export default function SettingsPage() {
     const payload = {
       id: method.id,
       uid: uid,
+      customer_id: customerId,
       config_value: newConfigValue,
     };
 
@@ -459,10 +467,12 @@ export default function SettingsPage() {
   const updateStringOrNumberConfig = async (method: any) => {
     const user = getCurrentUser();
     const uid = user?.uid || -1;
+    const customerId = user?.customer_id || '';
 
     const payload = {
       id: method.id,
       uid: uid,
+      customer_id: customerId,
       config_value: String(method.config_value_parsed),
     };
 
