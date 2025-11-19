@@ -815,7 +815,11 @@ export default function BillingPage() {
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = downloadUrl;
-      a.download = `bill_room_list_${billDetailsBillId}.xlsx`;
+
+      // Get filename from Content-Disposition header
+      const filename = response.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || `bill_room_list_${billDetailsBillId}.xlsx`;
+      a.download = filename;
+
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
