@@ -1006,6 +1006,9 @@ export default function BillingPage() {
       excluded_rows: excludedRows.join(','),
     };
 
+    console.log('Excluded rows:', excludedRows);
+    console.log('Payload:', payload);
+
     const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bill/insert_with_excel`, {
       method: 'POST',
       headers: {
@@ -1934,9 +1937,18 @@ export default function BillingPage() {
                               </td>
                               <td className="px-4 py-3 text-slate-600">{item.remark || '-'}</td>
                               <td className="px-4 py-3 text-center">
-                                <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${statusBadge.className}`}>
-                                  {statusBadge.label}
-                                </span>
+                                {item.status === 0 && item.error_message ? (
+                                  <span
+                                    className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium cursor-help ${statusBadge.className}`}
+                                    title={item.error_message}
+                                  >
+                                    {statusBadge.label}
+                                  </span>
+                                ) : (
+                                  <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${statusBadge.className}`}>
+                                    {statusBadge.label}
+                                  </span>
+                                )}
                               </td>
                               <td className="px-4 py-3 text-center">
                                 <Button
@@ -1995,7 +2007,7 @@ export default function BillingPage() {
               <Button
                 type="button"
                 className="bg-slate-500 hover:bg-slate-600"
-                disabled={!showDataPreview || submitting || !formData.title || !formData.bill_type_id || !formData.detail || !formData.expire_date}
+                disabled={!showDataPreview || submitting || !formData.title || !formData.bill_type_id || !formData.detail || !formData.expire_date || (summaryData && parseInt(summaryData.invalid_rows) > 0)}
                 onClick={() => handleSubmit(0)}
               >
                 {submitting ? (
@@ -2013,7 +2025,7 @@ export default function BillingPage() {
               <Button
                 type="button"
                 className="bg-blue-600 hover:bg-blue-700"
-                disabled={!showDataPreview || submitting || !formData.title || !formData.bill_type_id || !formData.detail || !formData.expire_date}
+                disabled={!showDataPreview || submitting || !formData.title || !formData.bill_type_id || !formData.detail || !formData.expire_date || (summaryData && parseInt(summaryData.invalid_rows) > 0)}
                 onClick={() => handleSubmit(1)}
               >
                 {submitting ? (
