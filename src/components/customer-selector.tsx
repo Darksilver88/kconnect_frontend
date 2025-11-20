@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,9 +16,23 @@ import { getCurrentUser } from '@/lib/auth';
 
 interface CustomerSelectorProps {
   onCustomerChange?: () => void;
+  // For login page
+  isLoginMode?: boolean;
+  loginData?: {
+    username: string;
+    token: string;
+    rememberMe: boolean;
+    loginResponseData: any;
+  };
+  onLoginComplete?: () => void;
 }
 
-export function CustomerSelector({ onCustomerChange }: CustomerSelectorProps) {
+export interface CustomerSelectorRef {
+  openDialog: (customersData?: any[]) => void;
+}
+
+export const CustomerSelector = forwardRef<CustomerSelectorRef, CustomerSelectorProps>(
+  ({ onCustomerChange, isLoginMode = false, loginData, onLoginComplete }, ref) => {
   const router = useRouter();
   const [showDialog, setShowDialog] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
@@ -40,75 +54,125 @@ export function CustomerSelector({ onCustomerChange }: CustomerSelectorProps) {
     fetchCustomers();
   };
 
-  const handleCustomerSelect = (customer: any) => {
-    const currentUser = getCurrentUser();
-    if (!currentUser) return;
+  // Expose method to parent component
+  useImperativeHandle(ref, () => ({
+    openDialog: (customersData?: any[]) => {
+      if (customersData) {
+        setCustomers(customersData);
+      } else {
+        fetchCustomers();
+      }
+      setShowDialog(true);
+    }
+  }));
 
-    // Update user data with new customer info
-    const updatedUserData = {
-      ...currentUser,
-      customer_id: customer.customer_id,
-      customer_name: customer.customer_name,
-      site_name: customer.site_name,
-      site_code: customer.site_code,
-    };
+  const handleCustomerSelect = async (customer: any) => {
+    let userData;
 
-    // Save to localStorage
-    localStorage.setItem('kconnect_user', JSON.stringify(updatedUserData));
+    if (isLoginMode && loginData) {
+      // Login mode: Create new user data
+      const userid = loginData.loginResponseData?.user?.userid ? parseInt(loginData.loginResponseData.user.userid) : 99;
 
-    // Update cookie
-    const cookieData = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('kconnect_user='));
+      userData = {
+        username: loginData.username,
+        token: loginData.token,
+        customer_id: customer.customer_id,
+        customer_name: customer.customer_name,
+        site_name: customer.site_name,
+        site_code: customer.site_code,
+        uid: userid
+      };
 
-    if (cookieData) {
-      const cookieValue = cookieData.split('=')[1];
-      try {
-        const oldData = JSON.parse(decodeURIComponent(cookieValue));
-        // Check if it was a persistent cookie (has expires)
-        const isPersistent = document.cookie.includes('expires');
+      // Save to localStorage
+      localStorage.setItem('kconnect_user', JSON.stringify(userData));
 
-        if (isPersistent) {
-          // Keep the same expiry (30 days)
-          const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString();
-          document.cookie = `kconnect_user=${JSON.stringify(updatedUserData)}; path=/; expires=${expires}`;
-        } else {
-          // Session cookie
-          document.cookie = `kconnect_user=${JSON.stringify(updatedUserData)}; path=/;`;
+      // Save to cookie based on rememberMe
+      if (loginData.rememberMe) {
+        const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString();
+        document.cookie = `kconnect_user=${JSON.stringify(userData)}; path=/; expires=${expires}`;
+      } else {
+        document.cookie = `kconnect_user=${JSON.stringify(userData)}; path=/;`;
+      }
+    } else {
+      // Normal mode: Update existing user data
+      const currentUser = getCurrentUser();
+      if (!currentUser) return;
+
+      userData = {
+        ...currentUser,
+        customer_id: customer.customer_id,
+        customer_name: customer.customer_name,
+        site_name: customer.site_name,
+        site_code: customer.site_code,
+      };
+
+      // Save to localStorage
+      localStorage.setItem('kconnect_user', JSON.stringify(userData));
+
+      // Update cookie
+      const cookieData = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('kconnect_user='));
+
+      if (cookieData) {
+        const cookieValue = cookieData.split('=')[1];
+        try {
+          const oldData = JSON.parse(decodeURIComponent(cookieValue));
+          const isPersistent = document.cookie.includes('expires');
+
+          if (isPersistent) {
+            const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString();
+            document.cookie = `kconnect_user=${JSON.stringify(userData)}; path=/; expires=${expires}`;
+          } else {
+            document.cookie = `kconnect_user=${JSON.stringify(userData)}; path=/;`;
+          }
+        } catch {
+          document.cookie = `kconnect_user=${JSON.stringify(userData)}; path=/;`;
         }
-      } catch {
-        // Fallback to session cookie
-        document.cookie = `kconnect_user=${JSON.stringify(updatedUserData)}; path=/;`;
       }
     }
 
+    // Initialize config for new customer
+    await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}app_customer_config/init_config`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ customer_id: customer.customer_id }),
+    });
+
     setShowDialog(false);
 
-    // Callback for parent component
-    if (onCustomerChange) {
-      onCustomerChange();
+    if (isLoginMode && onLoginComplete) {
+      // Login mode: Call completion callback
+      onLoginComplete();
+    } else {
+      // Normal mode: Callback and refresh
+      if (onCustomerChange) {
+        onCustomerChange();
+      }
+      window.location.reload();
     }
-
-    // Refresh the page to reload all data
-    window.location.reload();
   };
 
   return (
     <>
-      <button
-        onClick={handleOpen}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
-      >
-        <span>{getCurrentUser()?.customer_name || '-'}</span>
-        <i className="fas fa-chevron-down text-xs"></i>
-      </button>
+      {!isLoginMode && (
+        <button
+          onClick={handleOpen}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+        >
+          <span>{getCurrentUser()?.customer_name || '-'}</span>
+          <i className="fas fa-chevron-down text-xs"></i>
+        </button>
+      )}
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>เลือกโครงการ</DialogTitle>
             <DialogDescription>
-              กรุณาเลือกโครงการที่ต้องการจัดการ
+              {isLoginMode ? 'กรุณาเลือกโครงการที่ต้องการเข้าสู่ระบบ' : 'กรุณาเลือกโครงการที่ต้องการจัดการ'}
             </DialogDescription>
           </DialogHeader>
 
@@ -196,11 +260,13 @@ export function CustomerSelector({ onCustomerChange }: CustomerSelectorProps) {
               variant="outline"
               onClick={() => setShowDialog(false)}
             >
-              ปิด
+              {isLoginMode ? 'ยกเลิก' : 'ปิด'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
   );
-}
+});
+
+CustomerSelector.displayName = 'CustomerSelector';

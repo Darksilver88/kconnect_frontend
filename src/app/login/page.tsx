@@ -1,22 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { apiCall } from '@/lib/api';
+import { CustomerSelector, CustomerSelectorRef } from '@/components/customer-selector';
 
 export default function LoginPage() {
   const router = useRouter();
+  const customerSelectorRef = useRef<CustomerSelectorRef>(null);
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -24,13 +19,8 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Customer selection dialog states
-  const [showCustomerDialog, setShowCustomerDialog] = useState(false);
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [loadingCustomers, setLoadingCustomers] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-  const [token, setToken] = useState('');
-  const [loginResponseData, setLoginResponseData] = useState<any>(null);
+  // Login data for CustomerSelector
+  const [loginData, setLoginData] = useState<any>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,23 +36,24 @@ export default function LoginPage() {
       });
 
       if (result.success && result.data?.token) {
-        // Store token and login response data temporarily
-        setToken(result.data.token);
-        setLoginResponseData(result.data);
-
         // Fetch customer list
-        setLoadingCustomers(true);
         const customerResult = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}auth/customer_list`, {
           headers: {
             'Authorization': `Bearer ${result.data.token}`
           }
         });
 
-        setLoadingCustomers(false);
-
         if (customerResult.success && customerResult.data?.customers) {
-          setCustomers(customerResult.data.customers);
-          setShowCustomerDialog(true);
+          // Set login data for CustomerSelector
+          setLoginData({
+            username,
+            token: result.data.token,
+            rememberMe,
+            loginResponseData: result.data
+          });
+
+          // Open customer selector dialog
+          customerSelectorRef.current?.openDialog(customerResult.data.customers);
         } else {
           setError(customerResult.message || 'ไม่สามารถโหลดรายการโครงการได้');
         }
@@ -76,36 +67,7 @@ export default function LoginPage() {
     setLoading(false);
   };
 
-  const handleCustomerSelect = (customer: any) => {
-    // Get userid from login response data
-    const userid = loginResponseData?.user?.userid ? parseInt(loginResponseData.user.userid) : 99;
-
-    // Store user data with customer info
-    const userData = {
-      username,
-      token,
-      customer_id: customer.customer_id,
-      customer_name: customer.customer_name,
-      site_name: customer.site_name,
-      site_code: customer.site_code,
-      uid: userid
-    };
-
-    // Save to localStorage
-    localStorage.setItem('kconnect_user', JSON.stringify(userData));
-
-    // Save to cookie
-    if (rememberMe) {
-      // Remember for 30 days
-      const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString();
-      document.cookie = `kconnect_user=${JSON.stringify(userData)}; path=/; expires=${expires}`;
-    } else {
-      // Session cookie (expires when browser closes)
-      document.cookie = `kconnect_user=${JSON.stringify(userData)}; path=/;`;
-    }
-
-    // Redirect to dashboard
-    setShowCustomerDialog(false);
+  const handleLoginComplete = () => {
     router.push('/dashboard');
   };
 
@@ -309,61 +271,12 @@ export default function LoginPage() {
       </div>
 
       {/* Customer Selection Dialog */}
-      <Dialog open={showCustomerDialog} onOpenChange={setShowCustomerDialog}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>เลือกโครงการ</DialogTitle>
-            <DialogDescription>
-              กรุณาเลือกโครงการที่ต้องการเข้าสู่ระบบ
-            </DialogDescription>
-          </DialogHeader>
-
-          {loadingCustomers ? (
-            <div className="py-12 text-center">
-              <div className="w-8 h-8 border-4 border-blue-600/30 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
-              <p className="text-sm text-slate-500">กำลังโหลดรายการโครงการ...</p>
-            </div>
-          ) : (
-            <div className="py-4 max-h-[400px] overflow-y-auto">
-              <div className="space-y-2">
-                {customers.map((customer, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleCustomerSelect(customer)}
-                    className="w-full text-left p-4 rounded-lg border border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer group"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-200 transition-colors">
-                        <i className="fas fa-building text-blue-600"></i>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-slate-800 truncate">{customer.site_name}</div>
-                        <div className="text-sm text-slate-500 mt-1">
-                          {customer.customer_name}
-                        </div>
-                        <div className="text-xs text-slate-400 mt-1">
-                          รหัสโครงการ: {customer.customer_id}
-                        </div>
-                      </div>
-                      <i className="fas fa-chevron-right text-slate-400 group-hover:text-blue-600 transition-colors"></i>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowCustomerDialog(false)}
-            >
-              ยกเลิก
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CustomerSelector
+        ref={customerSelectorRef}
+        isLoginMode={true}
+        loginData={loginData}
+        onLoginComplete={handleLoginComplete}
+      />
 
       {/* Custom Animations */}
       <style jsx global>{`
