@@ -1139,6 +1139,8 @@ export default function RoomPage() {
                                       return { label: 'เกินกำหนด', className: 'bg-red-50 text-red-700' };
                                     case 4:
                                       return { label: 'ชำระบางส่วน', className: 'bg-blue-50 text-[#0891B2]' };
+                                    case 5:
+                                      return { label: 'รอตรวจสอบ', className: 'bg-yellow-50 text-yellow-700' };
                                     default:
                                       return { label: '-', className: 'bg-slate-50 text-slate-700' };
                                   }
