@@ -1707,21 +1707,94 @@ export default function PaymentPage() {
 
       {/* Reject Confirmation Dialog */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>ปฏิเสธรายการ</DialogTitle>
-            <DialogDescription>
-              กรุณาระบุเหตุผลในการปฏิเสธรายการที่เลือก
-            </DialogDescription>
+            <DialogTitle className="flex items-center gap-2">
+              <i className="fas fa-exclamation-triangle text-red-500"></i>
+              ระบุเหตุผลการปฏิเสธ
+            </DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <textarea
-              value={rejectRemark}
-              onChange={(e) => setRejectRemark(e.target.value)}
-              placeholder="เหตุผลในการปฏิเสธ..."
-              className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              rows={4}
-            />
+            {/* Warning Box */}
+            <div className="bg-red-100 p-4 rounded-lg mb-5 border-l-4 border-red-500">
+              <div className="font-semibold text-red-500 mb-2">
+                <i className="fas fa-info-circle"></i> กรุณาระบุเหตุผลในการปฏิเสธ
+              </div>
+              <p className="text-sm text-slate-700 mt-2">
+                เหตุผลจะถูกส่งไปยังลูกบ้านเพื่อทำการแก้ไขและส่งสลิปใหม่
+              </p>
+            </div>
+
+            {/* Quick Reasons */}
+            <div className="mb-4">
+              <label className="block mb-3 font-semibold text-slate-800">
+                <i className="fas fa-list"></i> เลือกเหตุผลด่วน (Quick Text)
+              </label>
+              <div className="grid gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRejectRemark('ข้อมูลในสลิปไม่ชัดเจน กรุณาถ่ายภาพใหม่ให้ชัดเจนยิ่งขึ้น')}
+                  className="flex items-center gap-3 p-3 text-left bg-white border border-slate-200 rounded-lg hover:bg-blue-50 hover:border-blue-500 hover:text-blue-600 transition-all hover:translate-x-1"
+                >
+                  <i className="fas fa-image text-blue-600 w-5"></i>
+                  <span>ข้อมูลในสลิปไม่ชัดเจน</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRejectRemark('จำนวนเงินไม่ตรงกับบิล กรุณาตรวจสอบและชำระให้ครบถ้วน')}
+                  className="flex items-center gap-3 p-3 text-left bg-white border border-slate-200 rounded-lg hover:bg-blue-50 hover:border-blue-500 hover:text-blue-600 transition-all hover:translate-x-1"
+                >
+                  <i className="fas fa-calculator text-blue-600 w-5"></i>
+                  <span>จำนวนเงินไม่ตรงกับบิล</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRejectRemark('วันที่โอนเงินไม่ตรงกับระบบ กรุณาตรวจสอบอีกครั้ง')}
+                  className="flex items-center gap-3 p-3 text-left bg-white border border-slate-200 rounded-lg hover:bg-blue-50 hover:border-blue-500 hover:text-blue-600 transition-all hover:translate-x-1"
+                >
+                  <i className="fas fa-calendar text-blue-600 w-5"></i>
+                  <span>วันที่โอนเงินไม่ตรง</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRejectRemark('ไม่พบหลักฐานการโอนเงินในระบบธนาคาร กรุณาตรวจสอบ')}
+                  className="flex items-center gap-3 p-3 text-left bg-white border border-slate-200 rounded-lg hover:bg-blue-50 hover:border-blue-500 hover:text-blue-600 transition-all hover:translate-x-1"
+                >
+                  <i className="fas fa-university text-blue-600 w-5"></i>
+                  <span>ไม่พบหลักฐานในระบบธนาคาร</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRejectRemark('สลิปไม่ตรงกับเลขที่บัญชีของนิติบุคคล')}
+                  className="flex items-center gap-3 p-3 text-left bg-white border border-slate-200 rounded-lg hover:bg-blue-50 hover:border-blue-500 hover:text-blue-600 transition-all hover:translate-x-1"
+                >
+                  <i className="fas fa-credit-card text-blue-600 w-5"></i>
+                  <span>บัญชีปลายทางไม่ถูกต้อง</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRejectRemark('สลิปถูกใช้ไปแล้ว หรืออาจเป็นสลิปปลอม')}
+                  className="flex items-center gap-3 p-3 text-left bg-white border border-slate-200 rounded-lg hover:bg-blue-50 hover:border-blue-500 hover:text-blue-600 transition-all hover:translate-x-1"
+                >
+                  <i className="fas fa-shield-alt text-blue-600 w-5"></i>
+                  <span>สลิปถูกใช้แล้ว/ปลอม</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Textarea */}
+            <div>
+              <label className="block mb-2 font-semibold text-slate-800">
+                <i className="fas fa-comment-dots"></i> เหตุผลการปฏิเสธ *
+              </label>
+              <textarea
+                value={rejectRemark}
+                onChange={(e) => setRejectRemark(e.target.value)}
+                placeholder="กรอกเหตุผลการปฏิเสธ หรือเลือกจากปุ่มด่วนด้านบน..."
+                className="w-full p-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                rows={4}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -1730,14 +1803,16 @@ export default function PaymentPage() {
               onClick={() => setRejectDialogOpen(false)}
               disabled={submittingAction}
             >
-              ยกเลิก
+              <i className="fas fa-arrow-left mr-2"></i>
+              ย้อนกลับ
             </Button>
             <Button
               className="bg-red-600 hover:bg-red-700"
               onClick={handleRejectConfirm}
               disabled={submittingAction}
             >
-              {submittingAction ? 'กำลังบันทึก...' : 'ยืนยันปฏิเสธ'}
+              <i className="fas fa-times-circle mr-2"></i>
+              {submittingAction ? 'กำลังบันทึก...' : 'ยืนยันการปฏิเสธ'}
             </Button>
           </DialogFooter>
         </DialogContent>

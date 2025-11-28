@@ -165,7 +165,7 @@ export default function SettingsPage() {
     const user = getCurrentUser();
     const customerId = user?.customer_id || '';
 
-    const url = `${process.env.NEXT_PUBLIC_API_PATH}app_customer_config/list?page=1&limit=100&customer_id=${customerId}`;
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}app_customer_config/list?page=1&limit=100&customer_id=${customerId}&config_key=bank_transfer`;
     const result = await apiCall(url);
 
     if (result.success) {
