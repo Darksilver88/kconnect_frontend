@@ -17,9 +17,13 @@ import { logout, getCurrentUser } from '@/lib/auth';
 export function UserMenu() {
   const router = useRouter();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const user = getCurrentUser();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    // Add slight delay to show loading state
+    await new Promise(resolve => setTimeout(resolve, 800));
     logout();
     router.push('/login');
   };
@@ -44,8 +48,19 @@ export function UserMenu() {
         </div>
       </div>
 
-      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-        <DialogContent>
+      <Dialog open={showLogoutDialog} onOpenChange={(open) => {
+        if (!loggingOut) {
+          setShowLogoutDialog(open);
+        }
+      }}>
+        <DialogContent
+          onInteractOutside={(e) => {
+            if (loggingOut) e.preventDefault();
+          }}
+          onEscapeKeyDown={(e) => {
+            if (loggingOut) e.preventDefault();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>ออกจากระบบ</DialogTitle>
             <DialogDescription>
@@ -56,14 +71,23 @@ export function UserMenu() {
             <Button
               variant="outline"
               onClick={() => setShowLogoutDialog(false)}
+              disabled={loggingOut}
             >
               ยกเลิก
             </Button>
             <Button
               variant="destructive"
               onClick={handleLogout}
+              disabled={loggingOut}
             >
-              ออกจากระบบ
+              {loggingOut ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                  กำลังออกจากระบบ...
+                </>
+              ) : (
+                'ออกจากระบบ'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
