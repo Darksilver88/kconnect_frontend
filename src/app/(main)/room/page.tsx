@@ -1140,7 +1140,7 @@ export default function RoomPage() {
                                     case 4:
                                       return { label: 'ชำระบางส่วน', className: 'bg-blue-50 text-[#0891B2]' };
                                     case 5:
-                                      return { label: 'รอตรวจสอบ', className: 'bg-yellow-50 text-yellow-700' };
+                                      return { label: 'รอตรวจสอบ', className: 'bg-[#dbeafe] text-[#1447e6]' };
                                     default:
                                       return { label: '-', className: 'bg-slate-50 text-slate-700' };
                                   }

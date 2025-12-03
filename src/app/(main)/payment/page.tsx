@@ -154,6 +154,9 @@ export default function PaymentPage() {
   const [cardLast4, setCardLast4] = useState('');
   const [otherMethod, setOtherMethod] = useState('');
 
+  // Bank list for transfer
+  const [bankList, setBankList] = useState<any[]>([]);
+
   // Fetch summary status
   const fetchSummaryStatus = async () => {
     const user = getCurrentUser();
@@ -231,6 +234,18 @@ export default function PaymentPage() {
     }
   };
 
+  // Fetch bank list (for transfer method)
+  const fetchBankList = async () => {
+    const user = getCurrentUser();
+    const customerId = user?.customer_id || '';
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}bank/master_list?customer_id=${encodeURIComponent(customerId)}`;
+    const result = await apiCall(url);
+
+    if (result.success && result.data) {
+      setBankList(result.data);
+    }
+  };
+
   useEffect(() => {
     fetchSummaryStatus();
     fetchSummaryData();
@@ -239,6 +254,13 @@ export default function PaymentPage() {
     fetchBillStatusList();
     fetchPaymentMethods();
   }, []);
+
+  // Fetch bank list when payment method is transfer (id = 2)
+  useEffect(() => {
+    if (selectedPaymentMethod === '2') {
+      fetchBankList();
+    }
+  }, [selectedPaymentMethod]);
 
   // Handle URL query parameters and fetch data
   const searchParams = useSearchParams();
@@ -406,8 +428,8 @@ export default function PaymentPage() {
     if (status === 5) {
       return {
         label: statusLabel,
-        className: 'bg-yellow-50 hover:bg-yellow-100',
-        textColor: '#D97706',
+        className: 'bg-[#dbeafe] hover:bg-blue-100',
+        textColor: '#1447e6',
         icon: 'fa-clock'
       };
     }
@@ -1476,7 +1498,7 @@ export default function PaymentPage() {
                                     {/* สถานะ - Tab 1 only */}
                                     {activeTab === '1' && (
                                       <td className="px-4 py-4 !text-center">
-                                        <div className="inline-flex items-center px-3 py-1 rounded text-sm font-medium bg-yellow-50 hover:bg-yellow-100" style={{ color: '#D97706' }}>
+                                        <div className="inline-flex items-center px-3 py-1 rounded text-sm font-medium bg-[#dbeafe] hover:bg-blue-100" style={{ color: '#1447e6' }}>
                                           รอตรวจสอบ
                                         </div>
                                       </td>
@@ -1940,13 +1962,37 @@ export default function PaymentPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-slate-700">ธนาคารที่โอน</label>
-                        <input
-                          type="text"
-                          value={transferBank}
-                          onChange={(e) => setTransferBank(e.target.value)}
-                          placeholder="เช่น: ธนาคารกสิกรไทย"
-                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
+                        <Select value={transferBank} onValueChange={setTransferBank}>
+                          <SelectTrigger className="w-full h-[42px] px-3 py-2 border border-slate-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <SelectValue placeholder="เลือกธนาคาร">
+                              {transferBank && bankList.length > 0 ? (
+                                (() => {
+                                  const selectedBank = bankList.find(b => String(b.id) === transferBank);
+                                  return selectedBank ? (
+                                    <div className="flex items-center gap-2">
+                                      {selectedBank.icon && (
+                                        <img src={selectedBank.icon} alt={selectedBank.name} className="w-5 h-5 object-contain" />
+                                      )}
+                                      <span>{selectedBank.name}</span>
+                                    </div>
+                                  ) : 'เลือกธนาคาร';
+                                })()
+                              ) : 'เลือกธนาคาร'}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {bankList.map((bank) => (
+                              <SelectItem key={bank.id} value={String(bank.id)}>
+                                <div className="flex items-center gap-2">
+                                  {bank.icon && (
+                                    <img src={bank.icon} alt={bank.name} className="w-5 h-5 object-contain" />
+                                  )}
+                                  <span>{bank.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-slate-700">เลขที่อ้างอิง</label>

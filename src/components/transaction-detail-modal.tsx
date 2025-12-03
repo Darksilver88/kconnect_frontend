@@ -200,7 +200,7 @@ export function TransactionDetailModal({
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-slate-700">ธนาคารที่โอน</label>
                           <div className="px-3 py-2 bg-white border border-slate-200 rounded-md">
-                            {data.transaction_type_json?.transfer_bank || '-'}
+                            {data.transaction_type_json?.bank_name || '-'}
                           </div>
                         </div>
                         <div className="space-y-2">
