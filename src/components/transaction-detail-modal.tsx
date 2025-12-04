@@ -45,6 +45,16 @@ export function TransactionDetailModal({
         : null;
 
       if (latestTransaction) {
+        // Get payment data from payment_list if exists
+        const paymentData = billRoomData.payment_list && billRoomData.payment_list.length > 0
+          ? billRoomData.payment_list[0]
+          : null;
+
+        // Format payment_date_app_detail_formatted by adding :00
+        const paymentDate = paymentData?.payment_date_app_detail_formatted
+          ? `${paymentData.payment_date_app_detail_formatted}:00`
+          : latestTransaction.pay_date_formatted;
+
         // Combine bill_room data with latest transaction
         setData({
           ...latestTransaction,
@@ -53,7 +63,8 @@ export function TransactionDetailModal({
           member_name: billRoomData.member_name,
           house_no: billRoomData.house_no,
           total_price: billRoomData.total_price,
-          summary: billRoomData.summary
+          summary: billRoomData.summary,
+          pay_date_formatted: paymentDate
         });
       } else {
         toast.error('ไม่พบข้อมูลการชำระเงิน');

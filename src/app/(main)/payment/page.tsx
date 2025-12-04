@@ -670,7 +670,7 @@ export default function PaymentPage() {
         member_name: data.member_name || '-',
         member_detail: data.member_detail || '-',
         payment_amount: data.payment_amount || '-',
-        transfer_date: data.transfer_date || data.create_date_formatted || '-',
+        transfer_date: data.payment_date_formatted || data.create_date_formatted || '-',
         bank_name: data.bank_name || data.payment_type_title || '-',
         bill_no: data.bill_no || '-',
         member_remark: data.member_remark || '-',
