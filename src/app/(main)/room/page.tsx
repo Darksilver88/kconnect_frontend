@@ -670,12 +670,30 @@ export default function RoomPage() {
               </div>
             </Card>
 
-            {/* Card 4: Purple - ผู้เช่า */}
+            {/* Card 4: Teal - ผู้อาศัย */}
+            <Card className="relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-teal-500"></div>
+              <div className="p-4 relative">
+                <div className="absolute top-3 right-3 w-12 h-12 rounded-full bg-teal-50 flex items-center justify-center">
+                  <i className="fas fa-user-tag text-teal-500 text-lg"></i>
+                </div>
+                <div className="text-3xl font-bold text-slate-900 mb-1">
+                  {roomSummaryData.total_livers?.count || 0}
+                </div>
+                <div className="text-sm text-slate-600 mb-2">ผู้อาศัย</div>
+                <div className={`text-xs font-bold ${roomSummaryData.total_livers?.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <i className={`fas fa-arrow-${roomSummaryData.total_livers?.change >= 0 ? 'up' : 'down'}`}></i>{' '}
+                  {roomSummaryData.total_livers?.change_text || '-'}
+                </div>
+              </div>
+            </Card>
+
+            {/* Card 5: Purple - ผู้เช่า */}
             <Card className="relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-1 bg-purple-500"></div>
               <div className="p-4 relative">
                 <div className="absolute top-3 right-3 w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center">
-                  <i className="fas fa-user-tag text-purple-500 text-lg"></i>
+                  <i className="fas fa-user-friends text-purple-500 text-lg"></i>
                 </div>
                 <div className="text-3xl font-bold text-slate-900 mb-1">
                   {roomSummaryData.total_renters?.count || 0}
@@ -684,24 +702,6 @@ export default function RoomPage() {
                 <div className={`text-xs font-bold ${roomSummaryData.total_renters?.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   <i className={`fas fa-arrow-${roomSummaryData.total_renters?.change >= 0 ? 'up' : 'down'}`}></i>{' '}
                   {roomSummaryData.total_renters?.change_text || '-'}
-                </div>
-              </div>
-            </Card>
-
-            {/* Card 5: Teal - สมาชิกครอบครัว */}
-            <Card className="relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-teal-500"></div>
-              <div className="p-4 relative">
-                <div className="absolute top-3 right-3 w-12 h-12 rounded-full bg-teal-50 flex items-center justify-center">
-                  <i className="fas fa-user-friends text-teal-500 text-lg"></i>
-                </div>
-                <div className="text-3xl font-bold text-slate-900 mb-1">
-                  {roomSummaryData.family_members?.count || 0}
-                </div>
-                <div className="text-sm text-slate-600 mb-2">สมาชิกครอบครัว</div>
-                <div className={`text-xs font-bold ${roomSummaryData.family_members?.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  <i className={`fas fa-arrow-${roomSummaryData.family_members?.change >= 0 ? 'up' : 'down'}`}></i>{' '}
-                  {roomSummaryData.family_members?.change_text || '-'}
                 </div>
               </div>
             </Card>
@@ -1160,8 +1160,58 @@ export default function RoomPage() {
                                       </span>
                                     </td>
                                     <td className="px-4 py-3">
-                                      <div className="flex justify-center">
-                                        {item.status === 1 ? (
+                                      <div className="flex justify-center gap-2">
+                                        <button
+                                          onClick={async () => {
+                                            const user = getCurrentUser();
+                                            const customerId = user?.customer_id || '';
+                                            const token = user?.token || '';
+
+                                            const url = `${process.env.NEXT_PUBLIC_API_PATH}bill_room/getInvoice?bill_room_id=${item.id}&customer_id=${encodeURIComponent(customerId)}`;
+
+                                            try {
+                                              toast.info('กำลังดาวน์โหลดใบแจ้งหนี้...');
+
+                                              const response = await fetch(url, {
+                                                headers: {
+                                                  'Authorization': `Bearer ${token}`
+                                                }
+                                              });
+
+                                              if (!response.ok) {
+                                                toast.error('ไม่สามารถดาวน์โหลดไฟล์ได้');
+                                                return;
+                                              }
+
+                                              const blob = await response.blob();
+                                              const downloadUrl = window.URL.createObjectURL(blob);
+                                              const a = document.createElement('a');
+                                              a.href = downloadUrl;
+
+                                              const filename = response.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || `invoice_${item.bill_no || item.id}.pdf`;
+                                              a.download = filename;
+
+                                              document.body.appendChild(a);
+                                              a.click();
+                                              document.body.removeChild(a);
+                                              window.URL.revokeObjectURL(downloadUrl);
+
+                                              toast.success('ดาวน์โหลดสำเร็จ');
+                                            } catch (error) {
+                                              toast.error('เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์');
+                                            }
+                                          }}
+                                          className="relative group inline-flex items-center px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 hover:shadow-md rounded transition-all cursor-pointer"
+                                          title="ดาวน์โหลดใบแจ้งหนี้"
+                                        >
+                                          <i className="fas fa-download mr-1.5"></i>
+                                          ดาวน์โหลด
+                                          <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-slate-900 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                            ดาวน์โหลดใบแจ้งหนี้
+                                          </span>
+                                        </button>
+
+                                        {item.status === 1 && (
                                           <button
                                             onClick={() => {
                                               setTransactionDetailBillRoomId(item.id);
@@ -1172,8 +1222,55 @@ export default function RoomPage() {
                                             <i className="fas fa-eye mr-1.5"></i>
                                             ดูบิล
                                           </button>
-                                        ) : (
-                                          <span className="text-sm text-slate-400">-</span>
+                                        )}
+
+                                        {(item.status === 0 || item.status === 3) && (
+                                          item.can_send_notification === 1 ? (
+                                            <button
+                                              onClick={async () => {
+                                                const user = getCurrentUser();
+                                                const customerId = user?.customer_id || '';
+                                                const uid = user?.uid || -1;
+
+                                                const payload = {
+                                                  customer_id: customerId,
+                                                  uid: uid,
+                                                  table_name: 'bill_room_information',
+                                                  id: item.id,
+                                                };
+
+                                                const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}bill/send_notification_each`, {
+                                                  method: 'POST',
+                                                  headers: {
+                                                    'Content-Type': 'application/json',
+                                                  },
+                                                  body: JSON.stringify(payload),
+                                                });
+
+                                                if (result.success) {
+                                                  toast.success('ส่งการแจ้งเตือนสำเร็จ');
+                                                  // Refresh payment history
+                                                  if (viewRoomHouseNo) {
+                                                    fetchPaymentHistory(viewRoomHouseNo, paymentHistoryPage);
+                                                  }
+                                                } else {
+                                                  toast.error(result.message || result.error || 'เกิดข้อผิดพลาดในการส่งการแจ้งเตือน');
+                                                }
+                                              }}
+                                              className="w-8 h-8 rounded-md bg-orange-100 text-orange-600 hover:bg-orange-200 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
+                                              title="ส่งแจ้งเตือน"
+                                            >
+                                              <i className="fas fa-bell text-sm"></i>
+                                            </button>
+                                          ) : (
+                                            <button
+                                              disabled
+                                              className="w-8 h-8 rounded-md bg-gray-100 text-gray-400 cursor-not-allowed"
+                                              title={`ส่งล่าสุด: ${item.last_notification_date_formatted} | รออีก ${item.remaining_minutes} นาที`}
+                                            >
+                                              <i className="fas fa-clock text-sm"></i>
+                                            </button>
+                                          )
                                         )}
                                       </div>
                                     </td>

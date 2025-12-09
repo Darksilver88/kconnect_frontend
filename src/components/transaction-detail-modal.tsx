@@ -60,6 +60,10 @@ export function TransactionDetailModal({
           ...latestTransaction,
           bill_no: billRoomData.bill_no,
           bill_title: billRoomData.bill_title,
+          bill_type: billRoomData.bill_type,
+          bill_detail: billRoomData.bill_detail,
+          expire_date_formatted: billRoomData.expire_date_formatted,
+          status_formatted: billRoomData.status_formatted,
           member_name: billRoomData.member_name,
           house_no: billRoomData.house_no,
           total_price: billRoomData.total_price,
@@ -115,6 +119,20 @@ export function TransactionDetailModal({
                   <span className="text-sm font-semibold text-slate-900">{data.member_name} ({data.house_no})</span>
                 </div>
                 <div className="flex flex-col gap-1">
+                  <span className="text-xs text-slate-500">ประเภทบิล:</span>
+                  <span className="text-sm font-semibold text-slate-900">{data.bill_type || '-'}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-slate-500">งวด:</span>
+                  <span className="text-sm font-semibold text-slate-900">{data.bill_detail || '-'}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-slate-500">วันครบกำหนด:</span>
+                  <span className="text-sm font-semibold text-slate-900">
+                    {data.expire_date_formatted ? data.expire_date_formatted.split(' ')[0] : '-'}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1">
                   <span className="text-xs text-slate-500">ยอดรวมบิล:</span>
                   <span className="text-sm font-semibold text-slate-900">฿{data.total_price?.toLocaleString()}</span>
                 </div>
@@ -129,6 +147,22 @@ export function TransactionDetailModal({
                   <span className="text-sm font-bold text-red-700">
                     ฿{data.summary?.remaining_amount?.toLocaleString() || '0'}
                   </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-slate-500">สถานะ:</span>
+                  {data.status_formatted ? (
+                    <span
+                      className="inline-flex items-center px-2 py-1 rounded text-xs font-medium w-fit"
+                      style={{
+                        color: data.status_formatted.text_color,
+                        backgroundColor: data.status_formatted.background_color
+                      }}
+                    >
+                      {data.status_formatted.text}
+                    </span>
+                  ) : (
+                    <span className="text-sm font-semibold text-slate-900">-</span>
+                  )}
                 </div>
               </div>
             </div>

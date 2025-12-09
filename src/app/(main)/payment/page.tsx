@@ -965,41 +965,41 @@ export default function PaymentPage() {
       <div className="p-4 lg:p-8">
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          {/* Card 1: บิลทั้งหมดเดือนนี้ - #2b6ef3 */}
+          {/* Card 1: บิลทั้งหมด - #8b5cf6 */}
           <Card className="relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: '#2b6ef3' }}></div>
+            <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: '#8b5cf6' }}></div>
             <div className="p-4 relative">
-              <div className="absolute top-3 right-3 w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(43, 110, 243, 0.1)' }}>
-                <i className="fas fa-file-invoice-dollar text-lg" style={{ color: '#2b6ef3' }}></i>
+              <div className="absolute top-3 right-3 w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)' }}>
+                <i className="fas fa-file-invoice-dollar text-lg" style={{ color: '#8b5cf6' }}></i>
               </div>
               <div className="text-3xl font-bold text-slate-900 mb-1">
                 {summaryData?.total_bill_rooms?.count || 0}
               </div>
-              <div className="text-sm text-slate-600 mb-2">บิลทั้งหมดเดือนนี้</div>
+              <div className="text-sm text-slate-600 mb-2">บิลทั้งหมด</div>
               <div className={`text-xs font-bold ${summaryData?.total_bill_rooms?.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 <i className={`fas fa-arrow-${summaryData?.total_bill_rooms?.change >= 0 ? 'up' : 'down'}`}></i> {summaryData?.total_bill_rooms?.change_text || '-'}
               </div>
             </div>
           </Card>
 
-          {/* Card 2: รออนุมัติ - #eab308 */}
+          {/* Card 2: รอตรวจสอบ - #2b6ef3 */}
           <Card className="relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: '#eab308' }}></div>
+            <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: '#2b6ef3' }}></div>
             <div className="p-4 relative">
-              <div className="absolute top-3 right-3 w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(234, 179, 8, 0.1)' }}>
-                <i className="fas fa-clock text-lg" style={{ color: '#eab308' }}></i>
+              <div className="absolute top-3 right-3 w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(43, 110, 243, 0.1)' }}>
+                <i className="fas fa-clock text-lg" style={{ color: '#2b6ef3' }}></i>
               </div>
               <div className="text-3xl font-bold text-slate-900 mb-1">
                 {summaryData?.pending_payment?.count || 0}
               </div>
-              <div className="text-sm text-slate-600 mb-2">รออนุมัติ</div>
+              <div className="text-sm text-slate-600 mb-2">รอตรวจสอบ</div>
               <div className={`text-xs font-bold ${summaryData?.pending_payment?.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 <i className={`fas fa-arrow-${summaryData?.pending_payment?.change >= 0 ? 'up' : 'down'}`}></i> {summaryData?.pending_payment?.change_text || '-'}
               </div>
             </div>
           </Card>
 
-          {/* Card 3: อนุมัติแล้ว - #22c55e */}
+          {/* Card 3: อนุมัติ/ชำระแล้ว - #22c55e */}
           <Card className="relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: '#22c55e' }}></div>
             <div className="p-4 relative">
@@ -1009,7 +1009,7 @@ export default function PaymentPage() {
               <div className="text-3xl font-bold text-slate-900 mb-1">
                 {summaryData?.approved_payment?.count || 0}
               </div>
-              <div className="text-sm text-slate-600 mb-2">อนุมัติแล้ว</div>
+              <div className="text-sm text-slate-600 mb-2">อนุมัติ/ชำระแล้ว</div>
               <div className={`text-xs font-bold ${summaryData?.approved_payment?.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 <i className={`fas fa-arrow-${summaryData?.approved_payment?.change >= 0 ? 'up' : 'down'}`}></i> {summaryData?.approved_payment?.change_text || '-'}
               </div>
@@ -1033,12 +1033,12 @@ export default function PaymentPage() {
             </div>
           </Card>
 
-          {/* Card 5: รอชำระ - #8B5CF6 */}
+          {/* Card 5: รอชำระ - #eab308 */}
           <Card className="relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: '#8B5CF6' }}></div>
+            <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: '#eab308' }}></div>
             <div className="p-4 relative">
-              <div className="absolute top-3 right-3 w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)' }}>
-                <i className="fas fa-hand-holding-usd text-lg" style={{ color: '#8B5CF6' }}></i>
+              <div className="absolute top-3 right-3 w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(234, 179, 8, 0.1)' }}>
+                <i className="fas fa-hand-holding-usd text-lg" style={{ color: '#eab308' }}></i>
               </div>
               <div className="text-3xl font-bold text-slate-900 mb-1">
                 {summaryData?.unpaid_bill_rooms?.count || 0}
@@ -1322,6 +1322,7 @@ export default function PaymentPage() {
                               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">จำนวนเงิน</th>
                               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">ประเภทการชำระ</th>
                               {activeTab === '1' && <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700 whitespace-nowrap">สถานะ</th>}
+                              {(activeTab === '2' || activeTab === '3') && <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">วันที่ยื่นเรื่อง</th>}
                               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 whitespace-nowrap">
                                 {activeTab === '1' ? 'วันที่ส่ง' : activeTab === '2' ? 'วันที่อนุมัติ' : 'วันที่ปฏิเสธ'}
                               </th>
@@ -1341,7 +1342,7 @@ export default function PaymentPage() {
                       <tbody className="divide-y divide-slate-100">
                         {data.length === 0 ? (
                           <tr>
-                            <td colSpan={activeTab === '0' ? 8 : activeTab === '3' ? 9 : 8} className="px-4 py-8 text-center text-slate-500">
+                            <td colSpan={activeTab === '0' ? 8 : activeTab === '2' ? 9 : activeTab === '3' ? 10 : 8} className="px-4 py-8 text-center text-slate-500">
                               {searchKeyword ? 'ไม่พบข้อมูลที่ค้นหา' : 'ไม่มีข้อมูล'}
                             </td>
                           </tr>
@@ -1501,6 +1502,24 @@ export default function PaymentPage() {
                                         <div className="inline-flex items-center px-3 py-1 rounded text-sm font-medium bg-[#dbeafe] hover:bg-blue-100" style={{ color: '#1447e6' }}>
                                           รอตรวจสอบ
                                         </div>
+                                      </td>
+                                    )}
+
+                                    {/* วันที่ยื่นเรื่อง - Tab 2 & 3 */}
+                                    {(activeTab === '2' || activeTab === '3') && (
+                                      <td className="px-4 py-4">
+                                        {item.create_date_formatted ? (
+                                          <>
+                                            <div className="text-slate-800 text-sm">
+                                              {item.create_date_formatted.split(' ')[0]}
+                                            </div>
+                                            <div className="text-xs text-slate-500">
+                                              {item.create_date_formatted.split(' ')[1]}
+                                            </div>
+                                          </>
+                                        ) : (
+                                          <div className="text-slate-600">-</div>
+                                        )}
                                       </td>
                                     )}
 

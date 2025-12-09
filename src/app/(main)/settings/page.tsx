@@ -114,7 +114,7 @@ export default function SettingsPage() {
     const user = getCurrentUser();
     const customerId = user?.customer_id || '';
 
-    const url = `${process.env.NEXT_PUBLIC_API_PATH}bank/list?page=1&limit=10&keyword=&customer_id=${customerId}`;
+    const url = `${process.env.NEXT_PUBLIC_API_PATH}bank/list?page=1&limit=10&keyword=&customer_id=${customerId}&is_web=1`;
     const result = await apiCall(url);
 
     if (result.success) {

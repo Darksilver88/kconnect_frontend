@@ -2257,6 +2257,52 @@ export default function BillingPage() {
                               <td className="px-4 py-3 text-center">
                                 {billDetailsData.bill_info?.status === 1 ? (
                                   <div className="flex justify-center gap-2">
+                                    <button
+                                      onClick={async () => {
+                                        const user = getCurrentUser();
+                                        const customerId = user?.customer_id || '';
+                                        const token = user?.token || '';
+
+                                        const url = `${process.env.NEXT_PUBLIC_API_PATH}bill_room/getInvoice?bill_room_id=${item.id}&customer_id=${encodeURIComponent(customerId)}`;
+
+                                        try {
+                                          toast.info('กำลังดาวน์โหลดใบแจ้งหนี้...');
+
+                                          const response = await fetch(url, {
+                                            headers: {
+                                              'Authorization': `Bearer ${token}`
+                                            }
+                                          });
+
+                                          if (!response.ok) {
+                                            toast.error('ไม่สามารถดาวน์โหลดไฟล์ได้');
+                                            return;
+                                          }
+
+                                          const blob = await response.blob();
+                                          const downloadUrl = window.URL.createObjectURL(blob);
+                                          const a = document.createElement('a');
+                                          a.href = downloadUrl;
+
+                                          const filename = response.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || `invoice_${item.house_no || item.id}.pdf`;
+                                          a.download = filename;
+
+                                          document.body.appendChild(a);
+                                          a.click();
+                                          document.body.removeChild(a);
+                                          window.URL.revokeObjectURL(downloadUrl);
+
+                                          toast.success('ดาวน์โหลดสำเร็จ');
+                                        } catch (error) {
+                                          toast.error('เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์');
+                                        }
+                                      }}
+                                      className="w-8 h-8 rounded-md bg-green-100 text-green-600 hover:bg-green-200 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
+                                      title="ดาวน์โหลดใบแจ้งหนี้"
+                                    >
+                                      <i className="fas fa-download text-sm"></i>
+                                    </button>
+
                                     {item.status === 1 && (
                                       <button
                                         onClick={() => {
@@ -2274,7 +2320,7 @@ export default function BillingPage() {
                                       item.can_send_notification === 1 ? (
                                         <button
                                           onClick={() => handleSendNotificationEach(item.id)}
-                                          className="w-8 h-8 rounded-md bg-green-100 text-green-600 hover:bg-green-200 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
+                                          className="w-8 h-8 rounded-md bg-orange-100 text-orange-600 hover:bg-orange-200 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
                                           title="ส่งแจ้งเตือน"
                                         >
                                           <i className="fas fa-bell text-sm"></i>
@@ -2288,10 +2334,6 @@ export default function BillingPage() {
                                           <i className="fas fa-clock text-sm"></i>
                                         </button>
                                       )
-                                    )}
-
-                                    {item.status !== 0 && item.status !== 1 && item.status !== 3 && (
-                                      <span className="text-slate-400">-</span>
                                     )}
                                   </div>
                                 ) : (
