@@ -37,6 +37,7 @@ export const CustomerSelector = forwardRef<CustomerSelectorRef, CustomerSelector
   const [showDialog, setShowDialog] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selecting, setSelecting] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
 
   const fetchCustomers = async () => {
@@ -67,91 +68,105 @@ export const CustomerSelector = forwardRef<CustomerSelectorRef, CustomerSelector
   }));
 
   const handleCustomerSelect = async (customer: any) => {
-    let userData;
+    setSelecting(true);
 
-    if (isLoginMode && loginData) {
-      // Login mode: Create new user data
-      const userid = loginData.loginResponseData?.user?.userid ? parseInt(loginData.loginResponseData.user.userid) : 99;
+    try {
+      let userData;
 
-      userData = {
-        username: loginData.username,
-        token: loginData.token,
-        customer_id: customer.customer_id,
-        customer_name: customer.customer_name,
-        site_name: customer.site_name,
-        site_code: customer.site_code,
-        uid: userid
-      };
+      if (isLoginMode && loginData) {
+        // Login mode: Create new user data
+        const userid = loginData.loginResponseData?.user?.userid ? parseInt(loginData.loginResponseData.user.userid) : 99;
 
-      // Save to localStorage
-      localStorage.setItem('kconnect_user', JSON.stringify(userData));
+        userData = {
+          username: loginData.username,
+          token: loginData.token,
+          customer_id: customer.customer_id,
+          customer_name: customer.customer_name,
+          site_name: customer.site_name,
+          site_code: customer.site_code,
+          uid: userid
+        };
 
-      // Save to cookie based on rememberMe
-      if (loginData.rememberMe) {
-        const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString();
-        document.cookie = `kconnect_user=${JSON.stringify(userData)}; path=/; expires=${expires}`;
-      } else {
-        document.cookie = `kconnect_user=${JSON.stringify(userData)}; path=/;`;
-      }
-    } else {
-      // Normal mode: Update existing user data
-      const currentUser = getCurrentUser();
-      if (!currentUser) return;
+        // Save to localStorage
+        localStorage.setItem('kconnect_user', JSON.stringify(userData));
 
-      userData = {
-        ...currentUser,
-        customer_id: customer.customer_id,
-        customer_name: customer.customer_name,
-        site_name: customer.site_name,
-        site_code: customer.site_code,
-      };
-
-      // Save to localStorage
-      localStorage.setItem('kconnect_user', JSON.stringify(userData));
-
-      // Update cookie
-      const cookieData = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('kconnect_user='));
-
-      if (cookieData) {
-        const cookieValue = cookieData.split('=')[1];
-        try {
-          const oldData = JSON.parse(decodeURIComponent(cookieValue));
-          const isPersistent = document.cookie.includes('expires');
-
-          if (isPersistent) {
-            const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString();
-            document.cookie = `kconnect_user=${JSON.stringify(userData)}; path=/; expires=${expires}`;
-          } else {
-            document.cookie = `kconnect_user=${JSON.stringify(userData)}; path=/;`;
-          }
-        } catch {
+        // Save to cookie based on rememberMe
+        if (loginData.rememberMe) {
+          const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString();
+          document.cookie = `kconnect_user=${JSON.stringify(userData)}; path=/; expires=${expires}`;
+        } else {
           document.cookie = `kconnect_user=${JSON.stringify(userData)}; path=/;`;
         }
+      } else {
+        // Normal mode: Update existing user data
+        const currentUser = getCurrentUser();
+        if (!currentUser) {
+          setSelecting(false);
+          return;
+        }
+
+        userData = {
+          ...currentUser,
+          customer_id: customer.customer_id,
+          customer_name: customer.customer_name,
+          site_name: customer.site_name,
+          site_code: customer.site_code,
+        };
+
+        // Save to localStorage
+        localStorage.setItem('kconnect_user', JSON.stringify(userData));
+
+        // Update cookie
+        const cookieData = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('kconnect_user='));
+
+        if (cookieData) {
+          const cookieValue = cookieData.split('=')[1];
+          try {
+            const oldData = JSON.parse(decodeURIComponent(cookieValue));
+            const isPersistent = document.cookie.includes('expires');
+
+            if (isPersistent) {
+              const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString();
+              document.cookie = `kconnect_user=${JSON.stringify(userData)}; path=/; expires=${expires}`;
+            } else {
+              document.cookie = `kconnect_user=${JSON.stringify(userData)}; path=/;`;
+            }
+          } catch {
+            document.cookie = `kconnect_user=${JSON.stringify(userData)}; path=/;`;
+          }
+        }
       }
-    }
 
-    // Initialize config for new customer
-    await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}app_customer_config/init_config`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ customer_id: customer.customer_id }),
-    });
+      // Initialize config for new customer
+      const result = await apiCall(`${process.env.NEXT_PUBLIC_API_PATH}app_customer_config/init_config`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ customer_id: customer.customer_id }),
+      });
 
-    setShowDialog(false);
-
-    if (isLoginMode && onLoginComplete) {
-      // Login mode: Call completion callback
-      onLoginComplete();
-    } else {
-      // Normal mode: Callback and refresh
-      if (onCustomerChange) {
-        onCustomerChange();
+      if (!result.success) {
+        console.error('Failed to initialize config:', result.error || result.message);
       }
-      window.location.reload();
+
+      setShowDialog(false);
+
+      if (isLoginMode && onLoginComplete) {
+        // Login mode: Call completion callback
+        onLoginComplete();
+      } else {
+        // Normal mode: Callback and refresh
+        if (onCustomerChange) {
+          onCustomerChange();
+        }
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error selecting customer:', error);
+      setSelecting(false);
     }
   };
 
@@ -187,10 +202,10 @@ export const CustomerSelector = forwardRef<CustomerSelectorRef, CustomerSelector
             />
           </div>
 
-          {loading ? (
+          {loading || selecting ? (
             <div className="py-12 text-center">
               <div className="w-8 h-8 border-4 border-blue-600/30 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
-              <p className="text-sm text-slate-500">กำลังโหลดรายการโครงการ...</p>
+              <p className="text-sm text-slate-500">{loading ? 'กำลังโหลดรายการโครงการ...' : 'กำลังเข้าสู่ระบบ...'}</p>
             </div>
           ) : (
             <div className="py-4 max-h-[400px] overflow-y-auto">
@@ -214,10 +229,10 @@ export const CustomerSelector = forwardRef<CustomerSelectorRef, CustomerSelector
                     <button
                       key={index}
                       onClick={() => handleCustomerSelect(customer)}
-                      disabled={isCurrentCustomer}
+                      disabled={isCurrentCustomer || selecting}
                       className={`w-full text-left p-4 rounded-lg border transition-all cursor-pointer group ${
-                        isCurrentCustomer
-                          ? 'border-blue-500 bg-blue-50 cursor-default'
+                        isCurrentCustomer || selecting
+                          ? 'border-blue-500 bg-blue-50 cursor-default opacity-50'
                           : 'border-slate-200 hover:border-blue-500 hover:bg-blue-50'
                       }`}
                     >
